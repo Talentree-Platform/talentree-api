@@ -11,7 +11,7 @@ using Talentree.Repository.Data;
 
 namespace Talentree.Repository
 {
-    internal class UnitOfWork : IUnitOfWork
+    public class UnitOfWork : IUnitOfWork
     {
         private readonly TalentreeDbContext _dbContext;
 
