@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>b83217ed-460f-43c6-9e08-bcb679286464</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,15 +15,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Controllers\" />
-    <Folder Include="DTOs\" />
-    <Folder Include="Errors\" />
-    <Folder Include="Extentions\" />
-    <Folder Include="Helpers\" />
-    <Folder Include="Middlewares\" />
   </ItemGroup>
 
   <ItemGroup>
