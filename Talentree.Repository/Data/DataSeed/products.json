@@ -1,3 +1,50 @@
-{
-
-}
+[
+  {
+    "Name": "iPhone 15 Pro",
+    "Description": "Latest Apple smartphone with A17 Pro chip, titanium design, and advanced camera system",
+    "Price": 999.99,
+    "PictureUrl": "images/products/iphone15pro.png"
+  },
+  {
+    "Name": "Samsung Galaxy S24 Ultra",
+    "Description": "Flagship Android phone with AI features, S Pen, and exceptional camera",
+    "Price": 1199.99,
+    "PictureUrl": "images/products/galaxy-s24-ultra.png"
+  },
+  {
+    "Name": "MacBook Pro 16\"",
+    "Description": "Powerful laptop with M3 Max chip, stunning Liquid Retina XDR display",
+    "Price": 2499.99,
+    "PictureUrl": "images/products/macbook-pro-16.png"
+  },
+  {
+    "Name": "Nike Air Max 90",
+    "Description": "Classic sneakers with visible Air cushioning and timeless design",
+    "Price": 129.99,
+    "PictureUrl": "images/products/nike-air-max-90.png"
+  },
+  {
+    "Name": "Adidas Ultraboost 22",
+    "Description": "Premium running shoes with Boost cushioning technology",
+    "Price": 189.99,
+    "PictureUrl": "images/products/adidas-ultraboost-22.png"
+  },
+  {
+    "Name": "Sony WH-1000XM5",
+    "Description": "Industry-leading noise canceling wireless headphones",
+    "Price": 399.99,
+    "PictureUrl": "images/products/sony-wh1000xm5.png"
+  },
+  {
+    "Name": "Apple Watch Series 9",
+    "Description": "Advanced smartwatch with health monitoring and fitness tracking",
+    "Price": 429.99,
+    "PictureUrl": "images/products/apple-watch-s9.png"
+  },
+  {
+    "Name": "Clean Code Book",
+    "Description": "A Handbook of Agile Software Craftsmanship by Robert C. Martin",
+    "Price": 34.99,
+    "PictureUrl": "images/products/clean-code-book.png"
+  }
+]
