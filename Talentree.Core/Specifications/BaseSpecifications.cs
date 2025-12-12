@@ -10,6 +10,7 @@ namespace Talentree.Core.Specifications
 {
     public class BaseSpecifications<T> : ISpecifications<T> where T : BaseEntity
     {
+        #region Criteria
         public Expression<Func<T, bool>> Criteria { get; private set; } = null;
 
         // For specifications WITH criteria
@@ -21,7 +22,9 @@ namespace Talentree.Core.Specifications
         protected BaseSpecifications()
         {
         }
+        #endregion
 
+        #region Includes
         //Includes property and Method implementation  
         public ICollection<Expression<Func<T, object>>> Includes { get; private set; } = [];
 
@@ -29,9 +32,11 @@ namespace Talentree.Core.Specifications
         {
             Includes.Add(includeExpression);
         }
+        #endregion
 
+        #region Sorting
         //Sorting 
-        public Expression<Func<T, object>> OrderBy { get; private set; } 
+        public Expression<Func<T, object>> OrderBy { get; private set; }
 
         public Expression<Func<T, object>> OrderByDescending { get; private set; }
 
@@ -43,6 +48,8 @@ namespace Talentree.Core.Specifications
         {
             OrderByDescending = orderByDescExpression;
         }
+        #endregion
+        #region Pagination
         //Pagination
         public int Take { get; private set; }
 
@@ -55,6 +62,7 @@ namespace Talentree.Core.Specifications
             IsPaginated = true;
             Take = PageSize;
             Skip = (PageIndex - 1) * PageSize;
-        }
+        } 
+        #endregion
     }
 }
