@@ -1,6 +1,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using Talentree.API.Extensions;
+using Talentree.API.Extentions;
 using Talentree.Core;
 using Talentree.Repository.Data;
 
@@ -51,7 +52,7 @@ namespace Talentree.API
                 }
             });
 
-            builder.Services.AddScoped<IUnitOfWork, IUnitOfWork >();
+            builder.Services.AddApplicationServices();
 
 
 
