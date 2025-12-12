@@ -9,8 +9,22 @@ using Talentree.Core.Specifications;
 
 namespace Talentree.Repository
 {
+    /// <summary>
+    /// Evaluates and applies specification criteria to build the final EF Core query.
+    /// This is the bridge between the specification pattern and Entity Framework Core.
+    /// </summary>
+    /// <typeparam name="TEntity">The entity type that inherits from BaseEntity</typeparam>
+
     internal static class SpecificationsEvalutor<TEntity> where TEntity : BaseEntity
     {
+        
+        /// <summary>
+        /// Builds an IQueryable by applying all specification criteria to the input query.
+        /// The order of operations is: Where -> Include -> OrderBy -> Pagination
+        /// </summary>
+        /// <param name="inputQuery">The base queryable to start from (usually DbSet)</param>
+        /// <param name="specifications">The specification containing query criteria</param>
+        /// <returns>A fully configured IQueryable ready for execution</returns>
         public static IQueryable<TEntity> CreateQuery (IQueryable<TEntity> inputquery , ISpecifications<TEntity> specifications)
         {
             var Query = inputquery;

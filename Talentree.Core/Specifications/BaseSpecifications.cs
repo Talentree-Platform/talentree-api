@@ -8,6 +8,22 @@ using Talentree.Core.Entities;
 
 namespace Talentree.Core.Specifications
 {
+    /// <summary>
+    /// Base implementation of the Specification pattern providing fluent API for building queries.
+    /// Inherit from this class to create specific query specifications for your entities.
+    /// </summary>
+    /// <typeparam name="T">The entity type that inherits from BaseEntity</typeparam>
+    /// <example>
+    /// public class ActiveUsersSpec : BaseSpecifications<User>
+    /// {
+    ///     public ActiveUsersSpec() : base(u => u.IsActive)
+    ///     {
+    ///         AddInclude(u => u.Profile);
+    ///         AddOrderBy(u => u.Name);
+    ///         ApplyPagination(1, 10);
+    ///     }
+    /// }
+    /// </example>
     public class BaseSpecifications<T> : ISpecifications<T> where T : BaseEntity
     {
         #region Criteria
