@@ -12,5 +12,9 @@ namespace Talentree.Core.Specifications
     {
         public Expression<Func<T, bool>> Criteria { get; } //Where 
         public ICollection<Expression<Func<T, object>>> Includes { get; } //Includes
+
+        public Expression<Func<T, object>> OrderBy { get; } //OrderBy
+        public Expression<Func<T, object>> OrderByDescending { get; } //OrderByDescending
+
     }
 }

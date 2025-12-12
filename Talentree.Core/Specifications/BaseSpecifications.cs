@@ -24,9 +24,24 @@ namespace Talentree.Core.Specifications
 
         //Includes property and Method implementation  
         public ICollection<Expression<Func<T, object>>> Includes { get; private set; } = [];
+
         protected void AddInclude(Expression<Func<T, object>> includeExpression)
         {
             Includes.Add(includeExpression);
+        }
+
+        //Sorting 
+        public Expression<Func<T, object>> OrderBy { get; private set; } 
+
+        public Expression<Func<T, object>> OrderByDescending { get; private set; }
+
+        protected void AddOrderBy(Expression<Func<T, object>> orderByExpression)
+        {
+            OrderBy = orderByExpression;
+        }
+        protected void AddOrderByDescending(Expression<Func<T, object>> orderByDescExpression)
+        {
+            OrderByDescending = orderByDescExpression;
         }
     }
 }

@@ -27,8 +27,20 @@ namespace Talentree.Repository
                 if (specifications.Includes != null && specifications.Includes.Any())
                 {
                     Query = specifications.Includes.Aggregate(Query, (current, includeExp) => current.Include(includeExp));
+                }
+                #endregion
+
+                #region Adding Sorting For the Query
+                if (specifications.OrderBy is not null)
+                {
+                    Query = Query.OrderBy(specifications.OrderBy);
+                }
+                if (specifications.OrderByDescending is not null)
+                {
+                    Query = Query.OrderByDescending(specifications.OrderByDescending);
                 } 
                 #endregion
+
             }
 
             return Query;
