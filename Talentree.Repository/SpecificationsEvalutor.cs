@@ -16,6 +16,13 @@ namespace Talentree.Repository
             var Query = inputquery;
             if (specifications is not null)
             {
+                #region Adding Criteria To The Query
+                if (specifications.Criteria is not null)
+                {
+                    Query = Query.Where(specifications.Criteria);
+                } 
+                #endregion
+
                 #region Adding Includes For the Query
                 if (specifications.Includes != null && specifications.Includes.Any())
                 {

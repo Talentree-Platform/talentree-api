@@ -10,6 +10,7 @@ namespace Talentree.Core.Specifications
 {
     public interface ISpecifications<T> where T : BaseEntity
     {
+        public Expression<Func<T, bool>> Criteria { get; } //Where 
         public ICollection<Expression<Func<T, object>>> Includes { get; } //Includes
     }
 }
