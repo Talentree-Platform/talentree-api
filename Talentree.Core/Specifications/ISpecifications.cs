@@ -15,6 +15,9 @@ namespace Talentree.Core.Specifications
 
         public Expression<Func<T, object>> OrderBy { get; } //OrderBy
         public Expression<Func<T, object>> OrderByDescending { get; } //OrderByDescending
+        int Take { get; } //Take
+        int Skip { get; } //Skip
+        bool IsPaginated { get; } //IsPagingEnabled
 
     }
 }

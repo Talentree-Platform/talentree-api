@@ -38,6 +38,13 @@ namespace Talentree.Repository
                 if (specifications.OrderByDescending is not null)
                 {
                     Query = Query.OrderByDescending(specifications.OrderByDescending);
+                }
+                #endregion
+
+                #region Adding Pagination to the Query
+                if (specifications.IsPaginated)
+                {
+                    Query = Query.Skip(specifications.Skip).Take(specifications.Take);
                 } 
                 #endregion
 

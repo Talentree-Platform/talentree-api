@@ -43,5 +43,18 @@ namespace Talentree.Core.Specifications
         {
             OrderByDescending = orderByDescExpression;
         }
+        //Pagination
+        public int Take { get; private set; }
+
+        public int Skip { get; private set; }
+
+        public bool IsPaginated { get; private set; }
+
+        public void ApplyPagination(int PageIndex, int PageSize)
+        {
+            IsPaginated = true;
+            Take = PageSize;
+            Skip = (PageIndex - 1) * PageSize;
+        }
     }
 }
