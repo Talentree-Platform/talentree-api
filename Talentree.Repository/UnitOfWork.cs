@@ -16,14 +16,21 @@ namespace Talentree.Repository
         private readonly TalentreeDbContext _dbContext;
 
         // Hashtable stores repository instances to avoid creating duplicates
-        // Key: Entity type name, Value: Repository instance
-        private readonly Hashtable _repositories;
+        // Dictionary instead of Hashtable
+        // Key: Entity type name (e.g., "Product")
+        // Value: Repository instance (stored as object for generic flexibility)
+        private readonly Dictionary<string, object> _repositories;
 
         public UnitOfWork(TalentreeDbContext dbContext)
         {
             _dbContext = dbContext;
-            _repositories = new Hashtable();
+            _repositories = new Dictionary<string, object>();
         }
+
+        /// <summary>
+        /// Gets or creates a repository for the specified entity type
+        /// Repositories are cached to ensure the same instance is used throughout the Unit of Work lifecycle
+        /// </summary>
         public IGenericRepository<TEntity> Repository<TEntity>() where TEntity : BaseEntity
         {
             // Use the entity type name as the key for caching
@@ -36,8 +43,13 @@ namespace Talentree.Repository
                 _repositories.Add(entityType, repo);
 
             }
-            // Return the cached repository (cast required due to Hashtable storing objects)
-            return (IGenericRepository<TEntity>)_repositories[entityType]!;
+
+
+            // Return the cached repository
+            // Cast is still needed because Dictionary stores as object
+            // But at least the key is type-safe (string)
+            return (IGenericRepository<TEntity>)_repositories[entityType];
+
         }
 
         /// <summary>
@@ -48,6 +60,10 @@ namespace Talentree.Repository
         public async Task<int> CompleteAsync()
             => await _dbContext.SaveChangesAsync();
 
-        // No need To dispose DbContext here as it is managed by the DI container
+        /// <summary>
+        /// Disposes the database context and clears the repository cache - More Safe
+        /// </summary>
+        public async ValueTask DisposeAsync()
+            => await _dbContext.DisposeAsync();
     }
 }
