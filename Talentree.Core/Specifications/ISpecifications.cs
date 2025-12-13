@@ -10,6 +10,14 @@ namespace Talentree.Core.Specifications
 {
     public interface ISpecifications<T> where T : BaseEntity
     {
+        public Expression<Func<T, bool>> Criteria { get; } //Where 
+        public ICollection<Expression<Func<T, object>>> Includes { get; } //Includes
+
+        public Expression<Func<T, object>> OrderBy { get; } //OrderBy
+        public Expression<Func<T, object>> OrderByDescending { get; } //OrderByDescending
+        int Take { get; } //Take
+        int Skip { get; } //Skip
+        bool IsPaginated { get; } //IsPagingEnabled
 
     }
 }
