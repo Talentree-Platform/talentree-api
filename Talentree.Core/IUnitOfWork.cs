@@ -8,7 +8,7 @@ using Talentree.Core.Repository.Contract;
 
 namespace Talentree.Core
 {
-    public interface IUnitOfWork
+    public interface IUnitOfWork : IAsyncDisposable
     {
         /// <summary>
         /// Returns a repository instance for the specified entity type
