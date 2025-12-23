@@ -4,6 +4,7 @@ using Talentree.API.Extensions;
 using Talentree.API.Extentions;
 using Talentree.Core;
 using Talentree.Repository.Data;
+using Talentree.Repository.Identity;
 
 namespace Talentree.API
 {
@@ -55,6 +56,16 @@ namespace Talentree.API
             builder.Services.AddApplicationServices();
 
 
+            // Identity DbContext
+            builder.Services.AddDbContext<AppIdentityDbContext>(options =>
+            {
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+            });
+
+            //Identity Services
+            builder.Services.AddIdentityServices(builder.Configuration);
+
+
 
 
 
@@ -81,6 +92,7 @@ namespace Talentree.API
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication(); 
             app.UseAuthorization();
 
 
