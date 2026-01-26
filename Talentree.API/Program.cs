@@ -92,6 +92,9 @@ namespace Talentree.API
 
             app.UseHttpsRedirection();
 
+            // Global Exception Handling Middleware
+            app.UseGlobalExceptionHandling();
+
             app.UseAuthentication(); 
             app.UseAuthorization();
 
