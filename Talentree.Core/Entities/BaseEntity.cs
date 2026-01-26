@@ -24,34 +24,34 @@
         // ===============================
         // These properties can be added when we implement audit functionality
 
-        // /// <summary>
-        // /// Date and time when the entity was created (UTC)
-        // /// </summary>
-        // public DateTime CreatedAt { get; set; }
+        /// <summary>
+        /// Date and time when the entity was created (UTC)
+        /// </summary>
+        public DateTime CreatedAt { get; set; }
 
-        // /// <summary>
-        // /// Date and time when the entity was last updated (UTC)
-        // /// </summary>
-        // public DateTime? UpdatedAt { get; set; }
+        /// <summary>
+        /// Date and time when the entity was last updated (UTC)
+        /// </summary>
+        public DateTime? UpdatedAt { get; set; }
 
-        // /// <summary>
-        // /// User who created this entity
-        // /// </summary>
-        // public string? CreatedBy { get; set; }
+        /// <summary>
+        /// User who created this entity
+        /// </summary>
+        public string? CreatedBy { get; set; }
 
-        // /// <summary>
-        // /// User who last updated this entity
-        // /// </summary>
-        // public string? UpdatedBy { get; set; }
+        /// <summary>
+        /// User who last updated this entity
+        /// </summary>
+        public string? UpdatedBy { get; set; }
 
-        // /// <summary>
-        // /// Soft delete flag - true if entity is deleted
-        // /// </summary>
-        // public bool IsDeleted { get; set; }
+        /// <summary>
+        /// Soft delete flag - true if entity is deleted
+        /// </summary>
+        public bool IsDeleted { get; set; }
 
-        // /// <summary>
-        // /// Date and time when the entity was deleted (UTC)
-        // /// </summary>
-        // public DateTime? DeletedAt { get; set; }
+        /// <summary>
+        /// Date and time when the entity was deleted (UTC)
+        /// </summary>
+        public DateTime? DeletedAt { get; set; }
     }
 }

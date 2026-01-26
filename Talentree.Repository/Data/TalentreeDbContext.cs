@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 using Talentree.Core.Entities;
 
 namespace Talentree.Repository.Data
@@ -27,6 +28,8 @@ namespace Talentree.Repository.Data
         // TODO: Add your entities here as you create them
         // Example:
          public DbSet<Product> Products { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<RawMaterial> RawMaterials { get; set; }
 
 
         // ===============================
@@ -43,7 +46,23 @@ namespace Talentree.Repository.Data
             // Apply all entity configurations from this assembly
             // This will find all classes implementing IEntityTypeConfiguration<T>
             // and apply them automatically (e.g., ProductConfiguration, CategoryConfiguration)
-            modelBuilder.ApplyConfigurationsFromAssembly(typeof(TalentreeDbContext).Assembly);
+            //modelBuilder.ApplyConfigurationsFromAssembly(typeof(TalentreeDbContext).Assembly);
+
+            // Apply ONLY Business configurations (exclude Identity configs)
+            var businessConfigTypes = Assembly.GetExecutingAssembly()
+                .GetTypes()
+                .Where(t => t.Namespace != null
+                         && !t.Namespace.Contains("Identity.Config")  // ⭐ Exclude Identity configs
+                         && t.Namespace.Contains("Data.Config")       // ⭐ Only Data.Config
+                         && t.GetInterfaces().Any(i =>
+                             i.IsGenericType
+                             && i.GetGenericTypeDefinition() == typeof(IEntityTypeConfiguration<>)));
+
+            foreach (var configType in businessConfigTypes)
+            {
+                dynamic config = Activator.CreateInstance(configType);
+                modelBuilder.ApplyConfiguration(config);
+            }
 
         }
 
