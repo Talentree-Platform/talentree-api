@@ -1,23 +1,17 @@
-﻿// Talentree.Core/Entities/Identity/AppUser.cs
+﻿using Microsoft.AspNetCore.Identity;
+using Talentree.Core.Entities.Identity;
 
-using Microsoft.AspNetCore.Identity;
-using System.Net;
-
-namespace Talentree.Core.Entities.Identity
+public class AppUser : IdentityUser
 {
-    public class ApplicationUser : IdentityUser
-    {
-        public string DisplayName { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? LastLoginAt { get; set; }
-        public bool IsActive { get; set; } = true;
+    public string DisplayName { get; set; } = null!;
 
-        // ⭐ NEW - Track email verification separately from Identity's EmailConfirmed
-        // This gives us more control over the verification flow
-        public bool IsEmailVerified { get; set; } = false;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? LastLoginAt { get; set; }
 
-        // Navigation properties
-        public Address Address { get; set; }
-        public BusinessOwnerProfile? BusinessOwnerProfile { get; set; }
-    }
+    public bool IsActive { get; set; } = true;
+    public bool IsEmailVerified { get; set; } = false;
+
+    // Navigation
+    public Address? Address { get; set; }
+    public BusinessOwnerProfile? BusinessOwnerProfile { get; set; }
 }

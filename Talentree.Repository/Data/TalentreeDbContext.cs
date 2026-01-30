@@ -32,6 +32,8 @@ namespace Talentree.Repository.Data
 
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<OtpCode> OtpCodes { get; set; }
+        public DbSet<Address> Addresses { get; set; }
+        public DbSet<BusinessOwnerProfile> BusinessOwnerProfiles { get; set; }
 
         // ===============================
         // Model Configuration
