@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
 
@@ -52,6 +53,23 @@ namespace Talentree.Repository.Data
             // This will find all classes implementing IEntityTypeConfiguration<T>
             // and apply them automatically (e.g., ProductConfiguration, CategoryConfiguration)
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(TalentreeDbContext).Assembly);
+
+
+            // Global query filter - automatically exclude soft-deleted entities
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+                {
+                    // Add filter: IsDeleted == false
+                    var parameter = Expression.Parameter(entityType.ClrType, "e");
+                    var property = Expression.Property(parameter, nameof(BaseEntity.IsDeleted));
+                    var filter = Expression.Lambda(
+                        Expression.Equal(property, Expression.Constant(false)),
+                        parameter);
+
+                    entityType.SetQueryFilter(filter);
+                }
+            }
 
         }
 

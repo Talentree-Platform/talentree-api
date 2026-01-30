@@ -10,6 +10,10 @@ public abstract class BaseEntityConfiguration<T> : IEntityTypeConfiguration<T>
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.CreatedAt)
+            .HasDefaultValueSql("GETUTCDATE()");
+
+
+        builder.Property(e => e.CreatedAt)
             .IsRequired();
 
         builder.Property(e => e.CreatedBy)
