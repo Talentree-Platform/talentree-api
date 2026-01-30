@@ -12,8 +12,8 @@ using Talentree.Repository.Data;
 namespace Talentree.Repository.Data.Migrations
 {
     [DbContext(typeof(TalentreeDbContext))]
-    [Migration("20260130225537_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260130234131_IdentityANDconfig")]
+    partial class IdentityANDconfig
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -474,9 +474,6 @@ namespace Talentree.Repository.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
-
-                    b.Property<string>("ReplacedByTokenHash")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("datetime2");

@@ -17,7 +17,7 @@ namespace Talentree.Repository.Data
             try
             {
                 // Seed products from JSON file
-                await ProductsSeed.SeedAsync(context);
+                //await ProductsSeed.SeedAsync(context);
 
                 // TODO: Add more seeding when ready
                 // await ProductBrandsSeed.SeedAsync(context);

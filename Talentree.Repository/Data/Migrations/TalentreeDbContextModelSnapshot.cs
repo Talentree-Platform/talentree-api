@@ -472,9 +472,6 @@ namespace Talentree.Repository.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<string>("ReplacedByTokenHash")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime?>("RevokedAt")
                         .HasColumnType("datetime2");
 

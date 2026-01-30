@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Talentree.Repository.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class IdentityANDconfig : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -283,7 +283,6 @@ namespace Talentree.Repository.Data.Migrations
                     TokenHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     RevokedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ReplacedByTokenHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
