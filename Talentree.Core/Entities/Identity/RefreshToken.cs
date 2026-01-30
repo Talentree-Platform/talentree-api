@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Talentree.Core.Entities
+namespace Talentree.Core.Entities.Identity
 {
-    internal class test1
+    internal class RefreshToken
     {
-        //testing
     }
 }

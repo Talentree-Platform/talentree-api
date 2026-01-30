@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Talentree.Core.Entities;
+using Talentree.Core.Entities.Identity;
 
 namespace Talentree.Repository.Data
 {
@@ -7,7 +9,7 @@ namespace Talentree.Repository.Data
     /// Main database context for Talentree e-commerce platform
     /// Handles all product, order, and customer-related data
     /// </summary>
-    public class TalentreeDbContext : DbContext
+    public class TalentreeDbContext : IdentityDbContext<AppUser>
     {
         // ===============================
         // Constructor
@@ -28,6 +30,8 @@ namespace Talentree.Repository.Data
         // Example:
          public DbSet<Product> Products { get; set; }
 
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<OtpCode> OtpCodes { get; set; }
 
         // ===============================
         // Model Configuration
@@ -40,6 +44,8 @@ namespace Talentree.Repository.Data
         /// <param name="modelBuilder">The model builder instance</param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
             // Apply all entity configurations from this assembly
             // This will find all classes implementing IEntityTypeConfiguration<T>
             // and apply them automatically (e.g., ProductConfiguration, CategoryConfiguration)
