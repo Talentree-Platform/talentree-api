@@ -11,7 +11,7 @@ namespace Talentree.Core.Repository.Contract
     /// All write operations are tracked but not persisted until Unit of Work commits
     /// </summary>
     /// <typeparam name="T">Entity type that inherits from BaseEntity</typeparam>
-    public interface IGenericRepository<T> where T : BaseEntity
+    public interface IGenericRepository<T> where T : class
     {
         #region Basic CRUD Operations
 

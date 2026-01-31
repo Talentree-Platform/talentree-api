@@ -13,7 +13,7 @@ namespace Talentree.Service.Contracts
         /// Registers a new user
         /// Creates user account, assigns role, sends verification email
         /// </summary>
-        Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto);
+        Task<string> RegisterAsync(RegisterDto registerDto);
 
         /// <summary>
         /// Authenticates user and generates JWT tokens

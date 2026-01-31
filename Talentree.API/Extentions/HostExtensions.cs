@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Talentree.Repository.Data;
+using Talentree.Repository.Data.DataSeed;
 
 namespace Talentree.API.Extensions
 {
@@ -47,8 +49,10 @@ namespace Talentree.API.Extensions
 
                 logger.LogInformation("Data seeding completed successfully.");
 
-                // TODO: Add Identity migration when ready
-                // await MigrateIdentityDatabaseAsync(services, logger);
+             
+                // 2️⃣ Identity Seed
+                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+                await IdentitySeed.SeedRolesAsync(roleManager);
             }
             catch (Exception ex)
             {
@@ -63,26 +67,6 @@ namespace Talentree.API.Extensions
             return host;
         }
 
-        /// <summary>
-        /// Migrates Identity Database (to be implemented later)
-        /// </summary>
-        private static async Task MigrateIdentityDatabaseAsync(
-            IServiceProvider services,
-            ILogger logger)
-        {
-            // TODO: Implement when Identity is added
-            /*
-            logger.LogInformation("Starting migration for AppIdentityDbContext...");
-            
-            var identityDbContext = services.GetRequiredService<AppIdentityDbContext>();
-            await identityDbContext.Database.MigrateAsync();
-            
-            logger.LogInformation("AppIdentityDbContext migration completed.");
-            
-            // Seed Identity Users
-            var userManager = services.GetRequiredService<UserManager<AppUser>>();
-            await AppIdentityDbContextSeed.SeedUsersAsync(userManager);
-            */
-        }
+      
     }
 }

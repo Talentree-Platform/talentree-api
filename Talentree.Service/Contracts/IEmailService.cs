@@ -1,17 +1,17 @@
-﻿// Talentree.Service/Contracts/IEmailService.cs
+﻿
+using Talentree.Core.Entities.Identity;
 
 namespace Talentree.Service.Contracts
 {
-    /// <summary>
-    /// Email sending service
-    /// Handles sending OTPs, verification emails, notifications, etc.
-    /// </summary>
     public interface IEmailService
     {
         /// <summary>
         /// Sends OTP code for email verification or password reset
         /// </summary>
-        Task SendOtpAsync(string email, string otpCode, string subject);
+        /// <param name="email">Recipient email address</param>
+        /// <param name="otpCode">6-digit OTP code</param>
+        /// <param name="purpose">Purpose: EmailVerification or PasswordReset</param>
+        Task SendOtpAsync(string email, string otpCode, OtpPurpose purpose);
 
         /// <summary>
         /// Sends generic email

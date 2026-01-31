@@ -15,7 +15,7 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.Property(u => u.IsActive)
             .HasDefaultValue(true);
 
-        builder.Property(u => u.IsEmailVerified)
+        builder.Property(u => u.EmailConfirmed)
             .HasDefaultValue(false);
 
         // 1 : 1 Address

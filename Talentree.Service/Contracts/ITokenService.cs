@@ -1,37 +1,28 @@
-﻿// Talentree.Service/Contracts/ITokenService.cs
-using Talentree.Service.DTOs.Auth;
-using Talentree.Core.Entities.Identity;
+﻿using Talentree.Core.Entities.Identity;
 
-namespace Talentree.Service.Contracts
+public interface ITokenService
 {
+    string GenerateAccessToken(AppUser user, List<string> roles);
+
     /// <summary>
-    /// JWT and refresh token generation & validation service
+    /// Generates a refresh token entity for storing in DB
     /// </summary>
-    public interface ITokenService
-    {
-        /// <summary>
-        /// Generates JWT access token for a user
-        /// </summary>
-        string GenerateAccessToken(AppUser user, List<string> roles);
+    string GenerateRefreshToken();
 
-        /// <summary>
-        /// Generates a refresh token for a user
-        /// </summary>
-        RefreshToken GenerateRefreshToken(string userId);
+    /// <summary>
+    /// Validates a JWT token and returns true if valid
+    /// </summary>
+    bool ValidateToken(string token);
 
-        /// <summary>
-        /// Validates a JWT token and returns claims principal
-        /// </summary>
-        Task<bool> ValidateTokenAsync(string token);
+    /// <summary>
+    /// Hashes a refresh token string before storing
+    /// </summary>
+    string HashToken(string token);
 
-        /// <summary>
-        /// Hashes a refresh token before storing
-        /// </summary>
-        string HashToken(string token);
-
-        /// <summary>
-        /// Verifies refresh token hash
-        /// </summary>
-        bool VerifyRefreshToken(string token, string tokenHash);
-    }
+    /// <summary>
+    /// Verifies refresh token hash
+    /// </summary>
+    bool VerifyRefreshToken(string token, string tokenHash);
+    public int GetRefreshTokenExpiryDays();
+    public int GetAccessTokenExpiryMinutes();
 }

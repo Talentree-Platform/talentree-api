@@ -1,4 +1,5 @@
-﻿using Talentree.Repository.Data.DataSeed;
+﻿using Microsoft.AspNetCore.Identity;
+using Talentree.Repository.Data.DataSeed;
 
 namespace Talentree.Repository.Data
 {
@@ -19,8 +20,7 @@ namespace Talentree.Repository.Data
                 // Seed products from JSON file
                 //await ProductsSeed.SeedAsync(context);
 
-                // TODO: Add more seeding when ready
-                // await ProductBrandsSeed.SeedAsync(context);
+               ;
             }
             catch (Exception ex)
             {

@@ -1,11 +1,18 @@
 ﻿
+using Google;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using Talentree.API.Extensions;
 using Talentree.API.Extentions;
 using Talentree.Core;
 using Talentree.Repository.Data;
+using Talentree.Repository.Data.DataSeed;
 using Talentree.Repository.Data.Interceptors;
+using Talentree.Service.Mapping;
 
 namespace Talentree.API
 {
@@ -62,8 +69,49 @@ namespace Talentree.API
                 }
             });
 
-            builder.Services.AddApplicationServices();
+            //Identity Services
+            builder.Services
+                .AddIdentity<AppUser, IdentityRole>(options =>
+                {
+                    options.Password.RequiredLength = 8;
+                    options.User.RequireUniqueEmail = true;
+                })
+                .AddEntityFrameworkStores<TalentreeDbContext>()
+                .AddDefaultTokenProviders();
 
+
+            //DI Services
+            builder.Services.AddApplicationServices();
+            //validators 
+            builder.Services.ValidationServices();
+
+        
+            //JWT Authentication
+
+            var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]);
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidAudience = builder.Configuration["Jwt:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
+
+            // Mapping Profiles
+            builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 
 
@@ -73,23 +121,17 @@ namespace Talentree.API
             var app = builder.Build();
 
             // ===============================
-            // Database Migration (Development Only)
+            // Database Migration 
             // ===============================
-            // Only run auto-migration in Development environment
-            // In Production, migrations should be applied manually or via CI/CD
-            if (app.Environment.IsDevelopment())
-            {
-                await app.MigrateDatabaseAsync();
-            }
-
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+            await app.MigrateDatabaseAsync();
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
             app.UseHttpsRedirection();
+            // Global Exception Handling Middleware
+            app.UseGlobalExceptionHandling();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 

@@ -9,7 +9,6 @@ public class AppUser : IdentityUser
     public DateTime? LastLoginAt { get; set; }
 
     public bool IsActive { get; set; } = true;
-    public bool IsEmailVerified { get; set; } = false;
 
     // Navigation
     public Address? Address { get; set; }
