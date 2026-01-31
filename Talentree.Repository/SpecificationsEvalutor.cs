@@ -14,7 +14,7 @@ namespace Talentree.Repository
     /// (Criteria, Includes, OrderBy, Pagination) and builds
     /// a single optimized EF Core query
     /// </remarks>
-    internal static class SpecificationsEvaluator<TEntity> where TEntity : BaseEntity
+    internal static class SpecificationsEvaluator<TEntity> where TEntity : class
     {
         /// <summary>
         /// Builds a complete IQueryable by applying all specification criteria

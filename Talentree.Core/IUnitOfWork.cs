@@ -16,7 +16,7 @@ namespace Talentree.Core
         /// </summary>
         /// 
         /// <returns>Repository instance for the entity</returns>
-        IGenericRepository<TEntity> Repository<TEntity>() where TEntity : BaseEntity;
+        IGenericRepository<TEntity> Repository<TEntity>() where TEntity : class;
 
 
         /// <summary>

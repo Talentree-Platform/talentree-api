@@ -10,7 +10,7 @@ namespace Talentree.Core.Specifications
     /// All concrete specifications should inherit from this class
     /// </summary>
     /// <typeparam name="T">Entity type that inherits from BaseEntity</typeparam>
-    public class BaseSpecifications<T> : ISpecifications<T> where T : BaseEntity
+    public class BaseSpecifications<T> : ISpecifications<T> where T : class
     {
         #region Criteria (WHERE clause)
 

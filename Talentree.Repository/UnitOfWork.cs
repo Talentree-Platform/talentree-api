@@ -31,7 +31,7 @@ namespace Talentree.Repository
         /// Gets or creates a repository for the specified entity type
         /// Repositories are cached to ensure the same instance is used throughout the Unit of Work lifecycle
         /// </summary>
-        public IGenericRepository<TEntity> Repository<TEntity>() where TEntity : BaseEntity
+        public IGenericRepository<TEntity> Repository<TEntity>() where TEntity : class
         {
             // Use the entity type name as the key for caching
             var entityType = typeof(TEntity).Name;
