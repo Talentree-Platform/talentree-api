@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
+using Talentree.Repository.Data.Interceptors;
 
 namespace Talentree.Repository.Data
 {
@@ -15,20 +16,18 @@ namespace Talentree.Repository.Data
         // ===============================
         // Constructor
         // ===============================
-        /// <summary>
-        /// Initializes a new instance of TalentreeDbContext
-        /// </summary>
-        /// <param name="options">DbContext configuration options injected by DI container</param>
-        public TalentreeDbContext(DbContextOptions<TalentreeDbContext> options)
+       //interceptor
+       private readonly AuditInterceptor _auditInterceptor;
+        public TalentreeDbContext(DbContextOptions<TalentreeDbContext> options , AuditInterceptor auditInterceptor )
             : base(options)
         {
+            _auditInterceptor = auditInterceptor;
         }
 
         // ===============================
         // DbSets (Database Tables)
         // ===============================
-        // TODO: Add your entities here as you create them
-        // Example:
+       
          public DbSet<Product> Products { get; set; }
 
         public DbSet<RefreshToken> RefreshTokens { get; set; }
