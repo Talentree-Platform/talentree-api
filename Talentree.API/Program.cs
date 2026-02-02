@@ -23,8 +23,8 @@ namespace Talentree.API
             // MVC + Validation
             // ===============================
             builder.Services
-                .AddControllers()
-                .AddFluentValidation(); // لو مستخدمة FluentValidation extension
+                .AddControllers();
+                //.AddFluentValidation(); // لو مستخدمة FluentValidation extension
 
             builder.Services.ValidationServices();
 
