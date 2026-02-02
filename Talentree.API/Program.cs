@@ -22,11 +22,10 @@ namespace Talentree.API
             // ===============================
             // MVC + Validation
             // ===============================
-            builder.Services
-                .AddControllers();
-                //.AddFluentValidation(); // لو مستخدمة FluentValidation extension
 
             builder.Services.ValidationServices();
+
+            builder.Services.AddControllers();
 
             // ===============================
             // Swagger
@@ -45,22 +44,37 @@ namespace Talentree.API
             // ===============================
             builder.Services.AddDbContext<TalentreeDbContext>((serviceProvider, options) =>
             {
+                var interceptor = serviceProvider.GetRequiredService<AuditInterceptor>();
+
+                var connectionString = builder.Environment.IsDevelopment()
+                    ? builder.Configuration.GetConnectionString("DefaultConnection")  // Local
+                    : builder.Configuration.GetConnectionString("DeploymentConnection");  // Remote / Deploy
+
+                //var connectionString = builder.Configuration.GetConnectionString("DeploymentConnection");
+
                 options.UseSqlServer(
-                    builder.Configuration.GetConnectionString("DefaultConnection"),
+                    connectionString,
                     sqlOptions =>
                     {
                         sqlOptions.MigrationsAssembly(typeof(TalentreeDbContext).Assembly.FullName);
-                        sqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+
+                        // Enable retry on failure for transient faults in production
+                        if (!builder.Environment.IsDevelopment())
+                        {
+                            sqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+                        }
                     });
 
-                options.AddInterceptors(serviceProvider.GetRequiredService<AuditInterceptor>());
+                options.AddInterceptors(interceptor);
 
+                // Enable sensitive logging only in  Development
                 if (builder.Environment.IsDevelopment())
                 {
                     options.EnableSensitiveDataLogging();
                     options.EnableDetailedErrors();
                 }
             });
+
 
             // ===============================
             // Identity
@@ -108,7 +122,23 @@ namespace Talentree.API
             // ===============================
             builder.Services.AddAutoMapper(typeof(MappingProfile));
 
+            //CORs 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
+
+
             var app = builder.Build();
+
+            //Middleware  Pipeline
+            app.UseCors("AllowAll");
 
             // ===============================
             // Migrate DB
