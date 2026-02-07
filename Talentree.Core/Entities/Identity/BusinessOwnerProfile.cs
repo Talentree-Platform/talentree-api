@@ -1,16 +1,10 @@
 ﻿// Talentree.Core/Entities/Identity/BusinessOwnerProfile.cs
 
 using Talentree.Core.Entities;
+using Talentree.Core.Enums;
 
 namespace Talentree.Core.Entities.Identity
 {
-    public enum BusinessOwnerStatus
-    {
-        Pending = 0,
-        Approved = 1,
-        Rejected = 2
-    }
-
     public class BusinessOwnerProfile : BaseEntity
     {
         // FK
@@ -21,10 +15,16 @@ namespace Talentree.Core.Entities.Identity
         public string BusinessName { get; set; } = null!;
         public string BusinessDescription { get; set; } = null!;
         public string BusinessCategory { get; set; } = null!;
-        public string TaxId { get; set; } = null!;
+
+        // Optional fields
+        public string? BusinessAddress { get; set; }
+        public string? TaxId { get; set; }
+        public string? FacebookLink { get; set; }
+        public string? InstagramLink { get; set; }
+        public string? WebsiteLink { get; set; }
 
         // Approval workflow
-        public BusinessOwnerStatus Status { get; set; } = BusinessOwnerStatus.Pending;
+        public ApprovalStatus Status { get; set; } = ApprovalStatus.Pending;
 
         public DateTime? ApprovedAt { get; set; }
         public string? ApprovedBy { get; set; }

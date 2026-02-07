@@ -23,6 +23,19 @@ namespace Talentree.API.Controllers
             var message = await _authService.RegisterAsync(registerDto);
             return Ok(ApiResponse<string>.SuccessResponse(message));
         }
+        [HttpPost("register-business-owner")]
+        [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
+        //[ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ApiResponse<string>>> RegisterBusinessOwner(
+                     BusinessOwnerRegisterDto registerDto)
+        {
+            var message = await _authService.RegisterBusinessOwnerAsync(registerDto);
+
+            return Ok(ApiResponse<string>.SuccessResponse(
+                data: message,
+                message: "Business owner registration successful"
+            ));
+        }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)

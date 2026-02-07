@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Talentree.Core;
 using Talentree.Core.Entities.Identity;
+using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications;
 using Talentree.Service.Contracts;
@@ -545,8 +546,61 @@ namespace Talentree.Service.Services
 
         }
 
-      
-      
+        // Talentree.Service/Services/AuthService.cs
+
+        // Talentree.Service/Services/AuthService.cs
+
+        public async Task<string> RegisterBusinessOwnerAsync(BusinessOwnerRegisterDto registerDto)
+        {
+            // 1️⃣ Check if email exists
+            var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
+            if (existingUser != null)
+                throw new BadRequestException("Email is already registered");
+
+            // 2️⃣ Check if business name is unique
+            var spec = new BusinessNameExistsSpecification(registerDto.BusinessName);
+            var existingBusiness = await _unitOfWork.Repository<BusinessOwnerProfile>()
+                .GetByIdWithSpecificationsAsync(spec);
+
+            if (existingBusiness != null)
+                throw new BadRequestException("Business name already exists. Please choose a different name.");
+
+            // 3️⃣ Map DTO to AppUser
+            var user = _mapper.Map<AppUser>(registerDto);
+
+            // 4️⃣ Create user account
+            var result = await _userManager.CreateAsync(user, registerDto.Password);
+
+            if (!result.Succeeded)
+            {
+                var errorsDict = result.Errors
+                    .GroupBy(e => e.Code)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
+
+                throw new ValidationException(errorsDict);
+            }
+
+            // 5️⃣ Assign BusinessOwner role
+            await _userManager.AddToRoleAsync(user, "BusinessOwner");
+
+            // 6️⃣ Map DTO to BusinessOwnerProfile
+            var businessProfile = _mapper.Map<BusinessOwnerProfile>(registerDto);
+            businessProfile.UserId = user.Id;
+
+            _unitOfWork.Repository<BusinessOwnerProfile>().Add(businessProfile);
+            await _unitOfWork.CompleteAsync();
+
+            // 7️⃣ Send verification email
+            var otpCode = GenerateOtpCode();
+            await SaveOtpCodeAsync(user.Id, otpCode, OtpPurpose.VerifyEmail);
+            await _emailService.SendOtpAsync(user.Email!, otpCode, OtpPurpose.VerifyEmail);
+
+            // 8️⃣ Notify admin (TODO)
+            // await _emailService.NotifyAdminNewBusinessOwnerAsync(businessProfile);
+
+            return "Business owner registration successful. Please check your email for verification code.";
+        }
+
 
     }
 }
