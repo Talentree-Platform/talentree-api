@@ -9,6 +9,7 @@ using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications;
+using Talentree.Core.Specifications.BusinessOwnerSpecifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Auth;
 

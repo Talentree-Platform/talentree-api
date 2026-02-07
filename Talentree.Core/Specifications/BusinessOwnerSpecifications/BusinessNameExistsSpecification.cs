@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Talentree.Core.Entities.Identity;
 
-namespace Talentree.Core.Specifications
+namespace Talentree.Core.Specifications.BusinessOwnerSpecifications
 {
     public class BusinessNameExistsSpecification : BaseSpecifications<BusinessOwnerProfile>
     {

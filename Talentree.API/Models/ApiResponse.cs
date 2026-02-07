@@ -4,7 +4,7 @@
 /// Standard API response wrapper for all endpoints
 /// Ensures consistent response format across the application
 /// </summary>
-/// <typeparam name="T">Type of data being returned</typeparam>
+
 public class ApiResponse<T>
 {
     public bool Success { get; set; }

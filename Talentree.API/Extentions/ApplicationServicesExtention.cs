@@ -18,6 +18,7 @@ namespace Talentree.API.Extentions
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ITokenService, TokenService>();
+            services.AddScoped<IAdminService, AdminService>();
 
 
             // Add AutoMapper (scans assemblies)

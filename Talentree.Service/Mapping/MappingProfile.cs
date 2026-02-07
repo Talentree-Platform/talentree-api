@@ -3,6 +3,7 @@
 using AutoMapper;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
+using Talentree.Service.DTOs.Admin;
 using Talentree.Service.DTOs.Auth;
 
 namespace Talentree.Service.Mapping
@@ -184,6 +185,63 @@ namespace Talentree.Service.Mapping
                     opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedBy,
                     opt => opt.Ignore());
+
+
+
+            // ───────────────────────────────────────────────────────────
+            // BusinessOwnerProfile → PendingBusinessOwnerDto
+            // ───────────────────────────────────────────────────────────
+            CreateMap<BusinessOwnerProfile, BusinessOwnerApplicationDto>()
+                // IDs
+                .ForMember(d => d.ProfileId, o => o.MapFrom(s => s.Id))
+                .ForMember(d => d.UserId, o => o.MapFrom(s => s.UserId))
+
+                // Owner info (from AppUser)
+                .ForMember(d => d.OwnerName, o => o.MapFrom(s => s.User.DisplayName))
+                .ForMember(d => d.Email, o => o.MapFrom(s => s.User.Email ?? string.Empty))
+                .ForMember(d => d.PhoneNumber, o => o.MapFrom(s => s.User.PhoneNumber ?? string.Empty))
+
+                // Business info
+                .ForMember(d => d.BusinessName, o => o.MapFrom(s => s.BusinessName))
+                .ForMember(d => d.BusinessCategory, o => o.MapFrom(s => s.BusinessCategory))
+                .ForMember(d => d.BusinessDescription, o => o.MapFrom(s => s.BusinessDescription))
+                .ForMember(d => d.BusinessAddress, o => o.MapFrom(s => s.BusinessAddress))
+                .ForMember(d => d.TaxId, o => o.MapFrom(s => s.TaxId))
+
+                // Social links
+                .ForMember(d => d.FacebookLink, o => o.MapFrom(s => s.FacebookLink))
+                .ForMember(d => d.InstagramLink, o => o.MapFrom(s => s.InstagramLink))
+                .ForMember(d => d.WebsiteLink, o => o.MapFrom(s => s.WebsiteLink))
+                // ⭐ Approval Status
+                .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
+                .ForMember(d => d.StatusText, o => o.MapFrom(s => s.Status.ToString()))
+                .ForMember(d => d.ApprovedAt, o => o.MapFrom(s => s.ApprovedAt))
+                .ForMember(d => d.ApprovedBy, o => o.MapFrom(s => s.ApprovedBy))
+                .ForMember(d => d.RejectionReason, o => o.MapFrom(s => s.RejectionReason))
+
+                // Dates
+                .ForMember(d => d.SubmittedAt, o => o.MapFrom(s => s.CreatedAt))
+                .ForMember(d => d.AutoApprovalDeadline, o => o.MapFrom(s => s.AutoApprovalDeadline))
+
+                // Calculated fields
+                .ForMember(
+                    d => d.WillAutoApprove,
+                    o => o.MapFrom(s =>
+                        s.Status == ApprovalStatus.Pending &&
+                        s.AutoApprovalDeadline.HasValue &&
+                        s.AutoApprovalDeadline.Value > DateTime.UtcNow
+                    )
+                )
+                .ForMember(
+                    d => d.TimeUntilAutoApproval,
+                    o => o.MapFrom(s =>
+                        s.Status == ApprovalStatus.Pending &&
+                        s.AutoApprovalDeadline.HasValue &&
+                        s.AutoApprovalDeadline.Value > DateTime.UtcNow
+                            ? s.AutoApprovalDeadline.Value - DateTime.UtcNow
+                            : (TimeSpan?)null
+                    )
+                );
 
 
         }
