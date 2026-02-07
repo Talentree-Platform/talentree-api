@@ -99,7 +99,13 @@ namespace Talentree.API
             var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]);
 
             builder.Services
-                .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddAuthentication(options =>
+                {
+                    // define the default authentication scheme as JWT Bearer not Cookies identification
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
                 .AddJwtBearer(options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters

@@ -1,9 +1,11 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 using Talentree.Core.Entities.Identity;
 using Talentree.Service.Contracts;
 
@@ -31,14 +33,22 @@ namespace Talentree.Service.Services
         {
             var claims = new List<Claim>
             {
+                  // framework standard
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Email, user.Email!),
+                new Claim(ClaimTypes.Name, user.DisplayName),
+
+                  // readable JWT
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-                new Claim(JwtRegisteredClaimNames.UniqueName, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("displayName", $"{user.DisplayName}")
+                new Claim(JwtRegisteredClaimNames.Email, user.Email!),
+                new Claim("name", user.DisplayName),
+
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
             // Add role claims
             claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+           
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecret));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
