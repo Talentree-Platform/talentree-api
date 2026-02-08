@@ -2,6 +2,8 @@
 
 using AutoMapper;
 using Talentree.Core.Entities.Identity;
+using Talentree.Core.Enums;
+using Talentree.Service.DTOs.Admin;
 using Talentree.Service.DTOs.Auth;
 
 namespace Talentree.Service.Mapping
@@ -86,16 +88,162 @@ namespace Talentree.Service.Mapping
                     opt => opt.Ignore())
                 .ForMember(dest => dest.BusinessOwnerProfile,
                     opt => opt.Ignore());
+            // ═══════════════════════════════════════════════════════════
+            // BusinessOwnerRegisterDto → AppUser
+            // ═══════════════════════════════════════════════════════════
+            CreateMap<BusinessOwnerRegisterDto, AppUser>()
+                .ForMember(dest => dest.DisplayName,
+                    opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}".Trim()))
+                .ForMember(dest => dest.Email,
+                    opt => opt.MapFrom(src => src.Email))
+                .ForMember(dest => dest.UserName,
+                    opt => opt.MapFrom(src => src.Email))
+                .ForMember(dest => dest.PhoneNumber,
+                    opt => opt.MapFrom(src => src.PhoneNumber))
+                .ForMember(dest => dest.IsActive,
+                    opt => opt.MapFrom(src => true))
+                .ForMember(dest => dest.EmailConfirmed,
+                    opt => opt.MapFrom(src => false))
+                .ForMember(dest => dest.CreatedAt,
+                    opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.Id,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.NormalizedEmail,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.NormalizedUserName,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.PasswordHash,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.SecurityStamp,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.ConcurrencyStamp,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.EmailConfirmed,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.PhoneNumberConfirmed,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.TwoFactorEnabled,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.LockoutEnabled,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.LockoutEnd,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.AccessFailedCount,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.LastLoginAt,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.Address,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.BusinessOwnerProfile,
+                    opt => opt.Ignore());
 
             // ═══════════════════════════════════════════════════════════
-            // FUTURE MAPPINGS (Products, Orders....
+            // BusinessOwnerRegisterDto → BusinessOwnerProfile
             // ═══════════════════════════════════════════════════════════
+            CreateMap<BusinessOwnerRegisterDto, BusinessOwnerProfile>()
+                .ForMember(dest => dest.BusinessName,
+                    opt => opt.MapFrom(src => src.BusinessName))
+                .ForMember(dest => dest.BusinessCategory,
+                    opt => opt.MapFrom(src => src.BusinessCategory))
+                .ForMember(dest => dest.BusinessDescription,
+                    opt => opt.MapFrom(src => src.BusinessDescription))
+                .ForMember(dest => dest.BusinessAddress,
+                    opt => opt.MapFrom(src => src.BusinessAddress))
+                .ForMember(dest => dest.TaxId,
+                    opt => opt.MapFrom(src => src.TaxId))
+                .ForMember(dest => dest.FacebookLink,
+                    opt => opt.MapFrom(src => src.FacebookLink))
+                .ForMember(dest => dest.InstagramLink,
+                    opt => opt.MapFrom(src => src.InstagramLink))
+                .ForMember(dest => dest.WebsiteLink,
+                    opt => opt.MapFrom(src => src.WebsiteLink))
+                .ForMember(dest => dest.Status,
+                    opt => opt.MapFrom(src => ApprovalStatus.Pending))
+                .ForMember(dest => dest.AutoApprovalDeadline,
+                    opt => opt.MapFrom(src => DateTime.UtcNow.AddHours(12)))
+                .ForMember(dest => dest.CreatedAt,
+                    opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.Id,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.UserId,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.ApprovedAt,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.ApprovedBy,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.RejectionReason,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.User,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.DeletedAt,
+                    opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy,
+                    opt => opt.Ignore());
 
-            // Product mappings will go here
-            // CreateMap<Product, ProductDto>();
 
-            // Order mappings will go here
-            // CreateMap<Order, OrderDto>();
+
+            // ───────────────────────────────────────────────────────────
+            // BusinessOwnerProfile → PendingBusinessOwnerDto
+            // ───────────────────────────────────────────────────────────
+            CreateMap<BusinessOwnerProfile, BusinessOwnerApplicationDto>()
+                // IDs
+                .ForMember(d => d.ProfileId, o => o.MapFrom(s => s.Id))
+                .ForMember(d => d.UserId, o => o.MapFrom(s => s.UserId))
+
+                // Owner info (from AppUser)
+                .ForMember(d => d.OwnerName, o => o.MapFrom(s => s.User.DisplayName))
+                .ForMember(d => d.Email, o => o.MapFrom(s => s.User.Email ?? string.Empty))
+                .ForMember(d => d.PhoneNumber, o => o.MapFrom(s => s.User.PhoneNumber ?? string.Empty))
+
+                // Business info
+                .ForMember(d => d.BusinessName, o => o.MapFrom(s => s.BusinessName))
+                .ForMember(d => d.BusinessCategory, o => o.MapFrom(s => s.BusinessCategory))
+                .ForMember(d => d.BusinessDescription, o => o.MapFrom(s => s.BusinessDescription))
+                .ForMember(d => d.BusinessAddress, o => o.MapFrom(s => s.BusinessAddress))
+                .ForMember(d => d.TaxId, o => o.MapFrom(s => s.TaxId))
+
+                // Social links
+                .ForMember(d => d.FacebookLink, o => o.MapFrom(s => s.FacebookLink))
+                .ForMember(d => d.InstagramLink, o => o.MapFrom(s => s.InstagramLink))
+                .ForMember(d => d.WebsiteLink, o => o.MapFrom(s => s.WebsiteLink))
+                // ⭐ Approval Status
+                .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
+                .ForMember(d => d.StatusText, o => o.MapFrom(s => s.Status.ToString()))
+                .ForMember(d => d.ApprovedAt, o => o.MapFrom(s => s.ApprovedAt))
+                .ForMember(d => d.ApprovedBy, o => o.MapFrom(s => s.ApprovedBy))
+                .ForMember(d => d.RejectionReason, o => o.MapFrom(s => s.RejectionReason))
+
+                // Dates
+                .ForMember(d => d.SubmittedAt, o => o.MapFrom(s => s.CreatedAt))
+                .ForMember(d => d.AutoApprovalDeadline, o => o.MapFrom(s => s.AutoApprovalDeadline))
+
+                // Calculated fields
+                .ForMember(
+                    d => d.WillAutoApprove,
+                    o => o.MapFrom(s =>
+                        s.Status == ApprovalStatus.Pending &&
+                        s.AutoApprovalDeadline.HasValue &&
+                        s.AutoApprovalDeadline.Value > DateTime.UtcNow
+                    )
+                )
+                .ForMember(
+                    d => d.TimeUntilAutoApproval,
+                    o => o.MapFrom(s =>
+                        s.Status == ApprovalStatus.Pending &&
+                        s.AutoApprovalDeadline.HasValue &&
+                        s.AutoApprovalDeadline.Value > DateTime.UtcNow
+                            ? s.AutoApprovalDeadline.Value - DateTime.UtcNow
+                            : (TimeSpan?)null
+                    )
+                );
+
+
         }
     }
 }

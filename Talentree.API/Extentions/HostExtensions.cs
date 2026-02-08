@@ -43,25 +43,24 @@ namespace Talentree.API.Extensions
                 // ===============================
                 // Seed Initial Data
                 // ===============================
+                var userManager = services.GetRequiredService<UserManager<AppUser>>();
+                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
                 logger.LogInformation("Starting data seeding...");
 
-                await TalentreeContextSeed.SeedAsync(dbContext);
+                await TalentreeContextSeed.SeedAsync(userManager , roleManager , dbContext, logger);
 
                 logger.LogInformation("Data seeding completed successfully.");
 
              
-                // 2️⃣ Identity Seed
-                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-                await IdentitySeed.SeedRolesAsync(roleManager);
             }
             catch (Exception ex)
             {
                 // Log the error with full stack trace
                 logger.LogError(ex, "An error occurred during database migration.");
 
-                // In development, we might want to see the error
-                // In production, we might want to continue without crashing
-                throw; // Re-throw to prevent app startup with invalid database
+                
+                throw; 
             }
 
             return host;
