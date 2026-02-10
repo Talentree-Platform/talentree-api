@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Talentree.Repository.Data;
+using Talentree.Repository.Data.DataSeed;
 
 namespace Talentree.API.Extensions
 {
@@ -41,48 +43,29 @@ namespace Talentree.API.Extensions
                 // ===============================
                 // Seed Initial Data
                 // ===============================
+                var userManager = services.GetRequiredService<UserManager<AppUser>>();
+                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
                 logger.LogInformation("Starting data seeding...");
 
-                await TalentreeContextSeed.SeedAsync(dbContext);
+                await TalentreeContextSeed.SeedAsync(userManager , roleManager , dbContext, logger);
 
                 logger.LogInformation("Data seeding completed successfully.");
 
-                // TODO: Add Identity migration when ready
-                // await MigrateIdentityDatabaseAsync(services, logger);
+             
             }
             catch (Exception ex)
             {
                 // Log the error with full stack trace
                 logger.LogError(ex, "An error occurred during database migration.");
 
-                // In development, we might want to see the error
-                // In production, we might want to continue without crashing
-                throw; // Re-throw to prevent app startup with invalid database
+                
+                throw; 
             }
 
             return host;
         }
 
-        /// <summary>
-        /// Migrates Identity Database (to be implemented later)
-        /// </summary>
-        private static async Task MigrateIdentityDatabaseAsync(
-            IServiceProvider services,
-            ILogger logger)
-        {
-            // TODO: Implement when Identity is added
-            /*
-            logger.LogInformation("Starting migration for AppIdentityDbContext...");
-            
-            var identityDbContext = services.GetRequiredService<AppIdentityDbContext>();
-            await identityDbContext.Database.MigrateAsync();
-            
-            logger.LogInformation("AppIdentityDbContext migration completed.");
-            
-            // Seed Identity Users
-            var userManager = services.GetRequiredService<UserManager<AppUser>>();
-            await AppIdentityDbContextSeed.SeedUsersAsync(userManager);
-            */
-        }
+      
     }
 }

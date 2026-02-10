@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Talentree.Core.Entities
+namespace Talentree.Repository.Data.DataSeed
 {
-    internal class test1
+    internal class SeedData
     {
-        //testing
     }
 }

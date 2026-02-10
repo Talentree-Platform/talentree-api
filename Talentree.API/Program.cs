@@ -1,9 +1,15 @@
-
+ï»¿using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using Talentree.API.Extensions;
 using Talentree.API.Extentions;
 using Talentree.Core;
 using Talentree.Repository.Data;
+using Talentree.Repository.Data.Interceptors;
+using Talentree.Service.Mapping;
 
 namespace Talentree.API
 {
@@ -13,76 +19,150 @@ namespace Talentree.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // ===============================
+            // MVC + Validation
+            // ===============================
+
+            builder.Services.ValidationServices();
 
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+            // ===============================
+            // Swagger
+            // ===============================
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // ===============================
+            // HttpContext + Interceptors
+            // ===============================
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<AuditInterceptor>();
 
-          
             // ===============================
-            // Register DbContext with SQL Server
+            // DbContext
             // ===============================
-            builder.Services.AddDbContext<TalentreeDbContext>(options =>
+            builder.Services.AddDbContext<TalentreeDbContext>((serviceProvider, options) =>
             {
-                options.UseSqlServer(
-                    builder.Configuration.GetConnectionString("DefaultConnection"),
+                var interceptor = serviceProvider.GetRequiredService<AuditInterceptor>();
 
+                var connectionString = builder.Environment.IsDevelopment()
+                    ? builder.Configuration.GetConnectionString("DefaultConnection")  // Local
+                    : builder.Configuration.GetConnectionString("DeploymentConnection");  // Remote / Deploy
+
+                //var connectionString = builder.Configuration.GetConnectionString("DeploymentConnection");
+
+                options.UseSqlServer(
+                    connectionString,
                     sqlOptions =>
                     {
-                        // Specify where EF Core should look for migrations
                         sqlOptions.MigrationsAssembly(typeof(TalentreeDbContext).Assembly.FullName);
 
-                        // Enable automatic retry logic for transient SQL errors
-                        // Useful in cloud environments and during database restarts
-                        sqlOptions.EnableRetryOnFailure(
-                            maxRetryCount: 5,                    // Number of retry attempts
-                            maxRetryDelay: TimeSpan.FromSeconds(30), // Max delay between retries
-                            errorNumbersToAdd: null);            // Use default SQL transient errors
+                        // Enable retry on failure for transient faults in production
+                        if (!builder.Environment.IsDevelopment())
+                        {
+                            sqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+                        }
                     });
 
-                // Enable extra logging and detailed errors only during development
-                // Do NOT enable this in Production — it may expose sensitive data
+                options.AddInterceptors(interceptor);
+
+                // Enable sensitive logging only in  Development
                 if (builder.Environment.IsDevelopment())
                 {
-                    options.EnableSensitiveDataLogging(); // Logs actual SQL parameter values (debugging only)
-                    options.EnableDetailedErrors();       // Provides detailed EF Core error messages
+                    options.EnableSensitiveDataLogging();
+                    options.EnableDetailedErrors();
                 }
             });
 
+
+            // ===============================
+            // Identity
+            // ===============================
+            builder.Services
+                .AddIdentity<AppUser, IdentityRole>(options =>
+                {
+                    options.Password.RequiredLength = 8;
+                    options.User.RequireUniqueEmail = true;
+                })
+                .AddEntityFrameworkStores<TalentreeDbContext>()
+                .AddDefaultTokenProviders();
+
+            // ===============================
+            // Application Services (DI)
+            // ===============================
             builder.Services.AddApplicationServices();
 
+            // ===============================
+            // Authentication (JWT)
+            // ===============================
+            var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]);
 
+            builder.Services
+                .AddAuthentication(options =>
+                {
+                    // define the default authentication scheme as JWT Bearer not Cookies identification
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ClockSkew = TimeSpan.Zero
+                    };
+                });
 
+            builder.Services.AddAuthorization();
 
+            // ===============================
+            // AutoMapper
+            // ===============================
+            builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+            //CORs 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
 
 
 
             var app = builder.Build();
 
-            // ===============================
-            // Database Migration (Development Only)
-            // ===============================
-            // Only run auto-migration in Development environment
-            // In Production, migrations should be applied manually or via CI/CD
-            if (app.Environment.IsDevelopment())
-            {
-                await app.MigrateDatabaseAsync();
-            }
+            //Middleware  Pipeline
+            app.UseCors("AllowAll");
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+            // ===============================
+            // Migrate DB
+            // ===============================
+            await app.MigrateDatabaseAsync();
+
+            // ===============================
+            // Middleware pipeline
+            // ===============================
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
             app.UseHttpsRedirection();
 
-            app.UseAuthorization();
+            app.UseGlobalExceptionHandling();
 
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.MapControllers();
 

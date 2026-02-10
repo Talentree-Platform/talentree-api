@@ -36,7 +36,7 @@ namespace Talentree.Repository
     /// Generic repository implementation providing data access for entities
     /// </summary>
     /// <typeparam name="T">Entity type inheriting from BaseEntity</typeparam>
-    public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
+    public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
         private readonly TalentreeDbContext _dbContext;
 

@@ -7,7 +7,7 @@ namespace Talentree.Core.Specifications
     /// Encapsulates query logic including filtering, includes, sorting, and pagination
     /// </summary>
     /// <typeparam name="T">Entity type that inherits from BaseEntity</typeparam>
-    public interface ISpecifications<T> where T : BaseEntity
+    public interface ISpecifications<T> where T : class
     {
         /// <summary>
         /// WHERE clause criteria (e.g., p => p.Price > 100)
