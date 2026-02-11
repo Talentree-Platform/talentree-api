@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 using Talentree.API.Extensions;
 using Talentree.API.Extentions;
@@ -22,16 +23,40 @@ namespace Talentree.API
             // ===============================
             // MVC + Validation
             // ===============================
-
             builder.Services.ValidationServices();
-
             builder.Services.AddControllers();
 
             // ===============================
-            // Swagger
+            // Swagger + JWT Authorization
             // ===============================
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(options =>
+            {
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Paste only the JWT token here (do NOT include 'Bearer'). Swagger will add it automatically."
+                });
+
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        new string[] {} // No scopes required for JWT Bearer
+                    }
+                });
+            });
 
             // ===============================
             // HttpContext + Interceptors
@@ -45,36 +70,27 @@ namespace Talentree.API
             builder.Services.AddDbContext<TalentreeDbContext>((serviceProvider, options) =>
             {
                 var interceptor = serviceProvider.GetRequiredService<AuditInterceptor>();
-
                 var connectionString = builder.Environment.IsDevelopment()
-                    ? builder.Configuration.GetConnectionString("DefaultConnection")  // Local
-                    : builder.Configuration.GetConnectionString("DeploymentConnection");  // Remote / Deploy
-
-                //var connectionString = builder.Configuration.GetConnectionString("DeploymentConnection");
+                    ? builder.Configuration.GetConnectionString("DefaultConnection")
+                    : builder.Configuration.GetConnectionString("DeploymentConnection");
 
                 options.UseSqlServer(
                     connectionString,
                     sqlOptions =>
                     {
                         sqlOptions.MigrationsAssembly(typeof(TalentreeDbContext).Assembly.FullName);
-
-                        // Enable retry on failure for transient faults in production
                         if (!builder.Environment.IsDevelopment())
-                        {
                             sqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
-                        }
                     });
 
                 options.AddInterceptors(interceptor);
 
-                // Enable sensitive logging only in  Development
                 if (builder.Environment.IsDevelopment())
                 {
                     options.EnableSensitiveDataLogging();
                     options.EnableDetailedErrors();
                 }
             });
-
 
             // ===============================
             // Identity
@@ -83,6 +99,10 @@ namespace Talentree.API
                 .AddIdentity<AppUser, IdentityRole>(options =>
                 {
                     options.Password.RequiredLength = 8;
+                    options.Password.RequireUppercase = true;
+                    options.Password.RequireLowercase = true;
+                    options.Password.RequireDigit = true;
+                    options.Password.RequireNonAlphanumeric = true;
                     options.User.RequireUniqueEmail = true;
                 })
                 .AddEntityFrameworkStores<TalentreeDbContext>()
@@ -96,12 +116,11 @@ namespace Talentree.API
             // ===============================
             // Authentication (JWT)
             // ===============================
-            var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]);
+            var key = Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]);
 
             builder.Services
                 .AddAuthentication(options =>
                 {
-                    // define the default authentication scheme as JWT Bearer not Cookies identification
                     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -114,8 +133,8 @@ namespace Talentree.API
                         ValidateAudience = true,
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
-                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        ValidIssuer = builder.Configuration["JWT:Issuer"],
+                        ValidAudience = builder.Configuration["JWT:Audience"],
                         IssuerSigningKey = new SymmetricSecurityKey(key),
                         ClockSkew = TimeSpan.Zero
                     };
@@ -128,7 +147,9 @@ namespace Talentree.API
             // ===============================
             builder.Services.AddAutoMapper(typeof(MappingProfile));
 
-            //CORs 
+            // ===============================
+            // CORS
+            // ===============================
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", policy =>
@@ -139,21 +160,17 @@ namespace Talentree.API
                 });
             });
 
-
-
             var app = builder.Build();
-
-            //Middleware  Pipeline
-            app.UseCors("AllowAll");
-
-            // ===============================
-            // Migrate DB
-            // ===============================
-            await app.MigrateDatabaseAsync();
 
             // ===============================
             // Middleware pipeline
             // ===============================
+            app.UseCors("AllowAll");
+
+            // DB Migration
+            await app.MigrateDatabaseAsync();
+
+            // Swagger middleware
             app.UseSwagger();
             app.UseSwaggerUI();
 
@@ -161,7 +178,7 @@ namespace Talentree.API
 
             app.UseGlobalExceptionHandling();
 
-            app.UseAuthentication();
+            app.UseAuthentication(); // MUST be before Authorization
             app.UseAuthorization();
 
             app.MapControllers();
