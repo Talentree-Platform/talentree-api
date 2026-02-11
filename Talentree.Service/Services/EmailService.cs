@@ -54,17 +54,31 @@ namespace Talentree.Service.Services
         }
 
         /// <summary>
-        /// Sends an email using SMTP configuration in appsettings
+        /// Sends an email asynchronously using SMTP configuration from appsettings or secrets.
+        /// 
+        /// This method handles:
+        /// - Safe parsing of the SMTP port with a default fallback (587)
+        /// - Required SMTP credentials (host, user, password)
+        /// - Optional sender email and name with defaults
+        /// - HTML-formatted emails with high priority
+        /// - Logging for both successful sends and exceptions
+        /// 
+        /// Throws InvalidOperationException if required configuration is missing or
+        /// if sending the email fails due to SMTP or other errors.
         /// </summary>
+        /// <param name="to">Recipient email address</param>
+        /// <param name="subject">Email subject line</param>
+        /// <param name="body">Email body (HTML supported)</param>
+        /// <returns>A task representing the asynchronous operation</returns>
+
         public async Task SendEmailAsync(string to, string subject, string body)
         {
             try
             {
-                // Get SMTP configuration
                 var smtpHost = _configuration["Email:SmtpHost"]
                     ?? throw new InvalidOperationException("SMTP Host not configured");
 
-                var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
+                int smtpPort = int.TryParse(_configuration["Email:SmtpPort"], out var port) ? port : 587;
 
                 var smtpUser = _configuration["Email:SmtpUser"]
                     ?? throw new InvalidOperationException("SMTP User not configured");
@@ -75,16 +89,14 @@ namespace Talentree.Service.Services
                 var fromEmail = _configuration["Email:FromEmail"] ?? "noreply@talentree.com";
                 var fromName = _configuration["Email:FromName"] ?? "Talentree Platform";
 
-                // Create SMTP client
                 using var smtpClient = new SmtpClient(smtpHost, smtpPort)
                 {
                     Credentials = new NetworkCredential(smtpUser, smtpPass),
                     EnableSsl = true,
                     DeliveryMethod = SmtpDeliveryMethod.Network,
-                    Timeout = 30000 // 30 seconds
+                    Timeout = 30000
                 };
 
-                // Create mail message
                 var mailMessage = new MailMessage
                 {
                     From = new MailAddress(fromEmail, fromName),
@@ -96,7 +108,6 @@ namespace Talentree.Service.Services
 
                 mailMessage.To.Add(to);
 
-                // Send email
                 await smtpClient.SendMailAsync(mailMessage);
 
                 _logger.LogInformation("Email sent successfully to {Email}", to);
@@ -104,21 +115,12 @@ namespace Talentree.Service.Services
             catch (SmtpException smtpEx)
             {
                 _logger.LogError(smtpEx, "SMTP error sending email to {Email}", to);
-
-                throw new InvalidOperationException(
-                    $"SMTP Error: Failed to send email to {to}. " +
-                    $"Error: {smtpEx.Message}",
-                    smtpEx
-                );
+                throw new InvalidOperationException($"SMTP Error: Failed to send email to {to}. Error: {smtpEx.Message}", smtpEx);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending email to {Email}", to);
-
-                throw new InvalidOperationException(
-                    $"Failed to send email to {to}. Error: {ex.Message}",
-                    ex
-                );
+                throw new InvalidOperationException($"Failed to send email to {to}. Error: {ex.Message}", ex);
             }
         }
 
