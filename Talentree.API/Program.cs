@@ -149,7 +149,11 @@ namespace Talentree.API
             // ===============================
             // Migrate DB
             // ===============================
-            await app.MigrateDatabaseAsync();
+            if (app.Environment.IsDevelopment())
+            {
+                await app.MigrateDatabaseAsync();
+            }
+
 
             // ===============================
             // Middleware pipeline
