@@ -49,6 +49,7 @@ namespace Talentree.API.Extensions
                 logger.LogInformation("Starting data seeding...");
 
                 await TalentreeContextSeed.SeedAsync(userManager , roleManager , dbContext, logger);
+                await RawMaterialSeed.SeedAsync(dbContext);
 
                 logger.LogInformation("Data seeding completed successfully.");
 

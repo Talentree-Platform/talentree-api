@@ -9,6 +9,7 @@ using Talentree.API.Extensions;
 using Talentree.API.Extentions;
 using Talentree.Core;
 using Talentree.Repository.Data;
+using Talentree.Repository.Data.DataSeed;
 using Talentree.Repository.Data.Interceptors;
 using Talentree.Service.Mapping;
 
@@ -165,7 +166,7 @@ namespace Talentree.API
             // ===============================
             // Middleware pipeline
             // ===============================
-            app.UseCors("AllowAll");
+            
 
             // DB Migration
             await app.MigrateDatabaseAsync();
@@ -176,6 +177,9 @@ namespace Talentree.API
 
             app.UseHttpsRedirection();
 
+            app.UseStaticFiles();
+
+            app.UseCors("AllowAll");
             app.UseGlobalExceptionHandling();
 
             app.UseAuthentication(); // MUST be before Authorization
