@@ -1,5 +1,6 @@
 ﻿using Talentree.Core;
 using Talentree.Core.Repository.Contract;
+using Talentree.Core.Service.Contract;
 using Talentree.Repository;
 using Talentree.Service.Contracts;
 using Talentree.Service.Services;
@@ -18,11 +19,18 @@ namespace Talentree.API.Extentions
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ITokenService, TokenService>();
+
+            // Admin Services
             services.AddScoped<IAdminService, AdminService>();
+            services.AddScoped<ISupplierService, SupplierService>();           
+            services.AddScoped<IAdminRawMaterialService, AdminRawMaterialService>();
 
 
             // Add AutoMapper (scans assemblies)
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+            // Raw Material Store
+            services.AddScoped<IRawMaterialService, RawMaterialService>();
             return services;
         }
 
