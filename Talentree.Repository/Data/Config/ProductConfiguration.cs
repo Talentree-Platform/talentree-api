@@ -14,78 +14,62 @@ namespace Talentree.Repository.Data.Config
     /// - More powerful configuration options
     /// - Centralized configuration management
     /// </remarks>
-    public class ProductConfiguration : IEntityTypeConfiguration<Product>
+    public class ProductConfiguration : BaseEntityConfiguration<Product>
     {
-        public void Configure(EntityTypeBuilder<Product> builder)
+        public override void Configure(EntityTypeBuilder<Product> builder)
         {
-            // ===============================
-            // Table Configuration
-            // ===============================
-
-            // Specify table name explicitly (optional, but good practice)
+            base.Configure(builder);
             builder.ToTable("Products");
 
-            // ===============================
-            // Primary Key
-            // ===============================
-
-            // Id is already configured as primary key by convention (property named "Id")
-            // But we can be explicit for clarity:
-            builder.HasKey(p => p.Id);
-
-            // ===============================
-            // Properties Configuration
-            // ===============================
-
-            // Name property
             builder.Property(p => p.Name)
-                .IsRequired()                      // NOT NULL constraint
-                .HasMaxLength(200);                // VARCHAR(200)
+                .IsRequired()
+                .HasMaxLength(100);
 
-            // Description property
             builder.Property(p => p.Description)
-                .IsRequired()                      // NOT NULL constraint
-                .HasMaxLength(1000);               // VARCHAR(1000)
+                .HasMaxLength(2000);
 
-            // Price property - VERY IMPORTANT for money!
             builder.Property(p => p.Price)
-                .IsRequired()                      // NOT NULL constraint
-                .HasColumnType("decimal(18,2)");   // DECIMAL(18,2) - prevents rounding errors
+                .IsRequired()
+                .HasColumnType("decimal(18,2)");
 
-            // Why decimal(18,2)?
-            // - 18 total digits
-            // - 2 digits after decimal point
-            // - Max value: 9,999,999,999,999,999.99
-            // - Prevents floating-point precision issues with money
+            builder.Property(p => p.StockQuantity)
+                .IsRequired()
+                .HasDefaultValue(0);
 
-            // PictureUrl property
-            builder.Property(p => p.PictureUrl)
-                .IsRequired()                      // NOT NULL constraint
-                .HasMaxLength(500);                // VARCHAR(500) - enough for URLs
+            builder.Property(p => p.Tags)
+                .HasMaxLength(500);
 
-            // ===============================
-            // Indexes (for Query Performance)
-            // ===============================
+            builder.Property(p => p.Status)
+                .IsRequired();
 
-            //// Index on Name for search/filter operations
-            //// When users search for products by name, this makes it FAST
-            //builder.HasIndex(p => p.Name)
-            //    .HasDatabaseName("IX_Products_Name");
+            builder.Property(p => p.RejectionReason)
+                .HasMaxLength(1000);
 
-            // Future: Add more indexes as needed
-            // builder.HasIndex(p => p.Price).HasDatabaseName("IX_Products_Price");
+            builder.Property(p => p.ApprovedBy)
+                .HasMaxLength(450);
 
-            // ===============================
-            // Relationships (Future)
-            // ===============================
+            // Relationships
+            builder.HasOne(p => p.BusinessOwner)
+                .WithMany(b => b.Products)
+                .HasForeignKey(p => p.BusinessOwnerProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // Will be configured when we add ProductType and ProductBrand relationships
+            builder.HasOne(p => p.Category)
+                .WithMany(c => c.Products)
+                .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // Example (commented for now):
-            // builder.HasOne(p => p.ProductType)
-            //     .WithMany(pt => pt.Products)
-            //     .HasForeignKey(p => p.ProductTypeId)
-            //     .OnDelete(DeleteBehavior.Restrict); // Prevent accidental deletion
+            builder.HasMany(p => p.Images)
+                .WithOne(i => i.Product)
+                .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes
+            builder.HasIndex(p => p.Status);
+            builder.HasIndex(p => p.BusinessOwnerProfileId);
+            builder.HasIndex(p => p.CategoryId);
+            builder.HasIndex(p => p.Price);
+            builder.HasIndex(p => p.Name);
         }
     }
 }
