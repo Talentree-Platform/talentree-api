@@ -34,6 +34,8 @@ namespace Talentree.Repository.Data
         public DbSet<OtpCode> OtpCodes { get; set; }
         public DbSet<Address> Addresses { get; set; }
         public DbSet<BusinessOwnerProfile> BusinessOwnerProfiles { get; set; }
+        public DbSet<RawMaterial> RawMaterials { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
 
         // ===============================
         // Model Configuration

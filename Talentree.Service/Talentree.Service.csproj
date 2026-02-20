@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Talentree.Core\Talentree.Core.csproj" />
+    <ProjectReference Include="..\Talentree.Repository\Talentree.Repository.csproj" />
   </ItemGroup>
 
 </Project>

@@ -8,7 +8,7 @@ using Talentree.Service.Contracts;
 using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Admin;
 
-namespace Talentree.API.Controllers
+namespace Talentree.API.Controllers.Admin
 {
     [Authorize(Roles = "Admin")]
     public class AdminController : BaseApiController
