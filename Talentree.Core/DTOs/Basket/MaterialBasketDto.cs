@@ -4,12 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Talentree.Service.DTOs.Basket
+namespace Talentree.Core.DTOs.Basket
 {
     public class MaterialBasketDto
     {
         public int Id { get; set; }
         public List<MaterialBasketItemDto> Items { get; set; } = new();
+
+        // Computed — not stored in DB
         public decimal Subtotal => Items.Sum(i => i.LineTotal);
         public int TotalItemCount => Items.Sum(i => i.Quantity);
     }
@@ -25,6 +27,8 @@ namespace Talentree.Service.DTOs.Basket
         public decimal UnitPrice { get; set; }
         public int Quantity { get; set; }
         public int MinimumOrderQuantity { get; set; }
+
+        // Computed — not stored in DB
         public decimal LineTotal => UnitPrice * Quantity;
     }
 }

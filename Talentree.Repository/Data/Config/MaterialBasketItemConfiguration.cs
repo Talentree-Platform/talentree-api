@@ -15,8 +15,10 @@ namespace Talentree.Repository.Data.Config
         {
             builder.HasKey(i => i.Id);
 
-            builder.Property(i => i.Quantity).IsRequired();
+            builder.Property(i => i.Quantity)
+                .IsRequired();
 
+            // Restrict so deleting a material doesn't silently remove basket items
             builder.HasOne(i => i.RawMaterial)
                 .WithMany()
                 .HasForeignKey(i => i.RawMaterialId)

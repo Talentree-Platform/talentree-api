@@ -17,15 +17,16 @@ namespace Talentree.Repository.Data.Config
 
             builder.Property(b => b.BusinessOwnerId)
                 .IsRequired()
-                .HasMaxLength(450);
+                .HasMaxLength(450); // Identity PK length
 
             // One basket per BO
-            builder.HasIndex(b => b.BusinessOwnerId).IsUnique();
+            builder.HasIndex(b => b.BusinessOwnerId)
+                .IsUnique();
 
             builder.HasMany(b => b.Items)
                 .WithOne(i => i.Basket)
                 .HasForeignKey(i => i.BasketId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade); // Deleting basket removes all its items
         }
     }
 }

@@ -5,10 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Talentree.Service.DTOs.Basket
+namespace Talentree.Core.DTOs.Basket
 {
-    public class UpdateBasketItemDto
+    public class AddToBasketDto
     {
+        [Required]
+        public int RawMaterialId { get; set; }
+
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
         public int Quantity { get; set; }
