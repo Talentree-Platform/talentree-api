@@ -31,6 +31,8 @@ namespace Talentree.API.Extentions
 
             // Raw Material Store
             services.AddScoped<IRawMaterialService, RawMaterialService>();
+            services.AddScoped<IMaterialBasketService, MaterialBasketService>();
+
             return services;
         }
 
