@@ -181,6 +181,8 @@ namespace Talentree.API
             app.UseAuthentication(); // MUST be before Authorization
             app.UseAuthorization();
 
+            app.UseStaticFiles();
+
             app.MapControllers();
 
             app.Run();

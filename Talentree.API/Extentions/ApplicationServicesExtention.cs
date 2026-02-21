@@ -20,6 +20,10 @@ namespace Talentree.API.Extentions
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IAdminService, AdminService>();
 
+            // product service
+            services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IImageService, ImageService>();
+
 
             // Add AutoMapper (scans assemblies)
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
