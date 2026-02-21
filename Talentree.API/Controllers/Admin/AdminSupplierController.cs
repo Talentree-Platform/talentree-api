@@ -7,6 +7,10 @@ using Talentree.Core.Service.Contract;
 
 namespace Talentree.API.Controllers.Admin
 {
+    /// <summary>
+    /// Admin-only endpoints for managing suppliers.
+    /// Suppliers are the source of raw materials on the platform.
+    /// </summary>
     [Authorize(Roles = "Admin")]
     public class AdminSupplierController : BaseApiController
     {
@@ -17,8 +21,15 @@ namespace Talentree.API.Controllers.Admin
             _supplierService = supplierService;
         }
 
-        // GET: api/admin/suppliers?search=cotton&isActive=true&pageIndex=1&pageSize=20
+        /// <summary>
+        /// Gets a paginated list of all suppliers.
+        /// Supports filtering by name/contact person and active status.
+        /// </summary>
+        /// <param name="search">Optional search term matched against supplier name and contact person</param>
+        /// <param name="isActive">Optional filter — true for active suppliers only, false for inactive</param>
         [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetSuppliers(
             [FromQuery] string? search,
             [FromQuery] bool? isActive,
@@ -36,8 +47,13 @@ namespace Talentree.API.Controllers.Admin
             ));
         }
 
-        // GET: api/admin/suppliers/{id}
+        /// <summary>
+        /// Gets full details of a single supplier including their material count.
+        /// </summary>
+        /// <param name="id">Supplier ID</param>
         [HttpGet("{id:int}")]
+        [ProducesResponseType(typeof(ApiResponse<SupplierDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetSupplierById(int id)
         {
             var supplier = await _supplierService.GetSupplierByIdAsync(id);
@@ -48,8 +64,13 @@ namespace Talentree.API.Controllers.Admin
             ));
         }
 
-        // POST: api/admin/suppliers
+        /// <summary>
+        /// Creates a new supplier.
+        /// Email must be unique across all suppliers.
+        /// </summary>
         [HttpPost]
+        [ProducesResponseType(typeof(ApiResponse<SupplierDto>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateSupplier([FromBody] CreateSupplierDto dto)
         {
             var supplier = await _supplierService.CreateSupplierAsync(dto);
@@ -63,8 +84,13 @@ namespace Talentree.API.Controllers.Admin
                 ));
         }
 
-        // PUT: api/admin/suppliers/{id}
+        /// <summary>
+        /// Partially updates a supplier. Only provided fields are updated.
+        /// </summary>
+        /// <param name="id">Supplier ID to update</param>
         [HttpPut("{id:int}")]
+        [ProducesResponseType(typeof(ApiResponse<SupplierDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateSupplier(int id, [FromBody] UpdateSupplierDto dto)
         {
             var supplier = await _supplierService.UpdateSupplierAsync(id, dto);
@@ -75,8 +101,15 @@ namespace Talentree.API.Controllers.Admin
             ));
         }
 
-        // DELETE: api/admin/suppliers/{id}
+        /// <summary>
+        /// Soft deletes a supplier.
+        /// Will fail if the supplier has active materials — deactivate their materials first.
+        /// </summary>
+        /// <param name="id">Supplier ID to delete</param>
         [HttpDelete("{id:int}")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteSupplier(int id)
         {
             await _supplierService.DeleteSupplierAsync(id);

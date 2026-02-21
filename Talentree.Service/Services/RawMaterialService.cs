@@ -13,6 +13,10 @@ using Talentree.Repository.Data;
 
 namespace Talentree.Service.Services
 {
+    /// <summary>
+    /// Handles raw material browsing for Business Owners.
+    /// Materials are automatically scoped to the BO's business category.
+    /// </summary>
     public class RawMaterialService : IRawMaterialService
     {
         private readonly TalentreeDbContext _context;
@@ -22,6 +26,7 @@ namespace Talentree.Service.Services
             _context = context;
         }
 
+        /// <inheritdoc/>
         public async Task<PaginationDto<RawMaterialDto>> GetMaterialsAsync(
             string businessOwnerId, string? category, string? search, int pageIndex, int pageSize)
         {
@@ -50,6 +55,7 @@ namespace Talentree.Service.Services
             return new PaginationDto<RawMaterialDto>(pageIndex, pageSize, total, materials.Select(MapToDto).ToList());
         }
 
+        /// <inheritdoc/>
         public async Task<RawMaterialDto> GetMaterialByIdAsync(int id)
         {
             var material = await _context.Set<RawMaterial>()
@@ -59,6 +65,8 @@ namespace Talentree.Service.Services
 
             return MapToDto(material);
         }
+
+        // ── Private helpers ───────────────────────────────────────
 
         private static RawMaterialDto MapToDto(RawMaterial m) => new()
         {

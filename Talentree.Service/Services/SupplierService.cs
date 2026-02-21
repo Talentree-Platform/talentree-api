@@ -12,6 +12,10 @@ using Talentree.Repository.Data;
 
 namespace Talentree.Service.Services
 {
+    /// <summary>
+    /// Handles all supplier management operations for the admin panel.
+    /// Suppliers are static entities managed by admins — they have no user accounts.
+    /// </summary>
     public class SupplierService : ISupplierService
     {
         private readonly TalentreeDbContext _context;
@@ -21,6 +25,7 @@ namespace Talentree.Service.Services
             _context = context;
         }
 
+        /// <inheritdoc/>
         public async Task<PaginationDto<SupplierDto>> GetSuppliersAsync(
             string? search, bool? isActive, int pageIndex, int pageSize)
         {
@@ -57,6 +62,7 @@ namespace Talentree.Service.Services
             return new PaginationDto<SupplierDto>(pageIndex, pageSize, total, suppliers);
         }
 
+        /// <inheritdoc/>
         public async Task<SupplierDto> GetSupplierByIdAsync(int id)
         {
             var supplier = await _context.Set<Supplier>()
@@ -67,6 +73,7 @@ namespace Talentree.Service.Services
             return MapToDto(supplier);
         }
 
+        /// <inheritdoc/>
         public async Task<SupplierDto> CreateSupplierAsync(CreateSupplierDto dto)
         {
             var exists = await _context.Set<Supplier>()
@@ -95,6 +102,7 @@ namespace Talentree.Service.Services
             return MapToDto(supplier);
         }
 
+        /// <inheritdoc/>
         public async Task<SupplierDto> UpdateSupplierAsync(int id, UpdateSupplierDto dto)
         {
             var supplier = await _context.Set<Supplier>().FindAsync(id)
@@ -115,6 +123,7 @@ namespace Talentree.Service.Services
             return MapToDto(supplier);
         }
 
+        /// <inheritdoc/>
         public async Task DeleteSupplierAsync(int id)
         {
             var supplier = await _context.Set<Supplier>()
@@ -127,11 +136,13 @@ namespace Talentree.Service.Services
                 throw new InvalidOperationException(
                     "Cannot delete supplier with active materials. Deactivate all their materials first.");
 
-            // Soft delete via BaseEntity
+            // Soft delete — IsDeleted and DeletedAt are set by AuditInterceptor
             supplier.IsDeleted = true;
             supplier.IsActive = false;
             await _context.SaveChangesAsync();
         }
+
+        // ── Private helpers ───────────────────────────────────────
 
         private static SupplierDto MapToDto(Supplier s) => new()
         {
