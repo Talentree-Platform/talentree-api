@@ -399,7 +399,7 @@ namespace Talentree.Service.Services
                 }
 
 
-                // Assign Student role
+                // Assign Customer role
                 await _userManager.AddToRoleAsync(user, "Customer");
             }
 
@@ -469,8 +469,8 @@ namespace Talentree.Service.Services
                 }
 
 
-                // Assign Student role
-                await _userManager.AddToRoleAsync(user, "Student");
+                // Assign Customer role
+                await _userManager.AddToRoleAsync(user, "Customer");
             }
 
             // Get user roles
