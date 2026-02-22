@@ -10,7 +10,7 @@ namespace Talentree.Core.Specifications.ProductSpecifications
     public class ProductByIdSpecification : BaseSpecifications<Product>
     {
         public ProductByIdSpecification(int productId)
-            : base(p => p.Id == productId && !p.IsDeleted)
+    : base(p => p.Id == productId)
         {
             AddInclude(p => p.Images);
             AddInclude(p => p.Category);

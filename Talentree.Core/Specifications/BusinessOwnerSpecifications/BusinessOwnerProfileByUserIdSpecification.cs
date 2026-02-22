@@ -10,7 +10,7 @@ namespace Talentree.Core.Specifications.BusinessOwnerSpecifications
     public class BusinessOwnerProfileByUserIdSpecification : BaseSpecifications<BusinessOwnerProfile>
     {
         public BusinessOwnerProfileByUserIdSpecification(string userId)
-            : base(b => b.UserId == userId && !b.IsDeleted)
+            : base(b => b.UserId == userId)
         {
         }
     }

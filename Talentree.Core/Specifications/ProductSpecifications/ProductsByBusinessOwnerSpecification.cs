@@ -11,12 +11,11 @@ namespace Talentree.Core.Specifications.ProductSpecifications
     {
         // With filters + pagination
         public ProductsByBusinessOwnerSpecification(int businessOwnerProfileId, ProductFilterParams filter)
-            : base(p =>
-                p.BusinessOwnerProfileId == businessOwnerProfileId &&
-                !p.IsDeleted &&
-                (filter.Status == null || p.Status == filter.Status) &&
-                (string.IsNullOrEmpty(filter.Search) || p.Name.ToLower().Contains(filter.Search.ToLower()))
-            )
+    : base(p =>
+        p.BusinessOwnerProfileId == businessOwnerProfileId &&
+        (filter.Status == null || p.Status == filter.Status) &&
+        (string.IsNullOrEmpty(filter.Search) || p.Name.ToLower().Contains(filter.Search.ToLower()))
+    )
         {
             AddInclude(p => p.Images);
             AddInclude(p => p.Category);
@@ -41,12 +40,11 @@ namespace Talentree.Core.Specifications.ProductSpecifications
 
         // Count only - no includes, no pagination
         public ProductsByBusinessOwnerSpecification(int businessOwnerProfileId, ProductFilterParams filter, bool countOnly)
-            : base(p =>
-                p.BusinessOwnerProfileId == businessOwnerProfileId &&
-                !p.IsDeleted &&
-                (filter.Status == null || p.Status == filter.Status) &&
-                (string.IsNullOrEmpty(filter.Search) || p.Name.ToLower().Contains(filter.Search.ToLower()))
-            )
+    : base(p =>
+        p.BusinessOwnerProfileId == businessOwnerProfileId &&
+        (filter.Status == null || p.Status == filter.Status) &&
+        (string.IsNullOrEmpty(filter.Search) || p.Name.ToLower().Contains(filter.Search.ToLower()))
+    )
         {
         }
     }
