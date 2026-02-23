@@ -33,6 +33,8 @@ namespace Talentree.Repository.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<OtpCode> OtpCodes { get; set; }
         public DbSet<Address> Addresses { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<BusinessOwnerProfile> BusinessOwnerProfiles { get; set; }
         public DbSet<RawMaterial> RawMaterials { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }

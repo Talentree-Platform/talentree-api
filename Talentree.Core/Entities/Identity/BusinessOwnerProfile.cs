@@ -33,5 +33,7 @@ namespace Talentree.Core.Entities.Identity
 
         // Auto escalation
         public DateTime? AutoApprovalDeadline { get; set; }
+
+        public ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }
