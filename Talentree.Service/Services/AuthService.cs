@@ -66,7 +66,6 @@ namespace Talentree.Service.Services
             }
 
 
-            // Assign default "Student" role
             await _userManager.AddToRoleAsync(user, "Customer");
 
 
