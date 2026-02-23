@@ -211,5 +211,105 @@ namespace Talentree.Service.Services
 </body>
 </html>";
         }
+
+
+
+        // ═══════════════════════════════════════════════════════════
+        // ADMIN MANAGEMENT METHODS
+        // ═══════════════════════════════════════════════════════════
+
+        public async Task<AdminDto> CreateAdminAsync(CreateAdminDto dto)
+        {
+            //  Check if email already exists
+            var existingUser = await _userManager.FindByEmailAsync(dto.Email);
+            if (existingUser != null)
+                throw new BadRequestException("Email is already registered");
+
+            // Create new user
+            var user = new AppUser
+            {
+                DisplayName = dto.FullName,
+                Email = dto.Email,
+                UserName = dto.Email, // Email as username
+                PhoneNumber = dto.PhoneNumber,
+                EmailConfirmed = true, 
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await _userManager.CreateAsync(user, dto.Password);
+
+            if (!result.Succeeded)
+            {
+                var errorsDict = result.Errors
+                    .GroupBy(e => e.Code)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
+
+                throw new ValidationException(errorsDict);
+            }
+
+            // 3 Assign Admin role
+            await _userManager.AddToRoleAsync(user, "Admin");
+
+            // Return admin details
+            return new AdminDto
+            {
+                Id = user.Id,
+                FullName = user.DisplayName,
+                Email = user.Email!,
+                PhoneNumber = user.PhoneNumber,
+                IsActive = user.IsActive,
+                CreatedAt = user.CreatedAt
+            };
+        }
+
+        public async Task<List<AdminDto>> GetAllAdminsAsync()
+        {
+            // Get all users with Admin role
+            var admins = await _userManager.GetUsersInRoleAsync("Admin");
+
+            return admins.Select(u => new AdminDto
+            {
+                Id = u.Id,
+                FullName = u.DisplayName,
+                Email = u.Email!,
+                PhoneNumber = u.PhoneNumber,
+                IsActive = u.IsActive,
+                CreatedAt = u.CreatedAt
+            }).ToList();
+        }
+
+        public async Task DeactivateAdminAsync(string adminUserId)
+        {
+            var admin = await _userManager.FindByIdAsync(adminUserId);
+
+            if (admin == null)
+                throw new NotFoundException("Admin not found");
+
+            // Check if user is actually an admin
+            var isAdmin = await _userManager.IsInRoleAsync(admin, "Admin");
+            if (!isAdmin)
+                throw new BadRequestException("User is not an admin");
+
+            // Deactivate
+            admin.IsActive = false;
+            await _userManager.UpdateAsync(admin);
+        }
+
+        public async Task ReactivateAdminAsync(string adminUserId)
+        {
+            var admin = await _userManager.FindByIdAsync(adminUserId);
+
+            if (admin == null)
+                throw new NotFoundException("Admin not found");
+
+            var isAdmin = await _userManager.IsInRoleAsync(admin, "Admin");
+            if (!isAdmin)
+                throw new BadRequestException("User is not an admin");
+
+            // Reactivate
+            admin.IsActive = true;
+            await _userManager.UpdateAsync(admin);
+        }
     }
 }
