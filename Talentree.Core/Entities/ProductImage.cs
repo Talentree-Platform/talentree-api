@@ -10,7 +10,7 @@ namespace Talentree.Core.Entities
     {
         public string ImageUrl { get; set; } = string.Empty;
         public bool IsMain { get; set; } = false;
-        public int DisplayOrder { get; set; } = 0;
+        public int SortOrder { get; set; } = 0; // renamed from DisplayOrder
 
         // FK
         public int ProductId { get; set; }

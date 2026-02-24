@@ -25,6 +25,19 @@ namespace Talentree.Core.Entities
         public string? ApprovedBy { get; set; }
         public DateTime? ApprovedAt { get; set; }
 
+        // ═══════════════════════════════════════════════════════════
+        // AI Team Fields
+        // ═══════════════════════════════════════════════════════════
+        public long ViewCount { get; set; } = 0;
+        public long CartAddCount { get; set; } = 0;
+        public long PurchaseCount { get; set; } = 0;
+        public float? AvgRating { get; set; }
+        public decimal RevenueTotal { get; set; } = 0;
+        public int? DemandForecastQty { get; set; }
+        public DateTime? DemandForecastUpdatedAt { get; set; }
+        public bool LowStockFlag { get; set; } = false;
+        public float? DescriptionQualityScore { get; set; }
+
         // FK - Business Owner
         public int BusinessOwnerProfileId { get; set; }
         public BusinessOwnerProfile BusinessOwner { get; set; } = null!;

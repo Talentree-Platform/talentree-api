@@ -70,6 +70,35 @@ namespace Talentree.Repository.Data.Config
             builder.HasIndex(p => p.CategoryId);
             builder.HasIndex(p => p.Price);
             builder.HasIndex(p => p.Name);
+
+            // AI Team Fields
+            builder.Property(p => p.ViewCount)
+                .HasDefaultValue(0);
+
+            builder.Property(p => p.CartAddCount)
+                .HasDefaultValue(0);
+
+            builder.Property(p => p.PurchaseCount)
+                .HasDefaultValue(0);
+
+            builder.Property(p => p.RevenueTotal)
+                .HasColumnType("decimal(14,2)")
+                .HasDefaultValue(0);
+
+            builder.Property(p => p.DemandForecastQty)
+                .IsRequired(false);
+
+            builder.Property(p => p.DemandForecastUpdatedAt)
+                .IsRequired(false);
+
+            builder.Property(p => p.LowStockFlag)
+                .HasDefaultValue(false);
+
+            builder.Property(p => p.AvgRating)
+                .IsRequired(false);
+
+            builder.Property(p => p.DescriptionQualityScore)
+                .IsRequired(false);
         }
     }
 }

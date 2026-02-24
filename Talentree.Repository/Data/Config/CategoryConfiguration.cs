@@ -24,6 +24,9 @@ namespace Talentree.Repository.Data.Config
                 .HasMaxLength(500);
 
             builder.HasIndex(c => c.Name).IsUnique();
+
+            builder.Property(c => c.BusinessType)
+               .HasMaxLength(100);
         }
     }
 }

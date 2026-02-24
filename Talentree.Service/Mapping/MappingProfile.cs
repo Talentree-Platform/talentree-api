@@ -257,16 +257,16 @@ namespace Talentree.Service.Mapping
                     o => o.MapFrom(s => s.Category != null ? s.Category.Name : string.Empty))
                 .ForMember(d => d.MainImageUrl,
                     o => o.MapFrom(s =>
-                        s.Images != null && s.Images.Any()
-                            ? s.Images.FirstOrDefault(i => i.IsMain) != null
-                                ? s.Images.First(i => i.IsMain).ImageUrl
-                                : s.Images.OrderBy(i => i.DisplayOrder).First().ImageUrl
-                            : null))
+                    s.Images != null && s.Images.Any()
+                    ? s.Images.FirstOrDefault(i => i.IsMain) != null
+                        ? s.Images.First(i => i.IsMain).ImageUrl
+                            : s.Images.OrderBy(i => i.SortOrder).First().ImageUrl
+                                                                                : null))
                 .ForMember(d => d.Images,
                     o => o.MapFrom(s =>
-                        s.Images != null
-                            ? s.Images.OrderBy(i => i.DisplayOrder).ToList()
-                            : new List<ProductImage>()));
+                         s.Images != null
+                            ? s.Images.OrderBy(i => i.SortOrder).ToList()
+                                : new List<ProductImage>()));
 
 
         }

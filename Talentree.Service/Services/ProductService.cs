@@ -161,7 +161,7 @@ namespace Talentree.Service.Services
                     ProductId = product.Id,
                     ImageUrl = imageUrl,
                     IsMain = i == 0,
-                    DisplayOrder = i
+                    SortOrder = i
                 });
             }
 
@@ -241,7 +241,7 @@ namespace Talentree.Service.Services
                         ProductId = product.Id,
                         ImageUrl = url,
                         IsMain = false,
-                        DisplayOrder = product.Images.Count
+                        SortOrder = product.Images.Count
                     });
                 }
             }
