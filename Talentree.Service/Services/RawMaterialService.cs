@@ -1,15 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using AutoMapper;
+using Talentree.Core;
 using Talentree.Core.DTOs.Common;
 using Talentree.Core.DTOs.RawMaterial;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
+using Talentree.Core.Repository.Contract;
 using Talentree.Core.Service.Contract;
-using Talentree.Repository.Data;
+using Talentree.Core.Specifications.Identity;
+using Talentree.Core.Specifications.RawMaterial;
 
 namespace Talentree.Service.Services
 {
@@ -19,68 +17,42 @@ namespace Talentree.Service.Services
     /// </summary>
     public class RawMaterialService : IRawMaterialService
     {
-        private readonly TalentreeDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public RawMaterialService(TalentreeDbContext context)
+        public RawMaterialService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
         /// <inheritdoc/>
         public async Task<PaginationDto<RawMaterialDto>> GetMaterialsAsync(
             string businessOwnerId, string? category, string? search, int pageIndex, int pageSize)
         {
-            var profile = await _context.Set<BusinessOwnerProfile>()
-                .FirstOrDefaultAsync(p => p.UserId == businessOwnerId)
+            // Resolve BO's business category first — used to scope material results
+            var profile = await _unitOfWork.Repository<BusinessOwnerProfile>()
+                .GetByIdWithSpecificationsAsync(new BusinessOwnerProfileByUserIdSpec(businessOwnerId))
                 ?? throw new KeyNotFoundException("Business owner profile not found.");
 
-            var query = _context.Set<RawMaterial>()
-                .Include(m => m.Supplier)
-                .Where(m => m.IsAvailable)
-                .Where(m => m.Category.Contains(profile.BusinessCategory) || category != null);
+            var spec = new RawMaterialWithSupplierSpec(profile.BusinessCategory, category, search, pageIndex, pageSize);
+            var countSpec = new RawMaterialCountSpec(profile.BusinessCategory, category, search);
 
-            if (!string.IsNullOrWhiteSpace(category))
-                query = query.Where(m => m.Category == category);
+            var materials = await _unitOfWork.Repository<RawMaterial>().GetAllWithSpecificationsAsync(spec);
+            var total = await _unitOfWork.Repository<RawMaterial>().GetCountWithSpecificationsAsync(countSpec);
 
-            if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(m => m.Name.Contains(search) || m.Description.Contains(search));
-
-            var total = await query.CountAsync();
-            var materials = await query
-                .OrderBy(m => m.Name)
-                .Skip((pageIndex - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            return new PaginationDto<RawMaterialDto>(pageIndex, pageSize, total, materials.Select(MapToDto).ToList());
+            var dtos = _mapper.Map<List<RawMaterialDto>>(materials);
+            return new PaginationDto<RawMaterialDto>(pageIndex, pageSize, total, dtos);
         }
 
         /// <inheritdoc/>
         public async Task<RawMaterialDto> GetMaterialByIdAsync(int id)
         {
-            var material = await _context.Set<RawMaterial>()
-                .Include(m => m.Supplier)
-                .FirstOrDefaultAsync(m => m.Id == id && m.IsAvailable)
+            var spec = new RawMaterialByIdWithSupplierSpec(id);
+            var material = await _unitOfWork.Repository<RawMaterial>().GetByIdWithSpecificationsAsync(spec)
                 ?? throw new KeyNotFoundException("Material not found.");
 
-            return MapToDto(material);
+            return _mapper.Map<RawMaterialDto>(material);
         }
-
-        // ── Private helpers ───────────────────────────────────────
-
-        private static RawMaterialDto MapToDto(RawMaterial m) => new()
-        {
-            Id = m.Id,
-            Name = m.Name,
-            Description = m.Description,
-            Price = m.Price,
-            Unit = m.Unit,
-            MinimumOrderQuantity = m.MinimumOrderQuantity,
-            StockQuantity = m.StockQuantity,
-            IsAvailable = m.IsAvailable,
-            Category = m.Category,
-            PictureUrl = m.PictureUrl,
-            SupplierName = m.Supplier?.Name ?? string.Empty
-        };
     }
 }

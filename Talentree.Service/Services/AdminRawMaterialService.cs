@@ -1,31 +1,31 @@
-﻿using Microsoft.AspNetCore.Hosting;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Talentree.Core;
 using Talentree.Core.DTOs.Admin.RawMaterial;
 using Talentree.Core.DTOs.Common;
 using Talentree.Core.Entities;
+using Talentree.Core.Repository.Contract;
 using Talentree.Core.Service.Contract;
-using Talentree.Repository.Data;
+using Talentree.Core.Specifications.RawMaterial;
+using Talentree.Core.Specifications.Supplier;
 
 namespace Talentree.Service.Services
 {
     /// <summary>
-    /// Handles admin operations for raw material management including
+    /// Admin operations for raw material management including
     /// CRUD, stock management, and image uploads.
     /// </summary>
     public class AdminRawMaterialService : IAdminRawMaterialService
     {
-        private readonly TalentreeDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
         private readonly IWebHostEnvironment _env;
 
-        public AdminRawMaterialService(TalentreeDbContext context, IWebHostEnvironment env)
+        public AdminRawMaterialService(IUnitOfWork unitOfWork, IMapper mapper, IWebHostEnvironment env)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
             _env = env;
         }
 
@@ -33,86 +33,56 @@ namespace Talentree.Service.Services
         public async Task<PaginationDto<AdminRawMaterialDto>> GetMaterialsAsync(
             string? category, string? search, bool? isAvailable, int pageIndex, int pageSize)
         {
-            // Admin sees ALL materials including unavailable ones.
-            // IsAvailable is a business flag — IsDeleted is the soft-delete filter applied globally.
-            var query = _context.Set<RawMaterial>()
-                .Include(m => m.Supplier)
-                .AsQueryable();
+            var spec = new AdminRawMaterialSpec(category, search, isAvailable, pageIndex, pageSize);
+            var countSpec = new AdminRawMaterialCountSpec(category, search, isAvailable);
 
-            if (!string.IsNullOrWhiteSpace(category))
-                query = query.Where(m => m.Category.Contains(category));
+            var materials = await _unitOfWork.Repository<RawMaterial>().GetAllWithSpecificationsAsync(spec);
+            var total = await _unitOfWork.Repository<RawMaterial>().GetCountWithSpecificationsAsync(countSpec);
 
-            if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(m => m.Name.Contains(search) || m.Description.Contains(search));
-
-            if (isAvailable.HasValue)
-                query = query.Where(m => m.IsAvailable == isAvailable.Value);
-
-            var total = await query.CountAsync();
-            var materials = await query
-                .OrderBy(m => m.Category).ThenBy(m => m.Name)
-                .Skip((pageIndex - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            return new PaginationDto<AdminRawMaterialDto>(
-                pageIndex, pageSize, total, materials.Select(MapToDto).ToList());
+            var dtos = _mapper.Map<List<AdminRawMaterialDto>>(materials);
+            return new PaginationDto<AdminRawMaterialDto>(pageIndex, pageSize, total, dtos);
         }
 
         /// <inheritdoc/>
         public async Task<AdminRawMaterialDto> GetMaterialByIdAsync(int id)
         {
-            var material = await _context.Set<RawMaterial>()
-                .Include(m => m.Supplier)
-                .FirstOrDefaultAsync(m => m.Id == id)
+            var spec = new AdminRawMaterialByIdSpec(id);
+            var material = await _unitOfWork.Repository<RawMaterial>().GetByIdWithSpecificationsAsync(spec)
                 ?? throw new KeyNotFoundException($"Material #{id} not found.");
 
-            return MapToDto(material);
+            return _mapper.Map<AdminRawMaterialDto>(material);
         }
 
         /// <inheritdoc/>
         public async Task<AdminRawMaterialDto> CreateMaterialAsync(CreateRawMaterialDto dto)
         {
-            var supplier = await _context.Set<Supplier>()
-                .FirstOrDefaultAsync(s => s.Id == dto.SupplierId && s.IsActive)
+            var supplierSpec = new SupplierByIdActiveSpec(dto.SupplierId);
+            var supplier = await _unitOfWork.Repository<Supplier>().GetByIdWithSpecificationsAsync(supplierSpec)
                 ?? throw new KeyNotFoundException($"Active supplier #{dto.SupplierId} not found.");
 
-            var material = new RawMaterial
-            {
-                Name = dto.Name,
-                Description = dto.Description,
-                Price = dto.Price,
-                Unit = dto.Unit,
-                MinimumOrderQuantity = dto.MinimumOrderQuantity,
-                StockQuantity = dto.StockQuantity,
-                Category = dto.Category,
-                SupplierId = dto.SupplierId,
-                PictureUrl = dto.PictureUrl,
-                IsAvailable = dto.StockQuantity > 0 // Auto-set based on initial stock
-            };
+            var material = _mapper.Map<RawMaterial>(dto);
+            material.IsAvailable = dto.StockQuantity > 0; // Auto-set based on initial stock
 
-            _context.Set<RawMaterial>().Add(material);
-            await _context.SaveChangesAsync();
+            _unitOfWork.Repository<RawMaterial>().Add(material);
+            await _unitOfWork.CompleteAsync();
 
-            // Attach navigation property so MapToDto has supplier name without a reload
+            // Attach supplier so mapper can resolve SupplierName without a reload
             material.Supplier = supplier;
-            return MapToDto(material);
+            return _mapper.Map<AdminRawMaterialDto>(material);
         }
 
         /// <inheritdoc/>
         public async Task<AdminRawMaterialDto> UpdateMaterialAsync(int id, UpdateRawMaterialDto dto)
         {
-            var material = await _context.Set<RawMaterial>()
-                .Include(m => m.Supplier)
-                .FirstOrDefaultAsync(m => m.Id == id)
+            var spec = new AdminRawMaterialByIdSpec(id);
+            var material = await _unitOfWork.Repository<RawMaterial>().GetByIdWithSpecificationsAsync(spec)
                 ?? throw new KeyNotFoundException($"Material #{id} not found.");
 
             if (dto.SupplierId.HasValue)
             {
-                var supplier = await _context.Set<Supplier>()
-                    .FirstOrDefaultAsync(s => s.Id == dto.SupplierId.Value && s.IsActive)
+                var supplierSpec = new SupplierByIdActiveSpec(dto.SupplierId.Value);
+                var supplier = await _unitOfWork.Repository<Supplier>().GetByIdWithSpecificationsAsync(supplierSpec)
                     ?? throw new KeyNotFoundException($"Active supplier #{dto.SupplierId} not found.");
-
                 material.SupplierId = dto.SupplierId.Value;
                 material.Supplier = supplier;
             }
@@ -132,41 +102,46 @@ namespace Talentree.Service.Services
             if (dto.IsAvailable.HasValue) material.IsAvailable = dto.IsAvailable.Value;
             if (dto.PictureUrl != null) material.PictureUrl = dto.PictureUrl;
 
-            await _context.SaveChangesAsync();
-            return MapToDto(material);
+            _unitOfWork.Repository<RawMaterial>().Update(material);
+            await _unitOfWork.CompleteAsync();
+
+            return _mapper.Map<AdminRawMaterialDto>(material);
         }
 
         /// <inheritdoc/>
         public async Task DeleteMaterialAsync(int id)
         {
-            var material = await _context.Set<RawMaterial>().FindAsync(id)
+            var material = await _unitOfWork.Repository<RawMaterial>().GetByIdAsync(id)
                 ?? throw new KeyNotFoundException($"Material #{id} not found.");
 
             // Soft delete — IsDeleted and DeletedAt are set by AuditInterceptor
             material.IsDeleted = true;
             material.IsAvailable = false;
-            await _context.SaveChangesAsync();
+
+            _unitOfWork.Repository<RawMaterial>().Update(material);
+            await _unitOfWork.CompleteAsync();
         }
 
         /// <inheritdoc/>
         public async Task<AdminRawMaterialDto> RestockMaterialAsync(int id, RestockMaterialDto dto)
         {
-            var material = await _context.Set<RawMaterial>()
-                .Include(m => m.Supplier)
-                .FirstOrDefaultAsync(m => m.Id == id)
+            var spec = new AdminRawMaterialByIdSpec(id);
+            var material = await _unitOfWork.Repository<RawMaterial>().GetByIdWithSpecificationsAsync(spec)
                 ?? throw new KeyNotFoundException($"Material #{id} not found.");
 
             material.StockQuantity += dto.QuantityToAdd;
             material.IsAvailable = true; // Re-enable if it was out of stock
 
-            await _context.SaveChangesAsync();
-            return MapToDto(material);
+            _unitOfWork.Repository<RawMaterial>().Update(material);
+            await _unitOfWork.CompleteAsync();
+
+            return _mapper.Map<AdminRawMaterialDto>(material);
         }
 
         /// <inheritdoc/>
         public async Task<string> UploadMaterialImageAsync(int id, IFormFile image)
         {
-            var material = await _context.Set<RawMaterial>().FindAsync(id)
+            var material = await _unitOfWork.Repository<RawMaterial>().GetByIdAsync(id)
                 ?? throw new KeyNotFoundException($"Material #{id} not found.");
 
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
@@ -196,28 +171,11 @@ namespace Talentree.Service.Services
 
             var relativeUrl = $"/images/materials/{fileName}";
             material.PictureUrl = relativeUrl;
-            await _context.SaveChangesAsync();
+
+            _unitOfWork.Repository<RawMaterial>().Update(material);
+            await _unitOfWork.CompleteAsync();
 
             return relativeUrl;
         }
-
-        // ── Private helpers ───────────────────────────────────────
-
-        private static AdminRawMaterialDto MapToDto(RawMaterial m) => new()
-        {
-            Id = m.Id,
-            Name = m.Name,
-            Description = m.Description,
-            Price = m.Price,
-            Unit = m.Unit,
-            MinimumOrderQuantity = m.MinimumOrderQuantity,
-            StockQuantity = m.StockQuantity,
-            IsAvailable = m.IsAvailable,
-            Category = m.Category,
-            PictureUrl = m.PictureUrl,
-            SupplierId = m.SupplierId,
-            SupplierName = m.Supplier?.Name ?? string.Empty,
-            CreatedAt = m.CreatedAt
-        };
     }
 }
