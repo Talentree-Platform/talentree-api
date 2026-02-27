@@ -1,5 +1,5 @@
 ﻿
-namespace Talentree.Core.DTOs.RawMaterial
+namespace Talentree.Service.DTOs.RawMaterial
 {
     /// <summary>
     /// Used in both the raw material store browsing

@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Talentree.Core.DTOs.Basket;
+using Talentree.Service.DTOs.Basket;
 
-namespace Talentree.Core.Service.Contract
+namespace Talentree.Service.Contracts
 {
     public interface IMaterialBasketService
     {

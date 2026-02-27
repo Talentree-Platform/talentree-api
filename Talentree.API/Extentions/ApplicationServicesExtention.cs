@@ -1,6 +1,6 @@
 ﻿using Talentree.Core;
 using Talentree.Core.Repository.Contract;
-using Talentree.Core.Service.Contract;
+using Talentree.Service.Contracts;
 using Talentree.Repository;
 using Talentree.Service.Contracts;
 using Talentree.Service.Services;

@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Talentree.Core.DTOs.Admin.RawMaterial;
-using Talentree.Core.DTOs.Common;
+using Talentree.Service.DTOs.Admin.RawMaterial;
+using Talentree.Service.DTOs.Common;
 
-namespace Talentree.Core.Service.Contract
+namespace Talentree.Service.Contracts
 {
     /// <summary>
     /// Admin-only operations for managing raw materials including
@@ -24,7 +24,7 @@ namespace Talentree.Core.Service.Contract
         /// <param name="isAvailable">Optional availability filter</param>
         /// <param name="pageIndex">1-based page number</param>
         /// <param name="pageSize">Number of results per page (max 100)</param>
-        Task<PaginationDto<AdminRawMaterialDto>> GetMaterialsAsync(string? category, string? search, bool? isAvailable, int pageIndex, int pageSize);
+        Task<Pagination<AdminRawMaterialDto>> GetMaterialsAsync(string? category, string? search, bool? isAvailable, int pageIndex, int pageSize);
 
         /// <summary>
         /// Gets full details of a single raw material regardless of availability.

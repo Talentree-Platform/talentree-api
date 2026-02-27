@@ -1,10 +1,10 @@
 ﻿// Talentree.Service/Mapping/MappingProfile.cs
 
 using AutoMapper;
-using Talentree.Core.DTOs.Admin.RawMaterial;
-using Talentree.Core.DTOs.Admin.Supplier;
-using Talentree.Core.DTOs.Basket;
-using Talentree.Core.DTOs.RawMaterial;
+using Talentree.Service.DTOs.Admin.RawMaterial;
+using Talentree.Service.DTOs.Admin.Supplier;
+using Talentree.Service.DTOs.Basket;
+using Talentree.Service.DTOs.RawMaterial;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;

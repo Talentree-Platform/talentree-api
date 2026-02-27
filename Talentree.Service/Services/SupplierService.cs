@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
 using Talentree.Core;
-using Talentree.Core.DTOs.Admin.Supplier;
-using Talentree.Core.DTOs.Common;
+using Talentree.Service.DTOs.Admin.Supplier;
+using Talentree.Service.DTOs.Common;
 using Talentree.Core.Entities;
 using Talentree.Core.Repository.Contract;
-using Talentree.Core.Service.Contract;
+using Talentree.Service.Contracts;
 using Talentree.Core.Specifications.Supplier;
 
 namespace Talentree.Service.Services
@@ -25,7 +25,7 @@ namespace Talentree.Service.Services
         }
 
         /// <inheritdoc/>
-        public async Task<PaginationDto<SupplierDto>> GetSuppliersAsync(
+        public async Task<Pagination<SupplierDto>> GetSuppliersAsync(
             string? search, bool? isActive, int pageIndex, int pageSize)
         {
             var spec = new SupplierSpec(search, isActive, pageIndex, pageSize);
@@ -35,7 +35,7 @@ namespace Talentree.Service.Services
             var total = await _unitOfWork.Repository<Supplier>().GetCountWithSpecificationsAsync(countSpec);
 
             var dtos = _mapper.Map<List<SupplierDto>>(suppliers);
-            return new PaginationDto<SupplierDto>(pageIndex, pageSize, total, dtos);
+            return new Pagination<SupplierDto>(pageIndex, pageSize, total, dtos);
         }
 
         /// <inheritdoc/>

@@ -2,8 +2,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Talentree.API.Models;
-using Talentree.Core.DTOs.Admin.RawMaterial;
-using Talentree.Core.Service.Contract;
+using Talentree.Service.DTOs.Admin.RawMaterial;
+using Talentree.Service.Contracts;
 
 namespace Talentree.API.Controllers.Admin
 {

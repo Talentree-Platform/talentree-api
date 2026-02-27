@@ -2,11 +2,11 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Talentree.Core;
-using Talentree.Core.DTOs.Admin.RawMaterial;
-using Talentree.Core.DTOs.Common;
+using Talentree.Service.DTOs.Admin.RawMaterial;
+using Talentree.Service.DTOs.Common;
 using Talentree.Core.Entities;
 using Talentree.Core.Repository.Contract;
-using Talentree.Core.Service.Contract;
+using Talentree.Service.Contracts;
 using Talentree.Core.Specifications.RawMaterial;
 using Talentree.Core.Specifications.Supplier;
 
@@ -30,7 +30,7 @@ namespace Talentree.Service.Services
         }
 
         /// <inheritdoc/>
-        public async Task<PaginationDto<AdminRawMaterialDto>> GetMaterialsAsync(
+        public async Task<Pagination<AdminRawMaterialDto>> GetMaterialsAsync(
             string? category, string? search, bool? isAvailable, int pageIndex, int pageSize)
         {
             var spec = new AdminRawMaterialSpec(category, search, isAvailable, pageIndex, pageSize);
@@ -40,7 +40,7 @@ namespace Talentree.Service.Services
             var total = await _unitOfWork.Repository<RawMaterial>().GetCountWithSpecificationsAsync(countSpec);
 
             var dtos = _mapper.Map<List<AdminRawMaterialDto>>(materials);
-            return new PaginationDto<AdminRawMaterialDto>(pageIndex, pageSize, total, dtos);
+            return new Pagination<AdminRawMaterialDto>(pageIndex, pageSize, total, dtos);
         }
 
         /// <inheritdoc/>

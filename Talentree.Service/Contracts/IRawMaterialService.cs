@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Talentree.Core.DTOs.Common;
-using Talentree.Core.DTOs.RawMaterial;
+using Talentree.Service.DTOs.Common;
+using Talentree.Service.DTOs.RawMaterial;
 
-namespace Talentree.Core.Service.Contract
+namespace Talentree.Service.Contracts
 {
     /// <summary>
     /// Handles raw material browsing for Business Owners.
@@ -23,7 +23,7 @@ namespace Talentree.Core.Service.Contract
         /// <param name="search">Optional search term matched against name and description</param>
         /// <param name="pageIndex">1-based page number</param>
         /// <param name="pageSize">Number of results per page (max 100)</param>
-        Task<PaginationDto<RawMaterialDto>> GetMaterialsAsync(string businessOwnerId, string? category, string? search, int pageIndex, int pageSize);
+        Task<Pagination<RawMaterialDto>> GetMaterialsAsync(string businessOwnerId, string? category, string? search, int pageIndex, int pageSize);
 
         /// <summary>
         /// Gets full details of a single available raw material.

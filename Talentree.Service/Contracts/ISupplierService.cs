@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Talentree.Core.DTOs.Admin.Supplier;
-using Talentree.Core.DTOs.Common;
+using Talentree.Service.DTOs.Admin.Supplier;
+using Talentree.Service.DTOs.Common;
 
-namespace Talentree.Core.Service.Contract
+namespace Talentree.Service.Contracts
 {
     /// <summary>
     /// Admin-only operations for managing suppliers.
@@ -22,7 +22,7 @@ namespace Talentree.Core.Service.Contract
         /// <param name="isActive">Optional filter — true for active only, false for inactive only</param>
         /// <param name="pageIndex">1-based page number</param>
         /// <param name="pageSize">Number of results per page (max 100)</param>
-        Task<PaginationDto<SupplierDto>> GetSuppliersAsync(string? search, bool? isActive, int pageIndex, int pageSize);
+        Task<Pagination<SupplierDto>> GetSuppliersAsync(string? search, bool? isActive, int pageIndex, int pageSize);
 
         /// <summary>
         /// Gets full details of a single supplier including their material count.

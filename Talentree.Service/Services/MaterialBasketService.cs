@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
 using Talentree.Core;
-using Talentree.Core.DTOs.Basket;
+using Talentree.Service.DTOs.Basket;
 using Talentree.Core.Entities;
 using Talentree.Core.Repository.Contract;
-using Talentree.Core.Service.Contract;
+using Talentree.Service.Contracts;
 using Talentree.Core.Specifications.Basket;
 using Talentree.Core.Specifications.RawMaterial;
 

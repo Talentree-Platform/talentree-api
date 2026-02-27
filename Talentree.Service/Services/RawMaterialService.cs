@@ -1,11 +1,11 @@
 ﻿using AutoMapper;
 using Talentree.Core;
-using Talentree.Core.DTOs.Common;
-using Talentree.Core.DTOs.RawMaterial;
+using Talentree.Service.DTOs.Common;
+using Talentree.Service.DTOs.RawMaterial;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Repository.Contract;
-using Talentree.Core.Service.Contract;
+using Talentree.Service.Contracts;
 using Talentree.Core.Specifications.Identity;
 using Talentree.Core.Specifications.RawMaterial;
 
@@ -27,7 +27,7 @@ namespace Talentree.Service.Services
         }
 
         /// <inheritdoc/>
-        public async Task<PaginationDto<RawMaterialDto>> GetMaterialsAsync(
+        public async Task<Pagination<RawMaterialDto>> GetMaterialsAsync(
             string businessOwnerId, string? category, string? search, int pageIndex, int pageSize)
         {
             // Resolve BO's business category first — used to scope material results
@@ -42,7 +42,7 @@ namespace Talentree.Service.Services
             var total = await _unitOfWork.Repository<RawMaterial>().GetCountWithSpecificationsAsync(countSpec);
 
             var dtos = _mapper.Map<List<RawMaterialDto>>(materials);
-            return new PaginationDto<RawMaterialDto>(pageIndex, pageSize, total, dtos);
+            return new Pagination<RawMaterialDto>(pageIndex, pageSize, total, dtos);
         }
 
         /// <inheritdoc/>

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Talentree.Core.DTOs.Basket
+namespace Talentree.Service.DTOs.Basket
 {
     public class MaterialBasketDto
     {

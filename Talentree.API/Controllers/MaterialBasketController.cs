@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Talentree.API.Models;
-using Talentree.Core.DTOs.Basket;
-using Talentree.Core.Service.Contract;
+using Talentree.Service.DTOs.Basket;
+using Talentree.Service.Contracts;
 
 namespace Talentree.API.Controllers
 {
