@@ -93,11 +93,11 @@ namespace Talentree.Repository.Data
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(admin, "Admin");
-                    logger.LogInformation($"✅ Admin user created: {adminEmail}");
+                    logger.LogInformation($" Admin user created: {adminEmail}");
                 }
                 else
                 {
-                    logger.LogError($"❌ Failed to create admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                    logger.LogError($" Failed to create admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
                 }
             }
         }

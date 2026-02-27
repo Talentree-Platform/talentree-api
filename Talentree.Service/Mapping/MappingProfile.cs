@@ -10,6 +10,7 @@ using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Service.DTOs.Admin;
 using Talentree.Service.DTOs.Auth;
+using Talentree.Service.DTOs.Products;
 
 namespace Talentree.Service.Mapping
 {
@@ -328,6 +329,29 @@ namespace Talentree.Service.Mapping
             CreateMap<MaterialBasket, MaterialBasketDto>()
                 .ForMember(dest => dest.Subtotal, opt => opt.Ignore())
                 .ForMember(dest => dest.TotalItemCount, opt => opt.Ignore());
+
+
+            // ProductImage → ProductImageDto
+            CreateMap<ProductImage, ProductImageDto>();
+
+            // Product → ProductDto
+            CreateMap<Product, ProductDto>()
+                .ForMember(d => d.StatusText,
+                    o => o.MapFrom(s => s.Status.ToString()))
+                .ForMember(d => d.CategoryName,
+                    o => o.MapFrom(s => s.Category != null ? s.Category.Name : string.Empty))
+                .ForMember(d => d.MainImageUrl,
+                    o => o.MapFrom(s =>
+                    s.Images != null && s.Images.Any()
+                    ? s.Images.FirstOrDefault(i => i.IsMain) != null
+                        ? s.Images.First(i => i.IsMain).ImageUrl
+                            : s.Images.OrderBy(i => i.SortOrder).First().ImageUrl
+                                                                                : null))
+                .ForMember(d => d.Images,
+                    o => o.MapFrom(s =>
+                         s.Images != null
+                            ? s.Images.OrderBy(i => i.SortOrder).ToList()
+                                : new List<ProductImage>()));
 
 
         }

@@ -53,7 +53,13 @@ namespace Talentree.API.Extensions
 
                 logger.LogInformation("Data seeding completed successfully.");
 
-             
+                await TalentreeContextSeed.SeedAsync(userManager, roleManager, dbContext, logger);
+                logger.LogInformation("Data seeding completed successfully.");
+
+                // ADD THIS
+                await CategoriesSeed.SeedAsync(dbContext);
+                logger.LogInformation("Categories seeding completed successfully.");
+
             }
             catch (Exception ex)
             {
