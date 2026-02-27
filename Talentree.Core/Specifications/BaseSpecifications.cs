@@ -39,18 +39,28 @@ namespace Talentree.Core.Specifications
 
         #region Includes (Navigation Properties)
 
-        /// <summary>
-        /// Collection of navigation properties to include via eager loading
-        /// </summary>
-        public ICollection<Expression<Func<T, object>>> Includes { get; private set; } = [];
+        /// <summary>Expression-based includes for single-level navigation properties</summary>
+        public ICollection<Expression<Func<T, object>>> Includes { get; private set; } = new List<Expression<Func<T, object>>>();
 
         /// <summary>
-        /// Adds a navigation property to be included in the query
+        /// String-based includes for nested navigation properties.
+        /// Use this when you need ThenInclude behaviour e.g. "Items.RawMaterial.Supplier"
         /// </summary>
-        /// <param name="includeExpression">Navigation property expression</param>
+        public ICollection<string> IncludeStrings { get; private set; } = new List<string>();
+
+        /// <summary>Adds a single-level navigation property to be eagerly loaded</summary>
         protected void AddInclude(Expression<Func<T, object>> includeExpression)
         {
             Includes.Add(includeExpression);
+        }
+
+        /// <summary>
+        /// Adds a nested navigation property path to be eagerly loaded.
+        /// Supports dot-notation for multiple levels e.g. "Items.RawMaterial.Supplier"
+        /// </summary>
+        protected void AddInclude(string includeString)
+        {
+            IncludeStrings.Add(includeString);
         }
 
         #endregion
