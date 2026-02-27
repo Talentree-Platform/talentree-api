@@ -23,6 +23,9 @@ namespace Talentree.Repository.Data.Config
             builder.Property(i => i.IsMain)
                 .HasDefaultValue(false);
 
+            builder.Property(i => i.SortOrder)
+                .HasDefaultValue(0);
+
             builder.HasIndex(i => i.ProductId);
         }
     }

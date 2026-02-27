@@ -14,16 +14,9 @@ namespace Talentree.Repository.Data.DataSeed
             {
                 var categories = new List<Category>
                 {
-                    new() { Name = "Fashion" },
-                    new() { Name = "Electronics" },
-                    new() { Name = "Food" },
-                    new() { Name = "Home & Garden" },
-                    new() { Name = "Beauty" },
-                    new() { Name = "Sports" },
-                    new() { Name = "Books" },
-                    new() { Name = "Handicrafts" },
-                    new() { Name = "Jewelry" },
-                    new() { Name = "Other" }
+                new() { Name = "Fashion & Accessories",      BusinessType = "Fashion" },
+                new() { Name = "Handmade & Crafts",          BusinessType = "Crafts" },
+                new() { Name = "Natural & Beauty Products",  BusinessType = "Beauty" }
                 };
 
                 await context.Categories.AddRangeAsync(categories);
@@ -35,208 +28,196 @@ namespace Talentree.Repository.Data.DataSeed
             // ═══════════════════════════════════════════════════════════
             if (context.Products.Any()) return;
 
-            // Get seeded business owner profiles
-            var techGalaxyProfile = context.BusinessOwnerProfiles
-                .FirstOrDefault(b => b.BusinessName == "Tech Galaxy");
+            var fashionProfile = context.BusinessOwnerProfiles
+                .FirstOrDefault(b => b.BusinessName == "Tech Galaxy"); // reusing seeded BO
 
-            var fashionHouseProfile = context.BusinessOwnerProfiles
+            var craftsProfile = context.BusinessOwnerProfiles
                 .FirstOrDefault(b => b.BusinessName == "Fashion House");
 
-            var beautyCorderProfile = context.BusinessOwnerProfiles
+            var beautyProfile = context.BusinessOwnerProfiles
                 .FirstOrDefault(b => b.BusinessName == "Beauty Corner");
 
-            var sportsZoneProfile = context.BusinessOwnerProfiles
-                .FirstOrDefault(b => b.BusinessName == "Sports Zone");
+            if (fashionProfile == null) return;
 
-            if (techGalaxyProfile == null) return; // no business owners seeded yet
-
-            // Get category IDs
-            var electronics = context.Categories.First(c => c.Name == "Electronics");
-            var fashion = context.Categories.First(c => c.Name == "Fashion");
-            var beauty = context.Categories.First(c => c.Name == "Beauty");
-            var sports = context.Categories.First(c => c.Name == "Sports");
+            var fashion = context.Categories.First(c => c.Name == "Fashion & Accessories");
+            var crafts = context.Categories.First(c => c.Name == "Handmade & Crafts");
+            var beauty = context.Categories.First(c => c.Name == "Natural & Beauty Products");
 
             var products = new List<Product>();
 
             // ─────────────────────────────────────────────────────────
-            // Tech Galaxy Products (Approved)
+            // Fashion & Accessories Products
             // ─────────────────────────────────────────────────────────
-            if (techGalaxyProfile != null)
+            if (fashionProfile != null)
             {
                 products.AddRange(new[]
                 {
-                    new Product
-                    {
-                        Name = "Wireless Bluetooth Headphones",
-                        Description = "Premium over-ear wireless headphones with active noise cancellation, 30-hour battery life, and crystal clear sound quality. Perfect for music lovers and professionals.",
-                        Price = 899.99m,
-                        StockQuantity = 50,
-                        Tags = "headphones,wireless,bluetooth,noise-cancellation,audio",
-                        CategoryId = electronics.Id,
-                        BusinessOwnerProfileId = techGalaxyProfile.Id,
-                        Status = ProductStatus.Approved,
-                        ApprovedBy = "admin@talentree.com",
-                        ApprovedAt = DateTime.UtcNow.AddDays(-8)
-                    },
-                    new Product
-                    {
-                        Name = "Smart Watch Series X",
-                        Description = "Advanced smartwatch with health monitoring, GPS tracking, sleep analysis, and 7-day battery life. Compatible with both Android and iOS devices.",
-                        Price = 1299.99m,
-                        StockQuantity = 30,
-                        Tags = "smartwatch,fitness,GPS,health,wearable",
-                        CategoryId = electronics.Id,
-                        BusinessOwnerProfileId = techGalaxyProfile.Id,
-                        Status = ProductStatus.Approved,
-                        ApprovedBy = "admin@talentree.com",
-                        ApprovedAt = DateTime.UtcNow.AddDays(-7)
-                    },
-                    new Product
-                    {
-                        Name = "Portable Power Bank 20000mAh",
-                        Description = "High-capacity portable charger with fast charging support, dual USB ports, and USB-C input/output. Charge your phone up to 5 times on a single charge.",
-                        Price = 349.99m,
-                        StockQuantity = 100,
-                        Tags = "powerbank,charger,portable,fast-charging,USB-C",
-                        CategoryId = electronics.Id,
-                        BusinessOwnerProfileId = techGalaxyProfile.Id,
-                        Status = ProductStatus.PendingApproval,
-                    },
-                    new Product
-                    {
-                        Name = "Mechanical Gaming Keyboard",
-                        Description = "RGB backlit mechanical keyboard with blue switches, anti-ghosting technology, and aluminum frame. Designed for professional gamers and heavy typists.",
-                        Price = 649.99m,
-                        StockQuantity = 25,
-                        Tags = "keyboard,gaming,mechanical,RGB,peripheral",
-                        CategoryId = electronics.Id,
-                        BusinessOwnerProfileId = techGalaxyProfile.Id,
-                        Status = ProductStatus.Rejected,
-                        RejectionReason = "Product images do not meet quality standards. Please resubmit with clearer photos."
-                    }
-                });
+        new Product
+        {
+            Name = "Handwoven Cotton Tote Bag",
+            Description = "Eco-friendly tote bag handwoven from 100% Egyptian cotton. Features double handles, inner pocket, and traditional embroidery details. Perfect for daily use and shopping. Durable and washable.",
+            Price = 189.99m,
+            StockQuantity = 45,
+            Tags = "tote,cotton,handwoven,eco-friendly,bag",
+            CategoryId = fashion.Id,
+            BusinessOwnerProfileId = fashionProfile.Id,
+            Status = ProductStatus.Approved,
+            ApprovedBy = "admin@talentree.com",
+            ApprovedAt = DateTime.UtcNow.AddDays(-5)
+        },
+        new Product
+        {
+            Name = "Leather Strap Bracelet Set",
+            Description = "Set of 3 genuine leather strap bracelets with brass buckle closures. Handcrafted by local artisans using premium leather. Available in brown, black, and tan. Adjustable fit.",
+            Price = 149.99m,
+            StockQuantity = 60,
+            Tags = "bracelet,leather,handcrafted,accessories,jewelry",
+            CategoryId = fashion.Id,
+            BusinessOwnerProfileId = fashionProfile.Id,
+            Status = ProductStatus.Approved,
+            ApprovedBy = "admin@talentree.com",
+            ApprovedAt = DateTime.UtcNow.AddDays(-4)
+        },
+        new Product
+        {
+            Name = "Embroidered Linen Scarf",
+            Description = "Lightweight linen scarf with hand-embroidered floral patterns. Inspired by traditional Egyptian designs. Suitable for all seasons. Dimensions: 180cm x 50cm. Hand wash only.",
+            Price = 229.99m,
+            StockQuantity = 30,
+            Tags = "scarf,linen,embroidered,traditional,fashion",
+            CategoryId = fashion.Id,
+            BusinessOwnerProfileId = fashionProfile.Id,
+            Status = ProductStatus.PendingApproval,
+        },
+        new Product
+        {
+            Name = "Denim Crossbody Bag",
+            Description = "Stylish crossbody bag made from upcycled denim with leather trim. Features adjustable strap, zipper closure, and 2 inner compartments. Unique one-of-a-kind piece.",
+            Price = 275.00m,
+            StockQuantity = 20,
+            Tags = "crossbody,denim,bag,upcycled,fashion",
+            CategoryId = fashion.Id,
+            BusinessOwnerProfileId = fashionProfile.Id,
+            Status = ProductStatus.Rejected,
+            RejectionReason = "Images are blurry. Please resubmit with clearer product photos."
+        }
+    });
             }
 
             // ─────────────────────────────────────────────────────────
-            // Fashion House Products (Pending)
+            // Handmade & Crafts Products
             // ─────────────────────────────────────────────────────────
-            if (fashionHouseProfile != null)
+            if (craftsProfile != null)
             {
                 products.AddRange(new[]
                 {
-                    new Product
-                    {
-                        Name = "Classic Linen Summer Dress",
-                        Description = "Elegant linen summer dress with a relaxed fit, available in multiple colors. Breathable fabric perfect for warm weather. Hand wash recommended.",
-                        Price = 299.99m,
-                        StockQuantity = 40,
-                        Tags = "dress,summer,linen,women,fashion",
-                        CategoryId = fashion.Id,
-                        BusinessOwnerProfileId = fashionHouseProfile.Id,
-                        Status = ProductStatus.PendingApproval,
-                    },
-                    new Product
-                    {
-                        Name = "Handcrafted Leather Handbag",
-                        Description = "Genuine leather handbag handcrafted by local artisans. Features multiple compartments, gold-tone hardware, and an adjustable shoulder strap.",
-                        Price = 549.99m,
-                        StockQuantity = 15,
-                        Tags = "handbag,leather,handcrafted,women,accessories",
-                        CategoryId = fashion.Id,
-                        BusinessOwnerProfileId = fashionHouseProfile.Id,
-                        Status = ProductStatus.PendingApproval,
-                    },
-                    new Product
-                    {
-                        Name = "Embroidered Casual Shirt",
-                        Description = "Cotton casual shirt with traditional Egyptian embroidery details. Comfortable everyday wear that blends modern style with cultural heritage.",
-                        Price = 189.99m,
-                        StockQuantity = 60,
-                        Tags = "shirt,embroidered,cotton,casual,unisex",
-                        CategoryId = fashion.Id,
-                        BusinessOwnerProfileId = fashionHouseProfile.Id,
-                        Status = ProductStatus.Draft,
-                    }
-                });
+        new Product
+        {
+            Name = "Resin Art Coaster Set",
+            Description = "Set of 4 handmade resin coasters with dried flower inclusions. Each piece is unique with swirling color patterns. Heat resistant up to 80°C. Comes in a gift box. Perfect for home decor.",
+            Price = 199.99m,
+            StockQuantity = 35,
+            Tags = "resin,coasters,handmade,home-decor,gift",
+            CategoryId = crafts.Id,
+            BusinessOwnerProfileId = craftsProfile.Id,
+            Status = ProductStatus.Approved,
+            ApprovedBy = "admin@talentree.com",
+            ApprovedAt = DateTime.UtcNow.AddDays(-3)
+        },
+        new Product
+        {
+            Name = "Hand-Painted Clay Pot",
+            Description = "Traditional clay pot hand-painted with geometric patterns using natural dyes. Suitable for plants or decorative use. Each pot is unique. Height: 15cm, Diameter: 12cm. Sealed for durability.",
+            Price = 159.99m,
+            StockQuantity = 25,
+            Tags = "clay,pot,hand-painted,traditional,decor",
+            CategoryId = crafts.Id,
+            BusinessOwnerProfileId = craftsProfile.Id,
+            Status = ProductStatus.Approved,
+            ApprovedBy = "admin@talentree.com",
+            ApprovedAt = DateTime.UtcNow.AddDays(-2)
+        },
+        new Product
+        {
+            Name = "Macrame Wall Hanging",
+            Description = "Boho-style macrame wall hanging made from natural cotton yarn. Features intricate knotting patterns with wooden dowel. Size: 40cm x 60cm. Handmade with love by local artisans.",
+            Price = 349.99m,
+            StockQuantity = 15,
+            Tags = "macrame,wall-hanging,boho,yarn,handmade",
+            CategoryId = crafts.Id,
+            BusinessOwnerProfileId = craftsProfile.Id,
+            Status = ProductStatus.PendingApproval,
+        },
+        new Product
+        {
+            Name = "Wax Melt Gift Box",
+            Description = "Collection of 6 handmade scented wax melts in a decorative box. Scents include jasmine, rose, oud, vanilla, lavender, and citrus. Each melt provides 8-10 hours of fragrance. Paraben-free.",
+            Price = 120.00m,
+            StockQuantity = 50,
+            Tags = "wax,scented,gift,handmade,home",
+            CategoryId = crafts.Id,
+            BusinessOwnerProfileId = craftsProfile.Id,
+            Status = ProductStatus.Draft,
+        }
+    });
             }
 
             // ─────────────────────────────────────────────────────────
-            // Beauty Corner Products (Approved)
+            // Natural & Beauty Products
             // ─────────────────────────────────────────────────────────
-            if (beautyCorderProfile != null)
+            if (beautyProfile != null)
             {
                 products.AddRange(new[]
                 {
-                    new Product
-                    {
-                        Name = "Argan Oil Hair Treatment",
-                        Description = "100% pure Moroccan argan oil hair treatment. Repairs damaged hair, eliminates frizz, and adds brilliant shine. Suitable for all hair types.",
-                        Price = 179.99m,
-                        StockQuantity = 80,
-                        Tags = "hair,argan-oil,treatment,natural,beauty",
-                        CategoryId = beauty.Id,
-                        BusinessOwnerProfileId = beautyCorderProfile.Id,
-                        Status = ProductStatus.Approved,
-                        ApprovedBy = "admin@talentree.com",
-                        ApprovedAt = DateTime.UtcNow.AddDays(-1)
-                    },
-                    new Product
-                    {
-                        Name = "Natural Rose Water Toner",
-                        Description = "Pure Bulgarian rose water facial toner. Hydrates, balances skin pH, and reduces redness. Free from alcohol, parabens, and artificial fragrances.",
-                        Price = 89.99m,
-                        StockQuantity = 120,
-                        Tags = "toner,rosewater,skincare,natural,face",
-                        CategoryId = beauty.Id,
-                        BusinessOwnerProfileId = beautyCorderProfile.Id,
-                        Status = ProductStatus.Approved,
-                        ApprovedBy = "admin@talentree.com",
-                        ApprovedAt = DateTime.UtcNow.AddDays(-1)
-                    },
-                    new Product
-                    {
-                        Name = "Vitamin C Brightening Serum",
-                        Description = "Advanced vitamin C serum with 20% concentration. Fades dark spots, evens skin tone, and boosts collagen production for younger-looking skin.",
-                        Price = 229.99m,
-                        StockQuantity = 45,
-                        Tags = "serum,vitamin-c,brightening,skincare,anti-aging",
-                        CategoryId = beauty.Id,
-                        BusinessOwnerProfileId = beautyCorderProfile.Id,
-                        Status = ProductStatus.PendingApproval,
-                    }
-                });
-            }
-
-            // ─────────────────────────────────────────────────────────
-            // Sports Zone Products (Pending - new account)
-            // ─────────────────────────────────────────────────────────
-            if (sportsZoneProfile != null)
-            {
-                products.AddRange(new[]
-                {
-                    new Product
-                    {
-                        Name = "Professional Yoga Mat",
-                        Description = "Extra thick 6mm non-slip yoga mat made from eco-friendly TPE material. Includes carrying strap and comes in 5 colors. Perfect for yoga, pilates and floor exercises.",
-                        Price = 199.99m,
-                        StockQuantity = 70,
-                        Tags = "yoga,mat,fitness,exercise,eco-friendly",
-                        CategoryId = sports.Id,
-                        BusinessOwnerProfileId = sportsZoneProfile.Id,
-                        Status = ProductStatus.PendingApproval,
-                    },
-                    new Product
-                    {
-                        Name = "Adjustable Dumbbell Set",
-                        Description = "Space-saving adjustable dumbbell set ranging from 2kg to 24kg. Quick-change weight selector mechanism. Includes storage stand.",
-                        Price = 1499.99m,
-                        StockQuantity = 20,
-                        Tags = "dumbbells,weights,fitness,gym,strength-training",
-                        CategoryId = sports.Id,
-                        BusinessOwnerProfileId = sportsZoneProfile.Id,
-                        Status = ProductStatus.PendingApproval,
-                    }
-                });
+        new Product
+        {
+            Name = "Shea Butter Body Cream",
+            Description = "100% natural shea butter body cream enriched with essential oils of lavender and chamomile. Deeply moisturizes dry skin, reduces stretch marks, and improves skin elasticity. 200ml jar. Vegan and cruelty-free.",
+            Price = 149.99m,
+            StockQuantity = 80,
+            Tags = "shea-butter,body-cream,natural,moisturizer,vegan",
+            CategoryId = beauty.Id,
+            BusinessOwnerProfileId = beautyProfile.Id,
+            Status = ProductStatus.Approved,
+            ApprovedBy = "admin@talentree.com",
+            ApprovedAt = DateTime.UtcNow.AddDays(-1)
+        },
+        new Product
+        {
+            Name = "Rosehip & Argan Face Oil",
+            Description = "Luxurious face oil blending cold-pressed rosehip and argan oils with vitamin E. Brightens complexion, reduces fine lines, and deeply nourishes skin. 30ml dropper bottle. Suitable for all skin types.",
+            Price = 199.99m,
+            StockQuantity = 55,
+            Tags = "face-oil,rosehip,argan,natural,skincare",
+            CategoryId = beauty.Id,
+            BusinessOwnerProfileId = beautyProfile.Id,
+            Status = ProductStatus.Approved,
+            ApprovedBy = "admin@talentree.com",
+            ApprovedAt = DateTime.UtcNow.AddDays(-1)
+        },
+        new Product
+        {
+            Name = "Natural Soap Bar Collection",
+            Description = "Set of 4 handmade cold-process soap bars using natural ingredients: olive oil, coconut oil, and essential oils. Variants: Oud & Rose, Mint & Tea Tree, Honey & Oat, Lavender & Chamomile. Each bar 100g.",
+            Price = 129.99m,
+            StockQuantity = 100,
+            Tags = "soap,natural,handmade,cold-process,skincare",
+            CategoryId = beauty.Id,
+            BusinessOwnerProfileId = beautyProfile.Id,
+            Status = ProductStatus.PendingApproval,
+        },
+        new Product
+        {
+            Name = "Essential Oil Blend Set",
+            Description = "Set of 5 pure essential oils in 10ml amber glass bottles. Includes: Egyptian Rose, Jasmine, Frankincense, Eucalyptus, and Peppermint. Perfect for aromatherapy, diffusers, and DIY beauty recipes.",
+            Price = 259.99m,
+            StockQuantity = 40,
+            Tags = "essential-oils,aromatherapy,natural,pure,beauty",
+            CategoryId = beauty.Id,
+            BusinessOwnerProfileId = beautyProfile.Id,
+            Status = ProductStatus.Draft,
+        }
+    });
             }
 
             await context.Products.AddRangeAsync(products);
