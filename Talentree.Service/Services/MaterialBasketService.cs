@@ -1,37 +1,43 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using AutoMapper;
+using Talentree.Core;
 using Talentree.Core.DTOs.Basket;
 using Talentree.Core.Entities;
+using Talentree.Core.Repository.Contract;
 using Talentree.Core.Service.Contract;
-using Talentree.Repository.Data;
+using Talentree.Core.Specifications.Basket;
+using Talentree.Core.Specifications.RawMaterial;
 
 namespace Talentree.Service.Services
 {
+    /// <summary>
+    /// Manages the Business Owner's raw material shopping basket.
+    /// The basket persists across sessions and is shared between
+    /// standalone material purchases and production order flows.
+    /// </summary>
     public class MaterialBasketService : IMaterialBasketService
     {
-        private readonly TalentreeDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public MaterialBasketService(TalentreeDbContext context)
+        public MaterialBasketService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
+        /// <inheritdoc/>
         public async Task<MaterialBasketDto> GetBasketAsync(string businessOwnerId)
         {
             var basket = await GetOrCreateBasketAsync(businessOwnerId);
-            var loaded = await LoadBasketWithDetailsAsync(basket.Id);
-            return MapToDto(loaded);
+            return _mapper.Map<MaterialBasketDto>(basket);
         }
 
+        /// <inheritdoc/>
         public async Task<MaterialBasketDto> AddItemAsync(string businessOwnerId, AddToBasketDto dto)
         {
-            var material = await _context.Set<RawMaterial>()
-                .Include(m => m.Supplier)
-                .FirstOrDefaultAsync(m => m.Id == dto.RawMaterialId && m.IsAvailable)
+            var materialSpec = new RawMaterialByIdWithSupplierSpec(dto.RawMaterialId);
+            var material = await _unitOfWork.Repository<RawMaterial>()
+                .GetByIdWithSpecificationsAsync(materialSpec)
                 ?? throw new KeyNotFoundException("Material not found or unavailable.");
 
             if (dto.Quantity < material.MinimumOrderQuantity)
@@ -44,7 +50,7 @@ namespace Talentree.Service.Services
 
             var basket = await GetOrCreateBasketAsync(businessOwnerId);
 
-            // If already in basket, increment quantity instead of adding duplicate
+            // If already in basket, increment quantity instead of adding a duplicate
             var existing = basket.Items.FirstOrDefault(i => i.RawMaterialId == dto.RawMaterialId);
             if (existing != null)
             {
@@ -53,31 +59,36 @@ namespace Talentree.Service.Services
                     throw new InvalidOperationException(
                         $"Cannot exceed available stock. You already have {existing.Quantity} in your basket.");
                 existing.Quantity = newQty;
+                _unitOfWork.Repository<MaterialBasketItem>().Update(existing);
             }
             else
             {
-                basket.Items.Add(new MaterialBasketItem
+                var item = new MaterialBasketItem
                 {
                     BasketId = basket.Id,
                     RawMaterialId = dto.RawMaterialId,
                     Quantity = dto.Quantity
-                });
+                };
+                _unitOfWork.Repository<MaterialBasketItem>().Add(item);
             }
 
-            await _context.SaveChangesAsync();
+            await _unitOfWork.CompleteAsync();
 
-            var loaded = await LoadBasketWithDetailsAsync(basket.Id);
-            return MapToDto(loaded);
+            // Reload basket with full navigation for accurate DTO
+            var updated = await GetBasketWithDetailsAsync(businessOwnerId);
+            return _mapper.Map<MaterialBasketDto>(updated);
         }
 
+        /// <inheritdoc/>
         public async Task<MaterialBasketDto> UpdateItemAsync(string businessOwnerId, int itemId, UpdateBasketItemDto dto)
         {
-            var basket = await LoadBasketByOwnerAsync(businessOwnerId);
+            var basket = await GetBasketWithDetailsAsync(businessOwnerId)
+                ?? throw new KeyNotFoundException("Basket not found.");
 
             var item = basket.Items.FirstOrDefault(i => i.Id == itemId)
                 ?? throw new KeyNotFoundException("Basket item not found.");
 
-            var material = await _context.Set<RawMaterial>().FindAsync(item.RawMaterialId)
+            var material = await _unitOfWork.Repository<RawMaterial>().GetByIdAsync(item.RawMaterialId)
                 ?? throw new KeyNotFoundException("Material no longer exists.");
 
             if (dto.Quantity < material.MinimumOrderQuantity)
@@ -89,79 +100,63 @@ namespace Talentree.Service.Services
                     $"Only {material.StockQuantity} {material.Unit} available in stock.");
 
             item.Quantity = dto.Quantity;
-            await _context.SaveChangesAsync();
+            _unitOfWork.Repository<MaterialBasketItem>().Update(item);
+            await _unitOfWork.CompleteAsync();
 
-            var loaded = await LoadBasketWithDetailsAsync(basket.Id);
-            return MapToDto(loaded);
+            var updated = await GetBasketWithDetailsAsync(businessOwnerId);
+            return _mapper.Map<MaterialBasketDto>(updated);
         }
 
+        /// <inheritdoc/>
         public async Task<MaterialBasketDto> RemoveItemAsync(string businessOwnerId, int itemId)
         {
-            var basket = await LoadBasketByOwnerAsync(businessOwnerId);
+            var basket = await GetBasketWithDetailsAsync(businessOwnerId)
+                ?? throw new KeyNotFoundException("Basket not found.");
 
             var item = basket.Items.FirstOrDefault(i => i.Id == itemId)
                 ?? throw new KeyNotFoundException("Basket item not found.");
 
-            _context.Set<MaterialBasketItem>().Remove(item);
-            await _context.SaveChangesAsync();
+            _unitOfWork.Repository<MaterialBasketItem>().Delete(item);
+            await _unitOfWork.CompleteAsync();
 
-            var loaded = await LoadBasketWithDetailsAsync(basket.Id);
-            return MapToDto(loaded);
+            var updated = await GetBasketWithDetailsAsync(businessOwnerId);
+            return _mapper.Map<MaterialBasketDto>(updated);
         }
 
+        /// <inheritdoc/>
         public async Task ClearBasketAsync(string businessOwnerId)
         {
-            var basket = await LoadBasketByOwnerAsync(businessOwnerId);
-            _context.Set<MaterialBasketItem>().RemoveRange(basket.Items);
-            await _context.SaveChangesAsync();
+            var basket = await GetBasketWithDetailsAsync(businessOwnerId)
+                ?? throw new KeyNotFoundException("Basket not found.");
+
+            foreach (var item in basket.Items)
+                _unitOfWork.Repository<MaterialBasketItem>().Delete(item);
+
+            await _unitOfWork.CompleteAsync();
         }
 
         // ── Private helpers ───────────────────────────────────────
 
         private async Task<MaterialBasket> GetOrCreateBasketAsync(string businessOwnerId)
         {
-            var basket = await _context.Set<MaterialBasket>()
-                .Include(b => b.Items)
-                .FirstOrDefaultAsync(b => b.BusinessOwnerId == businessOwnerId);
+            var spec = new MaterialBasketWithItemsSpec(businessOwnerId);
+            var basket = await _unitOfWork.Repository<MaterialBasket>()
+                .GetByIdWithSpecificationsAsync(spec);
 
             if (basket != null) return basket;
 
-            // First time — create an empty basket for this BO
+            // First access — create an empty basket for this BO
             var newBasket = new MaterialBasket { BusinessOwnerId = businessOwnerId };
-            _context.Set<MaterialBasket>().Add(newBasket);
-            await _context.SaveChangesAsync();
+            _unitOfWork.Repository<MaterialBasket>().Add(newBasket);
+            await _unitOfWork.CompleteAsync();
             return newBasket;
         }
 
-        private async Task<MaterialBasket> LoadBasketByOwnerAsync(string businessOwnerId)
-            => await _context.Set<MaterialBasket>()
-                .Include(b => b.Items)
-                .FirstOrDefaultAsync(b => b.BusinessOwnerId == businessOwnerId)
-               ?? throw new KeyNotFoundException("Basket not found.");
-
-        // Loads basket with full navigation properties for DTO mapping
-        private Task<MaterialBasket> LoadBasketWithDetailsAsync(int basketId)
-            => _context.Set<MaterialBasket>()
-                .Include(b => b.Items)
-                    .ThenInclude(i => i.RawMaterial)
-                        .ThenInclude(m => m.Supplier)
-                .FirstAsync(b => b.Id == basketId);
-
-        private static MaterialBasketDto MapToDto(MaterialBasket basket) => new()
+        private async Task<MaterialBasket?> GetBasketWithDetailsAsync(string businessOwnerId)
         {
-            Id = basket.Id,
-            Items = basket.Items.Select(i => new MaterialBasketItemDto
-            {
-                Id = i.Id,
-                RawMaterialId = i.RawMaterialId,
-                MaterialName = i.RawMaterial?.Name ?? string.Empty,
-                PictureUrl = i.RawMaterial?.PictureUrl,
-                Unit = i.RawMaterial?.Unit ?? string.Empty,
-                SupplierName = i.RawMaterial?.Supplier?.Name ?? string.Empty,
-                UnitPrice = i.RawMaterial?.Price ?? 0,
-                Quantity = i.Quantity,
-                MinimumOrderQuantity = i.RawMaterial?.MinimumOrderQuantity ?? 1
-            }).ToList()
-        };
+            var spec = new MaterialBasketWithItemsSpec(businessOwnerId);
+            return await _unitOfWork.Repository<MaterialBasket>()
+                .GetByIdWithSpecificationsAsync(spec);
+        }
     }
 }

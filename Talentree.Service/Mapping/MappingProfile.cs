@@ -3,6 +3,7 @@
 using AutoMapper;
 using Talentree.Core.DTOs.Admin.RawMaterial;
 using Talentree.Core.DTOs.Admin.Supplier;
+using Talentree.Core.DTOs.Basket;
 using Talentree.Core.DTOs.RawMaterial;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
@@ -298,6 +299,36 @@ namespace Talentree.Service.Mapping
                 .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
                 .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
                 .ForMember(dest => dest.DeletedAt, opt => opt.Ignore());
+
+            // ───────────────────────────────────────────────────────────
+            // BASKET MAPPINGS
+            // ───────────────────────────────────────────────────────────
+
+            // MaterialBasketItem → MaterialBasketItemDto
+            CreateMap<MaterialBasketItem, MaterialBasketItemDto>()
+                .ForMember(dest => dest.MaterialName,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.Name : string.Empty))
+                .ForMember(dest => dest.PictureUrl,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.PictureUrl : null))
+                .ForMember(dest => dest.Unit,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.Unit : string.Empty))
+                .ForMember(dest => dest.SupplierName,
+                    opt => opt.MapFrom(src => src.RawMaterial != null && src.RawMaterial.Supplier != null
+                        ? src.RawMaterial.Supplier.Name
+                        : string.Empty))
+                .ForMember(dest => dest.UnitPrice,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.Price : 0))
+                .ForMember(dest => dest.MinimumOrderQuantity,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.MinimumOrderQuantity : 1))
+                // LineTotal is a computed property on the DTO — AutoMapper resolves it automatically
+                .ForMember(dest => dest.LineTotal, opt => opt.Ignore());
+
+            // MaterialBasket → MaterialBasketDto
+            // Subtotal and TotalItemCount are computed from Items — AutoMapper resolves them automatically
+            CreateMap<MaterialBasket, MaterialBasketDto>()
+                .ForMember(dest => dest.Subtotal, opt => opt.Ignore())
+                .ForMember(dest => dest.TotalItemCount, opt => opt.Ignore());
+
 
         }
     }
