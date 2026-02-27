@@ -2,6 +2,7 @@
 
 using AutoMapper;
 using Talentree.Core.DTOs.Admin.RawMaterial;
+using Talentree.Core.DTOs.Admin.Supplier;
 using Talentree.Core.DTOs.RawMaterial;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
@@ -273,7 +274,30 @@ namespace Talentree.Service.Mapping
                 .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
                 .ForMember(dest => dest.DeletedAt, opt => opt.Ignore());
 
+            // ───────────────────────────────────────────────────────────
+            // SUPPLIER MAPPINGS
+            // ───────────────────────────────────────────────────────────
 
+            // Supplier → SupplierDto
+            CreateMap<Supplier, SupplierDto>()
+                .ForMember(dest => dest.MaterialCount,
+                    opt => opt.MapFrom(src =>
+                        src.RawMaterials != null
+                            ? src.RawMaterials.Count(m => !m.IsDeleted)
+                            : 0));
+
+            // CreateSupplierDto → Supplier
+            // IsActive is set manually in service
+            CreateMap<CreateSupplierDto, Supplier>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.IsActive, opt => opt.Ignore())
+                .ForMember(dest => dest.RawMaterials, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.DeletedAt, opt => opt.Ignore());
 
         }
     }
