@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Talentree.Service.DTOs;
+using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Products;
 
 namespace Talentree.Service.Contracts

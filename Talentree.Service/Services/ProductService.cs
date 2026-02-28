@@ -10,6 +10,7 @@ using Talentree.Core.Specifications.BusinessOwnerSpecifications;
 using Talentree.Core.Specifications.ProductSpecifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs;
+using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Products;
 
 namespace Talentree.Service.Services

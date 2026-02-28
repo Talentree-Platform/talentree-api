@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Talentree.Core.DTOs.Admin.RawMaterial
+namespace Talentree.Service.DTOs.Admin.RawMaterial
 {
     public class AdminRawMaterialDto
     {

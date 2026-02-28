@@ -1,6 +1,10 @@
 ﻿// Talentree.Service/Mapping/MappingProfile.cs
 
 using AutoMapper;
+using Talentree.Service.DTOs.Admin.RawMaterial;
+using Talentree.Service.DTOs.Admin.Supplier;
+using Talentree.Service.DTOs.Basket;
+using Talentree.Service.DTOs.RawMaterial;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
@@ -244,6 +248,87 @@ namespace Talentree.Service.Mapping
                             : (TimeSpan?)null
                     )
                 );
+
+            // ───────────────────────────────────────────────────────────
+            // RAW MATERIAL MAPPINGS
+            // ───────────────────────────────────────────────────────────
+
+            // RawMaterial → RawMaterialDto (BO-facing store)
+            CreateMap<RawMaterial, RawMaterialDto>()
+                .ForMember(dest => dest.SupplierName,
+                    opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.Name : string.Empty));
+
+            // RawMaterial → AdminRawMaterialDto (admin panel)
+            CreateMap<RawMaterial, AdminRawMaterialDto>()
+                .ForMember(dest => dest.SupplierName,
+                    opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.Name : string.Empty));
+
+            // CreateRawMaterialDto → RawMaterial (admin create)
+            // IsAvailable is set manually in service based on StockQuantity
+            CreateMap<CreateRawMaterialDto, RawMaterial>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.IsAvailable, opt => opt.Ignore())
+                .ForMember(dest => dest.Supplier, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.DeletedAt, opt => opt.Ignore());
+
+            // ───────────────────────────────────────────────────────────
+            // SUPPLIER MAPPINGS
+            // ───────────────────────────────────────────────────────────
+
+            // Supplier → SupplierDto
+            CreateMap<Supplier, SupplierDto>()
+                .ForMember(dest => dest.MaterialCount,
+                    opt => opt.MapFrom(src =>
+                        src.RawMaterials != null
+                            ? src.RawMaterials.Count(m => !m.IsDeleted)
+                            : 0));
+
+            // CreateSupplierDto → Supplier
+            // IsActive is set manually in service
+            CreateMap<CreateSupplierDto, Supplier>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.IsActive, opt => opt.Ignore())
+                .ForMember(dest => dest.RawMaterials, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.DeletedAt, opt => opt.Ignore());
+
+            // ───────────────────────────────────────────────────────────
+            // BASKET MAPPINGS
+            // ───────────────────────────────────────────────────────────
+
+            // MaterialBasketItem → MaterialBasketItemDto
+            CreateMap<MaterialBasketItem, MaterialBasketItemDto>()
+                .ForMember(dest => dest.MaterialName,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.Name : string.Empty))
+                .ForMember(dest => dest.PictureUrl,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.PictureUrl : null))
+                .ForMember(dest => dest.Unit,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.Unit : string.Empty))
+                .ForMember(dest => dest.SupplierName,
+                    opt => opt.MapFrom(src => src.RawMaterial != null && src.RawMaterial.Supplier != null
+                        ? src.RawMaterial.Supplier.Name
+                        : string.Empty))
+                .ForMember(dest => dest.UnitPrice,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.Price : 0))
+                .ForMember(dest => dest.MinimumOrderQuantity,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.MinimumOrderQuantity : 1))
+                // LineTotal is a computed property on the DTO — AutoMapper resolves it automatically
+                .ForMember(dest => dest.LineTotal, opt => opt.Ignore());
+
+            // MaterialBasket → MaterialBasketDto
+            // Subtotal and TotalItemCount are computed from Items — AutoMapper resolves them automatically
+            CreateMap<MaterialBasket, MaterialBasketDto>()
+                .ForMember(dest => dest.Subtotal, opt => opt.Ignore())
+                .ForMember(dest => dest.TotalItemCount, opt => opt.Ignore());
 
 
             // ProductImage → ProductImageDto

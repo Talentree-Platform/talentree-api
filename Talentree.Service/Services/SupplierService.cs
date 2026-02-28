@@ -1,103 +1,75 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Talentree.Core.DTOs.Admin.Supplier;
-using Talentree.Core.DTOs.Common;
+﻿using AutoMapper;
+using Talentree.Core;
+using Talentree.Service.DTOs.Admin.Supplier;
+using Talentree.Service.DTOs.Common;
 using Talentree.Core.Entities;
-using Talentree.Core.Service.Contract;
-using Talentree.Repository.Data;
+using Talentree.Core.Repository.Contract;
+using Talentree.Service.Contracts;
+using Talentree.Core.Specifications.Supplier;
 
 namespace Talentree.Service.Services
 {
+    /// <summary>
+    /// Admin-only operations for managing suppliers.
+    /// Suppliers are the source of raw materials on the platform.
+    /// </summary>
     public class SupplierService : ISupplierService
     {
-        private readonly TalentreeDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public SupplierService(TalentreeDbContext context)
+        public SupplierService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _context = context;
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
-        public async Task<PaginationDto<SupplierDto>> GetSuppliersAsync(
+        /// <inheritdoc/>
+        public async Task<Pagination<SupplierDto>> GetSuppliersAsync(
             string? search, bool? isActive, int pageIndex, int pageSize)
         {
-            var query = _context.Set<Supplier>().AsQueryable();
+            var spec = new SupplierSpec(search, isActive, pageIndex, pageSize);
+            var countSpec = new SupplierCountSpec(search, isActive);
 
-            if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(s => s.Name.Contains(search) || s.ContactPerson.Contains(search));
+            var suppliers = await _unitOfWork.Repository<Supplier>().GetAllWithSpecificationsAsync(spec);
+            var total = await _unitOfWork.Repository<Supplier>().GetCountWithSpecificationsAsync(countSpec);
 
-            if (isActive.HasValue)
-                query = query.Where(s => s.IsActive == isActive.Value);
-
-            var total = await query.CountAsync();
-            var suppliers = await query
-                .OrderBy(s => s.Name)
-                .Skip((pageIndex - 1) * pageSize)
-                .Take(pageSize)
-                .Select(s => new SupplierDto
-                {
-                    Id = s.Id,
-                    Name = s.Name,
-                    Description = s.Description,
-                    Email = s.Email,
-                    Phone = s.Phone,
-                    Address = s.Address,
-                    City = s.City,
-                    Country = s.Country,
-                    ContactPerson = s.ContactPerson,
-                    TaxId = s.TaxId,
-                    IsActive = s.IsActive,
-                    MaterialCount = s.RawMaterials.Count(m => !m.IsDeleted)
-                })
-                .ToListAsync();
-
-            return new PaginationDto<SupplierDto>(pageIndex, pageSize, total, suppliers);
+            var dtos = _mapper.Map<List<SupplierDto>>(suppliers);
+            return new Pagination<SupplierDto>(pageIndex, pageSize, total, dtos);
         }
 
+        /// <inheritdoc/>
         public async Task<SupplierDto> GetSupplierByIdAsync(int id)
         {
-            var supplier = await _context.Set<Supplier>()
-                .Include(s => s.RawMaterials)
-                .FirstOrDefaultAsync(s => s.Id == id)
+            var spec = new SupplierByIdWithMaterialsSpec(id);
+            var supplier = await _unitOfWork.Repository<Supplier>().GetByIdWithSpecificationsAsync(spec)
                 ?? throw new KeyNotFoundException($"Supplier #{id} not found.");
 
-            return MapToDto(supplier);
+            return _mapper.Map<SupplierDto>(supplier);
         }
 
+        /// <inheritdoc/>
         public async Task<SupplierDto> CreateSupplierAsync(CreateSupplierDto dto)
         {
-            var exists = await _context.Set<Supplier>()
-                .AnyAsync(s => s.Email == dto.Email);
+            var allSuppliers = await _unitOfWork.Repository<Supplier>()
+                .GetAllWithSpecificationsAsync(new SupplierByEmailSpec(dto.Email));
 
-            if (exists)
+            if (allSuppliers.Any())
                 throw new InvalidOperationException($"A supplier with email '{dto.Email}' already exists.");
 
-            var supplier = new Supplier
-            {
-                Name = dto.Name,
-                Description = dto.Description,
-                Email = dto.Email,
-                Phone = dto.Phone,
-                Address = dto.Address,
-                City = dto.City,
-                Country = dto.Country,
-                ContactPerson = dto.ContactPerson,
-                TaxId = dto.TaxId,
-                IsActive = true
-            };
+            var supplier = _mapper.Map<Supplier>(dto);
+            supplier.IsActive = true;
 
-            _context.Set<Supplier>().Add(supplier);
-            await _context.SaveChangesAsync();
+            _unitOfWork.Repository<Supplier>().Add(supplier);
+            await _unitOfWork.CompleteAsync();
 
-            return MapToDto(supplier);
+            return _mapper.Map<SupplierDto>(supplier);
         }
 
+        /// <inheritdoc/>
         public async Task<SupplierDto> UpdateSupplierAsync(int id, UpdateSupplierDto dto)
         {
-            var supplier = await _context.Set<Supplier>().FindAsync(id)
+            var supplier = await _unitOfWork.Repository<Supplier>().GetByIdAsync(id)
                 ?? throw new KeyNotFoundException($"Supplier #{id} not found.");
 
             if (dto.Name != null) supplier.Name = dto.Name;
@@ -111,15 +83,17 @@ namespace Talentree.Service.Services
             if (dto.TaxId != null) supplier.TaxId = dto.TaxId;
             if (dto.IsActive.HasValue) supplier.IsActive = dto.IsActive.Value;
 
-            await _context.SaveChangesAsync();
-            return MapToDto(supplier);
+            _unitOfWork.Repository<Supplier>().Update(supplier);
+            await _unitOfWork.CompleteAsync();
+
+            return _mapper.Map<SupplierDto>(supplier);
         }
 
+        /// <inheritdoc/>
         public async Task DeleteSupplierAsync(int id)
         {
-            var supplier = await _context.Set<Supplier>()
-                .Include(s => s.RawMaterials)
-                .FirstOrDefaultAsync(s => s.Id == id)
+            var spec = new SupplierByIdWithMaterialsSpec(id);
+            var supplier = await _unitOfWork.Repository<Supplier>().GetByIdWithSpecificationsAsync(spec)
                 ?? throw new KeyNotFoundException($"Supplier #{id} not found.");
 
             var hasActiveMaterials = supplier.RawMaterials.Any(m => m.IsAvailable && !m.IsDeleted);
@@ -127,26 +101,12 @@ namespace Talentree.Service.Services
                 throw new InvalidOperationException(
                     "Cannot delete supplier with active materials. Deactivate all their materials first.");
 
-            // Soft delete via BaseEntity
+            // Soft delete — IsDeleted and DeletedAt are set by AuditInterceptor
             supplier.IsDeleted = true;
             supplier.IsActive = false;
-            await _context.SaveChangesAsync();
-        }
 
-        private static SupplierDto MapToDto(Supplier s) => new()
-        {
-            Id = s.Id,
-            Name = s.Name,
-            Description = s.Description,
-            Email = s.Email,
-            Phone = s.Phone,
-            Address = s.Address,
-            City = s.City,
-            Country = s.Country,
-            ContactPerson = s.ContactPerson,
-            TaxId = s.TaxId,
-            IsActive = s.IsActive,
-            MaterialCount = s.RawMaterials?.Count(m => !m.IsDeleted) ?? 0
-        };
+            _unitOfWork.Repository<Supplier>().Update(supplier);
+            await _unitOfWork.CompleteAsync();
+        }
     }
 }

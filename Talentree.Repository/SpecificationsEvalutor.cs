@@ -2,6 +2,7 @@
 using System.Linq;
 using Talentree.Core.Entities;
 using Talentree.Core.Specifications;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Talentree.Repository
 {
@@ -10,9 +11,7 @@ namespace Talentree.Repository
     /// This is the BRIDGE between your business logic and EF Core
     /// </summary>
     /// <remarks>
-    /// This class takes all the pieces from your specification
-    /// (Criteria, Includes, OrderBy, Pagination) and builds
-    /// a single optimized EF Core query
+    /// Order of operations: WHERE → INCLUDE → STRING INCLUDES → ORDER BY → SKIP/TAKE
     /// </remarks>
     internal static class SpecificationsEvaluator<TEntity> where TEntity : class
     {
@@ -46,31 +45,22 @@ namespace Talentree.Repository
                     // Criteria: p => p.Price > 1000
                     // Output: SELECT * FROM Products WHERE Price > 1000
                 }
-
-                // ===============================
-                // STEP 2: Apply INCLUDES (Navigation Properties)
-                // ===============================
-                if (specifications.Includes != null && specifications.Includes.Any())
-                {
-                    // Aggregate: Applies each Include one by one
+                // ── STEP 2: Expression-based includes (single-level) ──
+                if (specifications.Includes?.Any() == true)
                     Query = specifications.Includes.Aggregate(
-                        Query,  // Starting query
-                        (current, includeExp) => current.Include(includeExp)
-                        // For each include expression, add it to the query
-                    );
+                        Query,
+                        (current, include) => current.Include(include));
 
-                    // What Aggregate does:
-                    // Start:   SELECT * FROM Products WHERE Price > 1000
-                    // Include 1: LEFT JOIN Categories ON ...
-                    // Include 2: LEFT JOIN Brands ON ...
-                    // Result:  SELECT * FROM Products 
-                    //          LEFT JOIN Categories ... 
-                    //          LEFT JOIN Brands ... 
-                    //          WHERE Price > 1000
-                }
+                // ── STEP 3: String-based includes (nested levels) ─────
+                // Supports dot-notation e.g. "Items.RawMaterial.Supplier"
+                // which translates to .Include("Items").ThenInclude("RawMaterial")...
+                if (specifications.IncludeStrings?.Any() == true)
+                    Query = specifications.IncludeStrings.Aggregate(
+                        Query,
+                        (current, include) => current.Include(include));
 
                 // ===============================
-                // STEP 3: Apply SORTING (ORDER BY)
+                // STEP 4: Apply SORTING (ORDER BY)
                 // ===============================
 
                 // Ascending order
@@ -100,7 +90,7 @@ namespace Talentree.Repository
                 // This is a limitation of the current implementation
 
                 // ===============================
-                // STEP 4: Apply PAGINATION (SKIP/TAKE)
+                // STEP 5: Apply PAGINATION (SKIP/TAKE)
                 // ===============================
                 if (specifications.IsPaginated)
                 {

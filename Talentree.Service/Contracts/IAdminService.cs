@@ -1,7 +1,7 @@
 ﻿// Talentree.Service/Contracts/IAdminService.cs
 
-using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Admin;
+using Talentree.Service.DTOs.Common;
 
 namespace Talentree.Service.Contracts
 {

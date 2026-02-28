@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Talentree.Service.DTOs
+namespace Talentree.Service.DTOs.Common
 {
 
     public class Pagination<T> where T : class

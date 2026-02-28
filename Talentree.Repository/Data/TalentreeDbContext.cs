@@ -28,8 +28,7 @@ namespace Talentree.Repository.Data
         // DbSets (Database Tables)
         // ===============================
        
-         public DbSet<Product> Products { get; set; }
-
+        public DbSet<Product> Products { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<OtpCode> OtpCodes { get; set; }
         public DbSet<Address> Addresses { get; set; }
@@ -38,6 +37,8 @@ namespace Talentree.Repository.Data
         public DbSet<BusinessOwnerProfile> BusinessOwnerProfiles { get; set; }
         public DbSet<RawMaterial> RawMaterials { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<MaterialBasket> MaterialBaskets { get; set; }
+        public DbSet<MaterialBasketItem> MaterialBasketItems { get; set; }
 
         // ===============================
         // Model Configuration

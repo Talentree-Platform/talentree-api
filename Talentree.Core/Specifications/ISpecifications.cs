@@ -14,10 +14,14 @@ namespace Talentree.Core.Specifications
         /// </summary>
         Expression<Func<T, bool>> Criteria { get; }
 
-        /// <summary>
-        /// Navigation properties to include (eager loading)
-        /// </summary>
+        /// <summary>Navigation properties to include via expression (single-level eager loading)</summary>
         ICollection<Expression<Func<T, object>>> Includes { get; }
+
+        /// <summary>
+        /// String-based includes for nested navigation properties.
+        /// Use this for ThenInclude scenarios e.g. "Items.RawMaterial.Supplier"
+        /// </summary>
+        ICollection<string> IncludeStrings { get; }
 
         /// <summary>
         /// Ascending sort expression (ORDER BY)

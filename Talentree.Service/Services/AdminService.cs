@@ -8,8 +8,8 @@ using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
 using Talentree.Service.Contracts;
-using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Admin;
+using Talentree.Service.DTOs.Common;
 
 namespace Talentree.Service.Services
 {

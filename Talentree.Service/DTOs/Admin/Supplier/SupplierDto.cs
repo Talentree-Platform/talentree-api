@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Talentree.Core.DTOs.Admin.Supplier
+namespace Talentree.Service.DTOs.Admin.Supplier
 {
     public class SupplierDto
     {

@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Talentree.API.Models;
 using Talentree.Service.Contracts;
-using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Admin;
+using Talentree.Service.DTOs.Common;
 using Talentree.Service.Services;
 
 namespace Talentree.API.Controllers.Admin

@@ -3,11 +3,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Talentree.API.Models;
-using Talentree.Core.DTOs.RawMaterial;
-using Talentree.Core.Service.Contract;
+using Talentree.Service.DTOs.RawMaterial;
+using Talentree.Service.Contracts;
 
 namespace Talentree.API.Controllers
 {
+    /// <summary>
+    /// Business Owner-facing endpoints for browsing the raw material store.
+    /// Materials are automatically filtered by the BO's business category.
+    /// </summary>
     [Authorize(Roles = "BusinessOwner,Admin")]
     public class RawMaterialController : BaseApiController
     {
@@ -18,9 +22,16 @@ namespace Talentree.API.Controllers
             _rawMaterialService = rawMaterialService;
         }
 
-        // GET: api/raw-materials?category=Textiles&search=cotton&pageIndex=1&pageSize=20
+        /// <summary>
+        /// Gets a paginated list of available raw materials.
+        /// Results are filtered by the authenticated BO's business category automatically.
+        /// Supports additional filtering by category and free-text search.
+        /// </summary>
+        /// <param name="category">Optional sub-category filter within the BO's business category</param>
+        /// <param name="search">Optional search term matched against material name and description</param>
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetMaterials(
             [FromQuery] string? category,
             [FromQuery] string? search,
@@ -39,7 +50,11 @@ namespace Talentree.API.Controllers
             ));
         }
 
-        // GET: api/raw-materials/{id}
+        /// <summary>
+        /// Gets full details of a single available raw material.
+        /// Used for the material detail page before adding to basket.
+        /// </summary>
+        /// <param name="id">Material ID</param>
         [HttpGet("{id:int}")]
         [ProducesResponseType(typeof(ApiResponse<RawMaterialDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
