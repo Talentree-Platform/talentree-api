@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities.Identity;
+using Talentree.Repository.Data.Config.Base;
 
-public class AddressConfiguration : BaseEntityConfiguration<Address>
+public class AddressConfiguration : AuditableEntityConfiguration<Address>
 {
     public override void Configure(EntityTypeBuilder<Address> builder)
     {

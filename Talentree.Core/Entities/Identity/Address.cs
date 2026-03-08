@@ -4,7 +4,7 @@ using Talentree.Core.Entities;
 
 namespace Talentree.Core.Entities.Identity
 {
-    public class Address : BaseEntity
+    public class Address : AuditableEntity
     {
         public string FirstName { get; set; } = null!;
         public string LastName { get; set; } = null!;

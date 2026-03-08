@@ -9,10 +9,11 @@ using Talentree.Core.Entities;
 
 namespace Talentree.Repository.Data.Config
 {
-    public class MaterialBasketItemConfiguration : IEntityTypeConfiguration<MaterialBasketItem>
+    public class MaterialBasketItemConfiguration : BaseEntityConfiguration<MaterialBasketItem>
     {
-        public void Configure(EntityTypeBuilder<MaterialBasketItem> builder)
+        public override void Configure(EntityTypeBuilder<MaterialBasketItem> builder)
         {
+            base.Configure(builder);
             builder.HasKey(i => i.Id);
 
             builder.Property(i => i.Quantity)

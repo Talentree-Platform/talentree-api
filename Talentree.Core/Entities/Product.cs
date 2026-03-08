@@ -11,7 +11,7 @@ namespace Talentree.Core.Entities
     /// that can be sold on the platform. Each product has basic information
     /// like name, description, price, and image.
     /// </remarks>
-    public class Product : BaseEntity
+    public class Product : AuditableEntity, ISoftDelete
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
@@ -48,5 +48,11 @@ namespace Talentree.Core.Entities
 
         // Navigation
         public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
+
+        // From ISoftDelete:
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
+
     }
 }

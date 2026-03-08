@@ -2,16 +2,18 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
+using Talentree.Repository.Data.Config.Base;
 
 namespace Talentree.Repository.Data.Config
 {
     /// <summary>
     /// Entity configuration for RawMaterial
     /// </summary>
-    public class RawMaterialConfiguration : IEntityTypeConfiguration<RawMaterial>
+    public class RawMaterialConfiguration : SoftDeleteEntityConfiguration<RawMaterial>
     {
-        public void Configure(EntityTypeBuilder<RawMaterial> builder)
+        public override void Configure(EntityTypeBuilder<RawMaterial> builder)
         {
+            base.Configure(builder);
             // Table name
             builder.ToTable("RawMaterials");
 

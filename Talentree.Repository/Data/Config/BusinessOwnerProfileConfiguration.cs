@@ -1,11 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities.Identity;
+using Talentree.Repository.Data.Config.Base;
 
 public class BusinessOwnerProfileConfiguration
-    : BaseEntityConfiguration<BusinessOwnerProfile>
+    : SoftDeleteEntityConfiguration<BusinessOwnerProfile>
 {
-    public override void Configure(EntityTypeBuilder<BusinessOwnerProfile> builder)
+    public  override void Configure(EntityTypeBuilder<BusinessOwnerProfile> builder)
     {
         base.Configure(builder);
 

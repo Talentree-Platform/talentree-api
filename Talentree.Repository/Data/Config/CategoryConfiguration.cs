@@ -6,10 +6,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Talentree.Core.Entities;
+using Talentree.Repository.Data.Config.Base;
 
 namespace Talentree.Repository.Data.Config
 {
-    public class CategoryConfiguration : BaseEntityConfiguration<Category>
+    public class CategoryConfiguration : SoftDeleteEntityConfiguration<Category>
     {
         public override void Configure(EntityTypeBuilder<Category> builder)
         {
