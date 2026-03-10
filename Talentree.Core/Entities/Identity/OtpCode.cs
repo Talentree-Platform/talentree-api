@@ -8,9 +8,8 @@ namespace Talentree.Core.Entities.Identity
         ResetPassword = 2
     }
 
-    public class OtpCode
+    public class OtpCode : BaseEntity
     {
-        public int Id { get; set; }
 
         // FK
         public string UserId { get; set; } = string.Empty;

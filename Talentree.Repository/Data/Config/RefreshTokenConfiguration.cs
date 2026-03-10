@@ -11,6 +11,10 @@ public class RefreshTokenConfiguration
 
         builder.ToTable("RefreshTokens");
 
+        builder.Property(t => t.CreatedAt)
+            .IsRequired()
+            .HasDefaultValueSql("GETUTCDATE()");
+
         builder.Property(r => r.TokenHash)
             .IsRequired()
             .HasMaxLength(500);

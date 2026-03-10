@@ -2,10 +2,11 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities.Identity;
 
-public class OtpCodeConfiguration : IEntityTypeConfiguration<OtpCode>
+public class OtpCodeConfiguration : BaseEntityConfiguration<OtpCode>
 {
-    public void Configure(EntityTypeBuilder<OtpCode> builder)
+    public  override void Configure(EntityTypeBuilder<OtpCode> builder)
     {
+        base.Configure(builder);
         builder.ToTable("OtpCodes");
 
         builder.HasKey(o => o.Id);

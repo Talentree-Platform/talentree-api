@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
+using Talentree.Repository.Data.Config.Base;
 
 namespace Talentree.Repository.Data.Config
 {
@@ -14,7 +15,7 @@ namespace Talentree.Repository.Data.Config
     /// - More powerful configuration options
     /// - Centralized configuration management
     /// </remarks>
-    public class ProductConfiguration : BaseEntityConfiguration<Product>
+    public class ProductConfiguration : SoftDeleteEntityConfiguration<Product>
     {
         public override void Configure(EntityTypeBuilder<Product> builder)
         {

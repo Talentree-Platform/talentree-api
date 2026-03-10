@@ -6,13 +6,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Talentree.Core.Entities;
+using Talentree.Repository.Data.Config.Base;
 
 namespace Talentree.Repository.Data.Config
 {
-    public class MaterialBasketConfiguration : IEntityTypeConfiguration<MaterialBasket>
+    public class MaterialBasketConfiguration : AuditableEntityConfiguration<MaterialBasket>
     {
-        public void Configure(EntityTypeBuilder<MaterialBasket> builder)
+        public override void Configure(EntityTypeBuilder<MaterialBasket> builder)
         {
+            base.Configure(builder);
             builder.HasKey(b => b.Id);
 
             builder.Property(b => b.BusinessOwnerId)

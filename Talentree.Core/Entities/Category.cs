@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Talentree.Core.Entities
 {
-    public class Category : BaseEntity
+    public class Category : AuditableEntity, ISoftDelete
     {
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
@@ -14,5 +14,11 @@ namespace Talentree.Core.Entities
         // AI Team requirement - maps to business type
         public string? BusinessType { get; set; }
         public ICollection<Product> Products { get; set; } = new List<Product>();
+
+        // From ISoftDelete:
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
+
     }
 }

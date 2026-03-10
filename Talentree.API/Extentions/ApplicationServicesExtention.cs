@@ -1,7 +1,8 @@
-﻿using Talentree.Core;
+﻿using Talentree.API.Services;
+using Talentree.Core;
 using Talentree.Core.Repository.Contract;
-using Talentree.Service.Contracts;
 using Talentree.Repository;
+using Talentree.Service.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.Services;
 
@@ -36,6 +37,9 @@ namespace Talentree.API.Extentions
             // Raw Material Store
             services.AddScoped<IRawMaterialService, RawMaterialService>();
             services.AddScoped<IMaterialBasketService, MaterialBasketService>();
+
+            services.AddScoped<IHubService, HubService>();
+            services.AddScoped<INotificationService, NotificationService>();
 
             return services;
         }

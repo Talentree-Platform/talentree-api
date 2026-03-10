@@ -7,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using Talentree.API.Extensions;
 using Talentree.API.Extentions;
+using Talentree.API.Hubs;
 using Talentree.Core;
 using Talentree.Repository.Data;
 using Talentree.Repository.Data.DataSeed;
@@ -125,6 +126,8 @@ namespace Talentree.API
                     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+
+
                 })
                 .AddJwtBearer(options =>
                 {
@@ -139,6 +142,27 @@ namespace Talentree.API
                         IssuerSigningKey = new SymmetricSecurityKey(key),
                         ClockSkew = TimeSpan.Zero
                     };
+
+
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            // Get token from query string (SignalR sends it this way)
+                            var accessToken = context.Request.Query["access_token"];
+
+                            // Check if request is for SignalR hub
+                            var path = context.HttpContext.Request.Path;
+                            if (!string.IsNullOrEmpty(accessToken) &&
+                                path.StartsWithSegments("/hubs"))
+                            {
+                                // Set token for authentication
+                                context.Token = accessToken;
+                            }
+
+                            return Task.CompletedTask;
+                        }
+                    };
                 });
 
             builder.Services.AddAuthorization();
@@ -148,19 +172,52 @@ namespace Talentree.API
             // ===============================
             builder.Services.AddAutoMapper(typeof(MappingProfile));
 
+
+            // ═══════════════════════════════════════════════════════════
+            // ADD SIGNALR
+            // ═══════════════════════════════════════════════════════════
+
+            builder.Services.AddSignalR(options =>
+            {
+                // Enable detailed errors in development
+                options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+
+                // Keep-alive interval (ping client every 15 seconds)
+                options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+
+                // Client timeout (disconnect if no response for 30 seconds)
+                options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+
+                // Max message size (10MB)
+                options.MaximumReceiveMessageSize = 10 * 1024 * 1024;
+            });
+
             // ===============================
             // CORS
             // ===============================
+
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", policy =>
                 {
-                    policy.AllowAnyOrigin()
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
+                    policy.WithOrigins(
+                            "http://localhost:5500",
+                            "http://127.0.0.1:5500",
+                            "http://localhost:4200"
+                    )
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
                 });
             });
 
+            // SignalR
+            builder.Services.AddSignalR(options =>
+            {
+                options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+                options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+                options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+            });
             var app = builder.Build();
 
             // ===============================
@@ -184,6 +241,12 @@ namespace Talentree.API
 
             app.UseAuthentication(); // MUST be before Authorization
             app.UseAuthorization();
+
+            // ═══════════════════════════════════════════════════════════
+            // MAP SIGNALR HUB ENDPOINT
+            // ═══════════════════════════════════════════════════════════
+
+            app.MapHub<NotificationHub>("/hubs/notification");
 
             app.UseStaticFiles();
 

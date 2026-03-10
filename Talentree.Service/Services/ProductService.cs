@@ -20,15 +20,17 @@ namespace Talentree.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IImageService _imageService;
-
+        private readonly INotificationService _notificationService;
         public ProductService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
-            IImageService imageService)
+            IImageService imageService,
+            INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _imageService = imageService;
+            _notificationService = notificationService;
         }
 
         // ═══════════════════════════════════════════════════════════

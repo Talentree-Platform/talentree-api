@@ -2,16 +2,16 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
+using Talentree.Repository.Data.Config.Base;
 
 namespace Talentree.Repository.Data.Config
 {
-    /// <summary>
-    /// Entity configuration for Supplier
-    /// </summary>
-    public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
+    public class SupplierConfiguration : SoftDeleteEntityConfiguration<Supplier>
     {
-        public void Configure(EntityTypeBuilder<Supplier> builder)
+        public override void Configure(EntityTypeBuilder<Supplier> builder)
         {
+            base.Configure(builder);
+
             // Table name
             builder.ToTable("Suppliers");
 

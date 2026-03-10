@@ -66,7 +66,7 @@ namespace Talentree.Repository
         /// </summary>
         /// <param name="id">The primary key value</param>
         /// <returns>The entity if found; otherwise null</returns>
-        public async Task<T?> GetByIdAsync(int id)
+        public async Task<T?> GetByIdAsync(object id)
         {
             // FindAsync is optimized for PK lookups
             // Checks local cache first, then queries database

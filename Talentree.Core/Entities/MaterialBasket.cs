@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Talentree.Core.Entities
 {
-    public class MaterialBasket:BaseEntity
+    public class MaterialBasket: AuditableEntity
     {
         public string BusinessOwnerId { get; set; } = null!;
         public ICollection<MaterialBasketItem> Items { get; set; } = new List<MaterialBasketItem>();
