@@ -27,7 +27,7 @@ namespace Talentree.Core.Repository.Contract
         /// </summary>
         /// <param name="id">The primary key value</param>
         /// <returns>The entity if found; otherwise null</returns>
-        Task<T?> GetByIdAsync(int id);
+        Task<T?> GetByIdAsync(object id);
 
         /// <summary>
         /// Adds a new entity to the context

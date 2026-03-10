@@ -7,9 +7,12 @@ using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
+using Talentree.Core.Specifications.ProductSpecifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Admin;
+using Talentree.Service.DTOs.Admin.Product;
 using Talentree.Service.DTOs.Common;
+using Talentree.Service.DTOs.Notification;
 
 namespace Talentree.Service.Services
 {
@@ -19,17 +22,20 @@ namespace Talentree.Service.Services
         private readonly UserManager<AppUser> _userManager;
         private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
+        private readonly INotificationService _notificationService;
 
         public AdminService(
             IUnitOfWork unitOfWork,
             UserManager<AppUser> userManager,
             IEmailService emailService,
-            IMapper mapper)
+            IMapper mapper,
+            INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
             _emailService = emailService;
             _mapper = mapper;
+            _notificationService = notificationService;
         }
 
         public async Task<Pagination<BusinessOwnerApplicationDto>> GetPendingBusinessOwnersAsync(
@@ -310,6 +316,112 @@ namespace Talentree.Service.Services
             // Reactivate
             admin.IsActive = true;
             await _userManager.UpdateAsync(admin);
+        }
+
+
+        public async Task<Pagination<PendingProductDto>> GetPendingProductsAsync(
+      int pageIndex = 1, int pageSize = 20)
+        {
+            // Validate pagination
+            if (pageIndex < 1) pageIndex = 1;
+            if (pageSize < 1) pageSize = 20;
+            if (pageSize > 100) pageSize = 100;
+
+            // Count
+            var countSpec = new PendingProductsSpecification();
+            var totalCount = await _unitOfWork.Repository<Core.Entities.Product>()
+                .GetCountWithSpecificationsAsync(countSpec);
+
+            // Get paginated
+            var spec = new PendingProductsSpecification(pageIndex, pageSize);
+            var products = await _unitOfWork.Repository<Core.Entities.Product>()
+                .GetAllWithSpecificationsAsync(spec);
+
+            var dtos = _mapper.Map<List<PendingProductDto>>(products);
+
+            return new Pagination<PendingProductDto>(
+                pageIndex, pageSize, totalCount, dtos);
+        }
+        /// <summary>
+        /// Approve product
+        /// </summary>
+        public async Task ApproveProductAsync(ApproveProductDto dto, string adminId)
+        {
+            // Get product with owner
+            var spec = new ProductByIdSpecification(dto.ProductId);
+            var product = await _unitOfWork.Repository<Core.Entities.Product>()
+                .GetByIdWithSpecificationsAsync(spec);
+
+            if (product == null)
+                throw new NotFoundException("Product not found");
+
+            if (product.Status != ProductStatus.PendingApproval)
+                throw new BadRequestException("Product is not pending approval");
+
+            // Approve product
+            product.Status = ProductStatus.Approved;
+            product.ApprovedAt = DateTime.UtcNow;
+            product.ApprovedBy = adminId;
+            product.RejectionReason = null;
+
+            _unitOfWork.Repository<Core.Entities.Product>().Update(product);
+            await _unitOfWork.CompleteAsync();
+
+            // ⭐ Send notification to business owner
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = product.BusinessOwner.UserId,
+                Type = NotificationType.Product,
+                Title = "Product Approved! ",
+                Message = $"Great news! Your product '{product.Name}' has been approved and is now live on Talentree.",
+                ActionUrl = $"/products/{product.Id}",
+                ActionText = "View Product",
+                RelatedEntityType = "Product",
+                RelatedEntityId = product.Id,
+                Priority = NotificationPriority.High,
+                SendEmail = true
+            });
+        }
+
+        /// <summary>
+        /// Reject product
+        /// </summary>
+        public async Task RejectProductAsync(RejectProductDto dto, string adminId)
+        {
+            // Get product with owner
+            var spec = new ProductByIdSpecification(dto.ProductId);
+            var product = await _unitOfWork.Repository<Core.Entities.Product>()
+                .GetByIdWithSpecificationsAsync(spec);
+
+            if (product == null)
+                throw new NotFoundException("Product not found");
+
+            if (product.Status != ProductStatus.PendingApproval)
+                throw new BadRequestException("Product is not pending approval");
+
+            // Reject product
+            product.Status = ProductStatus.Rejected;
+            product.ApprovedAt = null;
+            product.ApprovedBy = null;
+            product.RejectionReason = dto.Reason;
+
+            _unitOfWork.Repository<Core.Entities.Product>().Update(product);
+            await _unitOfWork.CompleteAsync();
+
+            // ⭐ Send notification to business owner
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = product.BusinessOwner.UserId,
+                Type = NotificationType.Product,
+                Title = "Product Needs Revision",
+                Message = $"Your product '{product.Name}' requires some changes before approval. Reason: {dto.Reason}",
+                ActionUrl = $"/products/{product.Id}/edit",
+                ActionText = "Edit Product",
+                RelatedEntityType = "Product",
+                RelatedEntityId = product.Id,
+                Priority = NotificationPriority.High,
+                SendEmail = true
+            });
         }
     }
 }

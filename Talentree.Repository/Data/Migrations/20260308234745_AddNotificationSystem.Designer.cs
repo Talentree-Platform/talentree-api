@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Talentree.Repository.Data;
 
@@ -11,9 +12,11 @@ using Talentree.Repository.Data;
 namespace Talentree.Repository.Data.Migrations
 {
     [DbContext(typeof(TalentreeDbContext))]
-    partial class TalentreeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260308234745_AddNotificationSystem")]
+    partial class AddNotificationSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -667,6 +670,13 @@ namespace Talentree.Repository.Data.Migrations
                     b.Property<string>("Data")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<bool>("EmailSent")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -677,6 +687,11 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsRead")
                         .ValueGeneratedOnAdd()
@@ -740,8 +755,14 @@ namespace Talentree.Repository.Data.Migrations
                         .HasDatabaseName("IX_Notifications_ExpiresAt")
                         .HasFilter("[ExpiresAt] IS NOT NULL");
 
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("IX_Notification_IsDeleted");
+
                     b.HasIndex("CreatedBy", "CreatedAt")
                         .HasDatabaseName("IX_Notification_CreatedBy_CreatedAt");
+
+                    b.HasIndex("IsDeleted", "DeletedAt")
+                        .HasDatabaseName("IX_Notification_IsDeleted_DeletedAt");
 
                     b.HasIndex("RelatedEntityType", "RelatedEntityId")
                         .HasDatabaseName("IX_Notifications_RelatedEntity")

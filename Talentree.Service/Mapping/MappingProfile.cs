@@ -1,16 +1,18 @@
 ﻿// Talentree.Service/Mapping/MappingProfile.cs
 
 using AutoMapper;
-using Talentree.Service.DTOs.Admin.RawMaterial;
-using Talentree.Service.DTOs.Admin.Supplier;
-using Talentree.Service.DTOs.Basket;
-using Talentree.Service.DTOs.RawMaterial;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Service.DTOs.Admin;
+using Talentree.Service.DTOs.Admin.Product;
+using Talentree.Service.DTOs.Admin.RawMaterial;
+using Talentree.Service.DTOs.Admin.Supplier;
 using Talentree.Service.DTOs.Auth;
+using Talentree.Service.DTOs.Basket;
+using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.Products;
+using Talentree.Service.DTOs.RawMaterial;
 
 namespace Talentree.Service.Mapping
 {
@@ -354,6 +356,84 @@ namespace Talentree.Service.Mapping
                                 : new List<ProductImage>()));
 
 
+
+
+            // ═══════════════════════════════════════════════════════════
+            // NOTIFICATION MAPPINGS
+            // ═══════════════════════════════════════════════════════════
+
+            CreateMap<Notification, NotificationDto>()
+                .ForMember(dest => dest.TypeText,
+                    opt => opt.MapFrom(src => src.Type.ToString()))
+                .ForMember(dest => dest.PriorityText,
+                    opt => opt.MapFrom(src => src.Priority.ToString()))
+                .ForMember(dest => dest.TimeAgo,
+                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+
+            CreateMap<CreateNotificationDto, Notification>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.User, opt => opt.Ignore());
+
+            // ═══════════════════════════════════════════════════════════
+            // NOTIFICATION PREFERENCE MAPPINGS
+            // ═══════════════════════════════════════════════════════════
+
+            CreateMap<NotificationPreference, NotificationPreferenceDto>();
+
+            CreateMap<UpdateNotificationPreferenceDto, NotificationPreference>()
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+
+
+
+            CreateMap<Product, PendingProductDto>()
+                .ForMember(dest => dest.CategoryName,
+                    opt => opt.MapFrom(src => src.Category.Name))
+                .ForMember(dest => dest.BusinessOwnerName,
+                    opt => opt.MapFrom(src => src.BusinessOwner.User.DisplayName))
+                .ForMember(dest => dest.BusinessName,
+                    opt => opt.MapFrom(src => src.BusinessOwner.BusinessName))
+                .ForMember(dest => dest.MainImageUrl,
+                    opt => opt.MapFrom(src =>
+                        src.Images.FirstOrDefault(i => i.IsMain) != null
+                            ? src.Images.First(i => i.IsMain).ImageUrl
+                            : src.Images.OrderBy(i => i.SortOrder).FirstOrDefault() != null
+                                ? src.Images.OrderBy(i => i.SortOrder).First().ImageUrl
+                                : null))
+                .ForMember(dest => dest.ImageCount,
+                    opt => opt.MapFrom(src => src.Images.Count))
+                .ForMember(dest => dest.StatusText,
+                    opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.TimeAgo,
+                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+        }
+
+        // <summary>
+        /// Calculate human-readable time ago
+        /// </summary>
+        private static string GetTimeAgo(DateTime dateTime)
+        {
+            var timeSpan = DateTime.UtcNow - dateTime;
+
+            if (timeSpan.TotalSeconds < 60)
+                return "just now";
+
+            if (timeSpan.TotalMinutes < 60)
+                return $"{(int)timeSpan.TotalMinutes} minute{((int)timeSpan.TotalMinutes == 1 ? "" : "s")} ago";
+
+            if (timeSpan.TotalHours < 24)
+                return $"{(int)timeSpan.TotalHours} hour{((int)timeSpan.TotalHours == 1 ? "" : "s")} ago";
+
+            if (timeSpan.TotalDays < 7)
+                return $"{(int)timeSpan.TotalDays} day{((int)timeSpan.TotalDays == 1 ? "" : "s")} ago";
+
+            if (timeSpan.TotalDays < 30)
+                return $"{(int)(timeSpan.TotalDays / 7)} week{((int)(timeSpan.TotalDays / 7) == 1 ? "" : "s")} ago";
+
+            if (timeSpan.TotalDays < 365)
+                return $"{(int)(timeSpan.TotalDays / 30)} month{((int)(timeSpan.TotalDays / 30) == 1 ? "" : "s")} ago";
+
+            return $"{(int)(timeSpan.TotalDays / 365)} year{((int)(timeSpan.TotalDays / 365) == 1 ? "" : "s")} ago";
         }
     }
 }
