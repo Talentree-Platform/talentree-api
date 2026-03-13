@@ -5,7 +5,7 @@
     /// The unit price is snapshotted at checkout and never changes,
     /// even if the raw-material price is updated later.
     /// </summary>
-    public class MaterialOrderItem : BaseEntity
+    public class MaterialOrderItem : AuditableEntity
     {
         /// <summary>Foreign key to the parent <see cref="MaterialOrder"/>.</summary>
         public int MaterialOrderId { get; set; }

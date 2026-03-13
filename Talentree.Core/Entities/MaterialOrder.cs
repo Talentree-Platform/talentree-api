@@ -6,7 +6,7 @@ namespace Talentree.Core.Entities
     /// A confirmed purchase order created when a Business Owner checks out their basket.
     /// Prices are locked at checkout time — changes to the raw-material catalogue do not affect existing orders.
     /// </summary>
-    public class MaterialOrder : BaseEntity
+    public class MaterialOrder : AuditableEntity
     {
         /// <summary>Identity ID of the Business Owner who placed this order.</summary>
         public string BusinessOwnerId { get; set; } = null!;
