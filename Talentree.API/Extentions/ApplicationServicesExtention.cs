@@ -38,6 +38,10 @@ namespace Talentree.API.Extentions
             services.AddScoped<IRawMaterialService, RawMaterialService>();
             services.AddScoped<IMaterialBasketService, MaterialBasketService>();
 
+            // Order Service
+            services.AddScoped<IMaterialOrderService, MaterialOrderService>();
+
+            // Notification and Hub Services
             services.AddScoped<IHubService, HubService>();
             services.AddScoped<INotificationService, NotificationService>();
 

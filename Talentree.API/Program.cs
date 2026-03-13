@@ -219,11 +219,18 @@ namespace Talentree.API
                 options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
             });
             var app = builder.Build();
+            using (var scope = app.Services.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<TalentreeDbContext>();
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
 
+                await DbInitializer.SeedAllAsync(context, roleManager, userManager);
+            }
             // ===============================
             // Middleware pipeline
             // ===============================
-            
+
 
             // DB Migration
             await app.MigrateDatabaseAsync();
