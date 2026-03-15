@@ -41,6 +41,12 @@ namespace Talentree.API.Extentions
             // Order Service
             services.AddScoped<IMaterialOrderService, MaterialOrderService>();
 
+            // BO Production Request Service
+            services.AddScoped<IBoProductionRequestService, BoProductionRequestService>();
+
+            // Admin Production Request Service
+            services.AddScoped<IAdminProductionRequestService, AdminProductionRequestService>();
+
             // Notification and Hub Services
             services.AddScoped<IHubService, HubService>();
             services.AddScoped<INotificationService, NotificationService>();
