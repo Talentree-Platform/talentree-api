@@ -13,6 +13,7 @@ using Talentree.Service.DTOs.Basket;
 using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.Products;
 using Talentree.Service.DTOs.RawMaterial;
+using Talentree.Service.DTOs.MaterialOrder;
 
 namespace Talentree.Service.Mapping
 {
@@ -406,6 +407,43 @@ namespace Talentree.Service.Mapping
                     opt => opt.MapFrom(src => src.Status.ToString()))
                 .ForMember(dest => dest.TimeAgo,
                     opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+
+            // ═══════════════════════════════════════════════════════════
+            // MATERIAL ORDER
+            // ═══════════════════════════════════════════════════════════
+
+            // ───────────────────────────────────────────────────────────
+            // MaterialOrder → MaterialOrderSummaryDto
+            // DeliveryLocation is computed from City + Country.
+            // ItemCount is derived from the Items collection.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<MaterialOrder, MaterialOrderSummaryDto>()
+                .ForMember(dest => dest.ItemCount,
+                    opt => opt.MapFrom(src => src.Items.Count))
+                .ForMember(dest => dest.DeliveryLocation,
+                    opt => opt.MapFrom(src => $"{src.DeliveryCity}, {src.DeliveryCountry}"));
+
+            // ───────────────────────────────────────────────────────────
+            // MaterialOrder → MaterialOrderDto (full detail)
+            // All scalar properties map by convention.
+            // Items are mapped via MaterialOrderItem → MaterialOrderItemDto below.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<MaterialOrder, MaterialOrderDto>();
+
+            // ───────────────────────────────────────────────────────────
+            // MaterialOrderItem → MaterialOrderItemDto
+            // MaterialName and Unit are resolved from the loaded RawMaterial navigation.
+            // LineTotal is a computed property on the entity — mapped directly.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<MaterialOrderItem, MaterialOrderItemDto>()
+                .ForMember(dest => dest.MaterialName,
+                    opt => opt.MapFrom(src =>
+                        src.RawMaterial != null ? src.RawMaterial.Name : string.Empty))
+                .ForMember(dest => dest.Unit,
+                    opt => opt.MapFrom(src =>
+                        src.RawMaterial != null ? src.RawMaterial.Unit : string.Empty))
+                .ForMember(dest => dest.LineTotal,
+                    opt => opt.MapFrom(src => src.LineTotal));
         }
 
         // <summary>

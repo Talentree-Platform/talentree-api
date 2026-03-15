@@ -40,6 +40,8 @@ namespace Talentree.Repository.Data
         public DbSet<MaterialBasket> MaterialBaskets { get; set; }
         public DbSet<MaterialBasketItem> MaterialBasketItems { get; set; }
 
+        public DbSet<MaterialOrder> MaterialOrders { get; set; }
+        public DbSet<MaterialOrderItem> MaterialOrderItems { get; set; }
 
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<NotificationPreference> NotificationPreferences { get; set; }

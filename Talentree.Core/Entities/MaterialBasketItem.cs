@@ -1,6 +1,6 @@
 ﻿namespace Talentree.Core.Entities
 {
-    public class MaterialBasketItem: BaseEntity
+    public class MaterialBasketItem: AuditableEntity
     {
         public int BasketId { get; set; }
         public MaterialBasket Basket { get; set; } = null!;
