@@ -10,10 +10,11 @@ using Talentree.Service.DTOs.Admin.RawMaterial;
 using Talentree.Service.DTOs.Admin.Supplier;
 using Talentree.Service.DTOs.Auth;
 using Talentree.Service.DTOs.Basket;
+using Talentree.Service.DTOs.BoProductionRequest;
+using Talentree.Service.DTOs.MaterialOrder;
 using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.Products;
 using Talentree.Service.DTOs.RawMaterial;
-using Talentree.Service.DTOs.MaterialOrder;
 
 namespace Talentree.Service.Mapping
 {
@@ -444,6 +445,42 @@ namespace Talentree.Service.Mapping
                         src.RawMaterial != null ? src.RawMaterial.Unit : string.Empty))
                 .ForMember(dest => dest.LineTotal,
                     opt => opt.MapFrom(src => src.LineTotal));
+
+            // ═══════════════════════════════════════════════════════════
+            // PRODUCTION REQUESTS
+            // ═══════════════════════════════════════════════════════════
+
+            // ───────────────────────────────────────────────────────────
+            // BoProductionRequest → ProductionRequestSummaryDto
+            // ItemCount is derived from the Items collection.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<BoProductionRequest, ProductionRequestSummaryDto>()
+                .ForMember(dest => dest.ItemCount,
+                    opt => opt.MapFrom(src => src.Items.Count));
+
+            // ───────────────────────────────────────────────────────────
+            // BoProductionRequest → ProductionRequestDetailDto
+            // All scalar properties map by convention.
+            // Items and StatusHistory are mapped via their own CreateMap calls below.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<BoProductionRequest, ProductionRequestDetailDto>();
+
+            // ───────────────────────────────────────────────────────────
+            // BoProductionRequestItem → ProductionRequestItemDetailDto
+            // PreferredRawMaterialName is resolved from the navigation property.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<BoProductionRequestItem, ProductionRequestItemDetailDto>()
+                .ForMember(dest => dest.PreferredRawMaterialName,
+                    opt => opt.MapFrom(src =>
+                        src.PreferredRawMaterial != null ? src.PreferredRawMaterial.Name : null));
+
+            // ───────────────────────────────────────────────────────────
+            // BoProductionRequestStatusHistory → ProductionRequestHistoryDto
+            // ChangedAt maps from CreatedAt (set by BaseEntity on insert).
+            // ───────────────────────────────────────────────────────────
+            CreateMap<BoProductionRequestStatusHistory, ProductionRequestHistoryDto>()
+                .ForMember(dest => dest.ChangedAt,
+                    opt => opt.MapFrom(src => src.CreatedAt));
         }
 
         // <summary>
