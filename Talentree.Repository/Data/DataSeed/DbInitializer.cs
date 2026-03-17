@@ -19,6 +19,9 @@ namespace Talentree.Repository.Data.DataSeed
 
             // 3 — Material orders — references BO IDs and raw material IDs
             await MaterialOrderSeed.SeedAsync(context);
+
+            // 4 — Production requests — references BO IDs and raw material IDs
+            await ProductionRequestSeed.SeedAsync(context);
         }
 
         // ── Seed Roles ────────────────────────────────────────────
