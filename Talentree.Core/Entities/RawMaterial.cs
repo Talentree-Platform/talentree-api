@@ -5,7 +5,7 @@ namespace Talentree.Core.Entities
     /// <summary>
     /// Raw materials that suppliers provide to business owners
     /// </summary>
-    public class RawMaterial : BaseEntity
+    public class RawMaterial : AuditableEntity, ISoftDelete
     {
         /// <summary>
         /// Name of raw material
@@ -61,6 +61,12 @@ namespace Talentree.Core.Entities
         /// Navigation property to Supplier
         /// </summary>
         public Supplier Supplier { get; set; } = null!;
+
+        // From ISoftDelete:
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
+
 
     }
 }

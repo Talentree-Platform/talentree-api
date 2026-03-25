@@ -1,16 +1,11 @@
-﻿// Talentree.Repository/Data/Interceptors/AuditInterceptor.cs
-
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Talentree.Core.Entities;
-using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
+using Talentree.Core.Entities;
 
 namespace Talentree.Repository.Data.Interceptors
 {
-    /// <summary>
-    /// Automatically populates audit fields (CreatedAt, CreatedBy, etc.) for all BaseEntity instances
-    /// </summary>
     public class AuditInterceptor : SaveChangesInterceptor
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -41,49 +36,66 @@ namespace Talentree.Repository.Data.Interceptors
         {
             if (context == null) return;
 
-            var entries = context.ChangeTracker.Entries<BaseEntity>();
             var currentUser = GetCurrentUserId();
+            var currentTime = DateTime.UtcNow;
 
-            foreach (var entry in entries)
+            // ═══════════════════════════════════════════════════════════
+            // Handle AuditableEntity
+            // ═══════════════════════════════════════════════════════════
+            var auditableEntries = context.ChangeTracker
+                .Entries<AuditableEntity>();
+
+            foreach (var entry in auditableEntries)
             {
                 switch (entry.State)
                 {
                     case EntityState.Added:
-                        entry.Entity.CreatedAt = DateTime.UtcNow;
+                        entry.Entity.CreatedAt = currentTime;
                         entry.Entity.CreatedBy = currentUser;
-                        entry.Entity.IsDeleted = false;
                         break;
 
                     case EntityState.Modified:
                         // Prevent overwriting CreatedAt and CreatedBy
-                        entry.Property(nameof(BaseEntity.CreatedAt)).IsModified = false;
-                        entry.Property(nameof(BaseEntity.CreatedBy)).IsModified = false;
+                        entry.Property(nameof(AuditableEntity.CreatedAt)).IsModified = false;
+                        entry.Property(nameof(AuditableEntity.CreatedBy)).IsModified = false;
 
-                        entry.Entity.UpdatedAt = DateTime.UtcNow;
-                        entry.Entity.UpdatedBy = currentUser;
-                        break;
-
-                    case EntityState.Deleted:
-                        // Soft delete
-                        entry.State = EntityState.Modified;
-                        entry.Entity.IsDeleted = true;
-                        entry.Entity.DeletedAt = DateTime.UtcNow;
+                        entry.Entity.UpdatedAt = currentTime;
                         entry.Entity.UpdatedBy = currentUser;
                         break;
                 }
             }
+
+            // ═══════════════════════════════════════════════════════════
+            // Handle ISoftDelete (Soft Delete)
+            // ═══════════════════════════════════════════════════════════
+            var softDeleteEntries = context.ChangeTracker
+                .Entries()
+                .Where(e => e.State == EntityState.Deleted &&
+                           e.Entity is ISoftDelete);
+
+            foreach (var entry in softDeleteEntries)
+            {
+                // Convert hard delete to soft delete
+                entry.State = EntityState.Modified;
+
+                var softDeleteEntity = (ISoftDelete)entry.Entity;
+                softDeleteEntity.IsDeleted = true;
+                softDeleteEntity.DeletedAt = currentTime;
+                softDeleteEntity.DeletedBy = currentUser;
+
+                // Also update UpdatedBy if entity is AuditableEntity
+                if (entry.Entity is AuditableEntity auditableEntity)
+                {
+                    auditableEntity.UpdatedAt = currentTime;
+                    auditableEntity.UpdatedBy = currentUser;
+                }
+            }
         }
 
-        /// <summary>
-        /// Gets current authenticated user ID from JWT token
-        /// </summary>
-        private string GetCurrentUserId()
+        private string? GetCurrentUserId()
         {
-            var userId = _httpContextAccessor.HttpContext?
-                .User?
+            return _httpContextAccessor.HttpContext?.User?
                 .FindFirstValue(ClaimTypes.NameIdentifier);
-
-            return userId ?? "System";
         }
     }
 }

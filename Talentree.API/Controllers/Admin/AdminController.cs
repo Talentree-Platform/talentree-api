@@ -5,10 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Talentree.API.Models;
 using Talentree.Service.Contracts;
-using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Admin;
+using Talentree.Service.DTOs.Common;
+using Talentree.Service.Services;
 
-namespace Talentree.API.Controllers
+namespace Talentree.API.Controllers.Admin
 {
     [Authorize(Roles = "Admin")]
     public class AdminController : BaseApiController
@@ -120,5 +121,88 @@ namespace Talentree.API.Controllers
                 message: "Business owner application rejected. Rejection email sent."
             ));
         }
+
+
+        // ═══════════════════════════════════════════════════════════
+        // ADMIN MANAGEMENT ENDPOINTS
+        // ═══════════════════════════════════════════════════════════
+
+        [HttpPost("create-admin")]
+        [Authorize(Roles = "Admin")] // ⭐ Only admins can create admins
+        [ProducesResponseType(typeof(ApiResponse<AdminDto>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<ApiResponse<AdminDto>>> CreateAdmin(
+            [FromBody] CreateAdminDto dto)
+        {
+            var admin = await _adminService.CreateAdminAsync(dto);
+
+            return CreatedAtAction(
+                nameof(GetAllAdmins),
+                new { },
+                ApiResponse<AdminDto>.SuccessResponse(
+                    data: admin,
+                    message: $"Admin '{admin.FullName}' created successfully"
+                ));
+        }
+
+        /// <summary>
+        /// Get all admin users (Admin only)
+        /// </summary>
+        [HttpGet("admins")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(ApiResponse<List<AdminDto>>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<ApiResponse<List<AdminDto>>>> GetAllAdmins()
+        {
+            var admins = await _adminService.GetAllAdminsAsync();
+
+            return Ok(ApiResponse<List<AdminDto>>.SuccessResponse(
+                data: admins,
+                message: $"Retrieved {admins.Count} admin(s)"
+            ));
+        }
+
+        /// <summary>
+        /// Deactivate admin account (Admin only)
+        /// </summary>
+        [HttpPost("admins/{adminId}/deactivate")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ApiResponse<object>>> DeactivateAdmin(string adminId)
+        {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+            if (currentUserId == adminId)
+                return BadRequest(ApiResponse<object>.ErrorResponse(
+                    "Cannot deactivate your own account",
+                    errors: new List<string> { "Use another admin account to deactivate this account" }
+                ));
+
+            await _adminService.DeactivateAdminAsync(adminId);
+
+            return Ok(ApiResponse<object>.SuccessResponse(
+                message: "Admin deactivated successfully"
+            ));
+        }
+
+        /// <summary>
+        /// Reactivate admin account (Admin only)
+        /// </summary>
+        [HttpPost("admins/{adminId}/reactivate")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ApiResponse<object>>> ReactivateAdmin(string adminId)
+        {
+            await _adminService.ReactivateAdminAsync(adminId);
+
+            return Ok(ApiResponse<object>.SuccessResponse(
+                message: "Admin reactivated successfully"
+            ));
+        }
+
+
     }
 }

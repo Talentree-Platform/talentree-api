@@ -5,7 +5,7 @@ using Talentree.Core.Enums;
 
 namespace Talentree.Core.Entities.Identity
 {
-    public class BusinessOwnerProfile : BaseEntity
+    public class BusinessOwnerProfile : AuditableEntity, ISoftDelete
     {
         // FK
         public string UserId { get; set; } = null!;
@@ -33,5 +33,12 @@ namespace Talentree.Core.Entities.Identity
 
         // Auto escalation
         public DateTime? AutoApprovalDeadline { get; set; }
+
+        public ICollection<Product> Products { get; set; } = new List<Product>();
+
+        // From ISoftDelete:
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
     }
 }

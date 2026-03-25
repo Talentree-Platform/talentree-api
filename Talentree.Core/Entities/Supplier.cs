@@ -6,7 +6,7 @@ namespace Talentree.Core.Entities
     /// Supplier entity - managed by Admin only
     /// No user account - static data in database
     /// </summary>
-    public class Supplier : BaseEntity
+    public class Supplier : AuditableEntity, ISoftDelete
     {
         /// <summary>
         /// Supplier company/business name
@@ -63,5 +63,13 @@ namespace Talentree.Core.Entities
         /// Raw materials provided by this supplier
         /// </summary>
         public ICollection<RawMaterial> RawMaterials { get; set; } = new List<RawMaterial>();
+
+
+        // From ISoftDelete:
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
+
+
     }
 }

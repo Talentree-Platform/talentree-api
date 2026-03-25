@@ -1,10 +1,20 @@
 ﻿// Talentree.Service/Mapping/MappingProfile.cs
 
 using AutoMapper;
+using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Service.DTOs.Admin;
+using Talentree.Service.DTOs.Admin.Product;
+using Talentree.Service.DTOs.Admin.RawMaterial;
+using Talentree.Service.DTOs.Admin.Supplier;
 using Talentree.Service.DTOs.Auth;
+using Talentree.Service.DTOs.Basket;
+using Talentree.Service.DTOs.BoProductionRequest;
+using Talentree.Service.DTOs.MaterialOrder;
+using Talentree.Service.DTOs.Notification;
+using Talentree.Service.DTOs.Products;
+using Talentree.Service.DTOs.RawMaterial;
 
 namespace Talentree.Service.Mapping
 {
@@ -243,7 +253,262 @@ namespace Talentree.Service.Mapping
                     )
                 );
 
+            // ───────────────────────────────────────────────────────────
+            // RAW MATERIAL MAPPINGS
+            // ───────────────────────────────────────────────────────────
 
+            // RawMaterial → RawMaterialDto (BO-facing store)
+            CreateMap<RawMaterial, RawMaterialDto>()
+                .ForMember(dest => dest.SupplierName,
+                    opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.Name : string.Empty));
+
+            // RawMaterial → AdminRawMaterialDto (admin panel)
+            CreateMap<RawMaterial, AdminRawMaterialDto>()
+                .ForMember(dest => dest.SupplierName,
+                    opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.Name : string.Empty));
+
+            // CreateRawMaterialDto → RawMaterial (admin create)
+            // IsAvailable is set manually in service based on StockQuantity
+            CreateMap<CreateRawMaterialDto, RawMaterial>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.IsAvailable, opt => opt.Ignore())
+                .ForMember(dest => dest.Supplier, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.DeletedAt, opt => opt.Ignore());
+
+            // ───────────────────────────────────────────────────────────
+            // SUPPLIER MAPPINGS
+            // ───────────────────────────────────────────────────────────
+
+            // Supplier → SupplierDto
+            CreateMap<Supplier, SupplierDto>()
+                .ForMember(dest => dest.MaterialCount,
+                    opt => opt.MapFrom(src =>
+                        src.RawMaterials != null
+                            ? src.RawMaterials.Count(m => !m.IsDeleted)
+                            : 0));
+
+            // CreateSupplierDto → Supplier
+            // IsActive is set manually in service
+            CreateMap<CreateSupplierDto, Supplier>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.IsActive, opt => opt.Ignore())
+                .ForMember(dest => dest.RawMaterials, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedBy, opt => opt.Ignore())
+                .ForMember(dest => dest.IsDeleted, opt => opt.Ignore())
+                .ForMember(dest => dest.DeletedAt, opt => opt.Ignore());
+
+            // ───────────────────────────────────────────────────────────
+            // BASKET MAPPINGS
+            // ───────────────────────────────────────────────────────────
+
+            // MaterialBasketItem → MaterialBasketItemDto
+            CreateMap<MaterialBasketItem, MaterialBasketItemDto>()
+                .ForMember(dest => dest.MaterialName,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.Name : string.Empty))
+                .ForMember(dest => dest.PictureUrl,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.PictureUrl : null))
+                .ForMember(dest => dest.Unit,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.Unit : string.Empty))
+                .ForMember(dest => dest.SupplierName,
+                    opt => opt.MapFrom(src => src.RawMaterial != null && src.RawMaterial.Supplier != null
+                        ? src.RawMaterial.Supplier.Name
+                        : string.Empty))
+                .ForMember(dest => dest.UnitPrice,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.Price : 0))
+                .ForMember(dest => dest.MinimumOrderQuantity,
+                    opt => opt.MapFrom(src => src.RawMaterial != null ? src.RawMaterial.MinimumOrderQuantity : 1))
+                // LineTotal is a computed property on the DTO — AutoMapper resolves it automatically
+                .ForMember(dest => dest.LineTotal, opt => opt.Ignore());
+
+            // MaterialBasket → MaterialBasketDto
+            // Subtotal and TotalItemCount are computed from Items — AutoMapper resolves them automatically
+            CreateMap<MaterialBasket, MaterialBasketDto>()
+                .ForMember(dest => dest.Subtotal, opt => opt.Ignore())
+                .ForMember(dest => dest.TotalItemCount, opt => opt.Ignore());
+
+
+            // ProductImage → ProductImageDto
+            CreateMap<ProductImage, ProductImageDto>();
+
+            // Product → ProductDto
+            CreateMap<Product, ProductDto>()
+                .ForMember(d => d.StatusText,
+                    o => o.MapFrom(s => s.Status.ToString()))
+                .ForMember(d => d.CategoryName,
+                    o => o.MapFrom(s => s.Category != null ? s.Category.Name : string.Empty))
+                .ForMember(d => d.MainImageUrl,
+                    o => o.MapFrom(s =>
+                    s.Images != null && s.Images.Any()
+                    ? s.Images.FirstOrDefault(i => i.IsMain) != null
+                        ? s.Images.First(i => i.IsMain).ImageUrl
+                            : s.Images.OrderBy(i => i.SortOrder).First().ImageUrl
+                                                                                : null))
+                .ForMember(d => d.Images,
+                    o => o.MapFrom(s =>
+                         s.Images != null
+                            ? s.Images.OrderBy(i => i.SortOrder).ToList()
+                                : new List<ProductImage>()));
+
+
+
+
+            // ═══════════════════════════════════════════════════════════
+            // NOTIFICATION MAPPINGS
+            // ═══════════════════════════════════════════════════════════
+
+            CreateMap<Notification, NotificationDto>()
+                .ForMember(dest => dest.TypeText,
+                    opt => opt.MapFrom(src => src.Type.ToString()))
+                .ForMember(dest => dest.PriorityText,
+                    opt => opt.MapFrom(src => src.Priority.ToString()))
+                .ForMember(dest => dest.TimeAgo,
+                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+
+            CreateMap<CreateNotificationDto, Notification>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.User, opt => opt.Ignore());
+
+            // ═══════════════════════════════════════════════════════════
+            // NOTIFICATION PREFERENCE MAPPINGS
+            // ═══════════════════════════════════════════════════════════
+
+            CreateMap<NotificationPreference, NotificationPreferenceDto>();
+
+            CreateMap<UpdateNotificationPreferenceDto, NotificationPreference>()
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+
+
+
+            CreateMap<Product, PendingProductDto>()
+                .ForMember(dest => dest.CategoryName,
+                    opt => opt.MapFrom(src => src.Category.Name))
+                .ForMember(dest => dest.BusinessOwnerName,
+                    opt => opt.MapFrom(src => src.BusinessOwner.User.DisplayName))
+                .ForMember(dest => dest.BusinessName,
+                    opt => opt.MapFrom(src => src.BusinessOwner.BusinessName))
+                .ForMember(dest => dest.MainImageUrl,
+                    opt => opt.MapFrom(src =>
+                        src.Images.FirstOrDefault(i => i.IsMain) != null
+                            ? src.Images.First(i => i.IsMain).ImageUrl
+                            : src.Images.OrderBy(i => i.SortOrder).FirstOrDefault() != null
+                                ? src.Images.OrderBy(i => i.SortOrder).First().ImageUrl
+                                : null))
+                .ForMember(dest => dest.ImageCount,
+                    opt => opt.MapFrom(src => src.Images.Count))
+                .ForMember(dest => dest.StatusText,
+                    opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.TimeAgo,
+                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+
+            // ═══════════════════════════════════════════════════════════
+            // MATERIAL ORDER
+            // ═══════════════════════════════════════════════════════════
+
+            // ───────────────────────────────────────────────────────────
+            // MaterialOrder → MaterialOrderSummaryDto
+            // DeliveryLocation is computed from City + Country.
+            // ItemCount is derived from the Items collection.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<MaterialOrder, MaterialOrderSummaryDto>()
+                .ForMember(dest => dest.ItemCount,
+                    opt => opt.MapFrom(src => src.Items.Count))
+                .ForMember(dest => dest.DeliveryLocation,
+                    opt => opt.MapFrom(src => $"{src.DeliveryCity}, {src.DeliveryCountry}"));
+
+            // ───────────────────────────────────────────────────────────
+            // MaterialOrder → MaterialOrderDto (full detail)
+            // All scalar properties map by convention.
+            // Items are mapped via MaterialOrderItem → MaterialOrderItemDto below.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<MaterialOrder, MaterialOrderDto>();
+
+            // ───────────────────────────────────────────────────────────
+            // MaterialOrderItem → MaterialOrderItemDto
+            // MaterialName and Unit are resolved from the loaded RawMaterial navigation.
+            // LineTotal is a computed property on the entity — mapped directly.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<MaterialOrderItem, MaterialOrderItemDto>()
+                .ForMember(dest => dest.MaterialName,
+                    opt => opt.MapFrom(src =>
+                        src.RawMaterial != null ? src.RawMaterial.Name : string.Empty))
+                .ForMember(dest => dest.Unit,
+                    opt => opt.MapFrom(src =>
+                        src.RawMaterial != null ? src.RawMaterial.Unit : string.Empty))
+                .ForMember(dest => dest.LineTotal,
+                    opt => opt.MapFrom(src => src.LineTotal));
+
+            // ═══════════════════════════════════════════════════════════
+            // PRODUCTION REQUESTS
+            // ═══════════════════════════════════════════════════════════
+
+            // ───────────────────────────────────────────────────────────
+            // BoProductionRequest → ProductionRequestSummaryDto
+            // ItemCount is derived from the Items collection.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<BoProductionRequest, ProductionRequestSummaryDto>()
+                .ForMember(dest => dest.ItemCount,
+                    opt => opt.MapFrom(src => src.Items.Count));
+
+            // ───────────────────────────────────────────────────────────
+            // BoProductionRequest → ProductionRequestDetailDto
+            // All scalar properties map by convention.
+            // Items and StatusHistory are mapped via their own CreateMap calls below.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<BoProductionRequest, ProductionRequestDetailDto>();
+
+            // ───────────────────────────────────────────────────────────
+            // BoProductionRequestItem → ProductionRequestItemDetailDto
+            // PreferredRawMaterialName is resolved from the navigation property.
+            // ───────────────────────────────────────────────────────────
+            CreateMap<BoProductionRequestItem, ProductionRequestItemDetailDto>()
+                .ForMember(dest => dest.PreferredRawMaterialName,
+                    opt => opt.MapFrom(src =>
+                        src.PreferredRawMaterial != null ? src.PreferredRawMaterial.Name : null));
+
+            // ───────────────────────────────────────────────────────────
+            // BoProductionRequestStatusHistory → ProductionRequestHistoryDto
+            // ChangedAt maps from CreatedAt (set by BaseEntity on insert).
+            // ───────────────────────────────────────────────────────────
+            CreateMap<BoProductionRequestStatusHistory, ProductionRequestHistoryDto>()
+                .ForMember(dest => dest.ChangedAt,
+                    opt => opt.MapFrom(src => src.CreatedAt));
+        }
+
+        // <summary>
+        /// Calculate human-readable time ago
+        /// </summary>
+        private static string GetTimeAgo(DateTime dateTime)
+        {
+            var timeSpan = DateTime.UtcNow - dateTime;
+
+            if (timeSpan.TotalSeconds < 60)
+                return "just now";
+
+            if (timeSpan.TotalMinutes < 60)
+                return $"{(int)timeSpan.TotalMinutes} minute{((int)timeSpan.TotalMinutes == 1 ? "" : "s")} ago";
+
+            if (timeSpan.TotalHours < 24)
+                return $"{(int)timeSpan.TotalHours} hour{((int)timeSpan.TotalHours == 1 ? "" : "s")} ago";
+
+            if (timeSpan.TotalDays < 7)
+                return $"{(int)timeSpan.TotalDays} day{((int)timeSpan.TotalDays == 1 ? "" : "s")} ago";
+
+            if (timeSpan.TotalDays < 30)
+                return $"{(int)(timeSpan.TotalDays / 7)} week{((int)(timeSpan.TotalDays / 7) == 1 ? "" : "s")} ago";
+
+            if (timeSpan.TotalDays < 365)
+                return $"{(int)(timeSpan.TotalDays / 30)} month{((int)(timeSpan.TotalDays / 30) == 1 ? "" : "s")} ago";
+
+            return $"{(int)(timeSpan.TotalDays / 365)} year{((int)(timeSpan.TotalDays / 365) == 1 ? "" : "s")} ago";
         }
     }
 }

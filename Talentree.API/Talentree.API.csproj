@@ -22,4 +22,8 @@
     <ProjectReference Include="..\Talentree.Service\Talentree.Service.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\images\materials\" />
+  </ItemGroup>
+
 </Project>

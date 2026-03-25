@@ -31,7 +31,8 @@ namespace Talentree.Service.Services
             ITokenService tokenService,
             IEmailService emailService,
             IMapper mapper,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             //_roleManager = roleManager;
@@ -39,6 +40,7 @@ namespace Talentree.Service.Services
             _emailService = emailService;
             _mapper = mapper;
             _unitOfWork = unitOfWork;
+            _configuration = configuration;
         }
         public async Task<string> RegisterAsync(RegisterDto registerDto)
         {
@@ -64,7 +66,6 @@ namespace Talentree.Service.Services
             }
 
 
-            // Assign default "Student" role
             await _userManager.AddToRoleAsync(user, "Customer");
 
 
@@ -349,10 +350,19 @@ namespace Talentree.Service.Services
 
         public async Task<AuthResponseDto> GoogleLoginAsync(ExternalLoginDto externalLoginDto)
         {
+
+            if (_configuration == null)
+                throw new Exception("IConfiguration is not injected correctly in the constructor.");
+
+            var clientId = _configuration["Google:ClientId"];
+
+            if (string.IsNullOrEmpty(clientId))
+                throw new Exception("ClientId was found as null or empty in appsettings.json.");
+
             // Verify Google ID token
             var payload = await GoogleJsonWebSignature.ValidateAsync(externalLoginDto.IdToken, new GoogleJsonWebSignature.ValidationSettings
             {
-                Audience = new[] { _configuration["Google:ClientId"] }
+                Audience = new[] { clientId }
             });
 
             // Extract user info from Google payload
@@ -388,8 +398,8 @@ namespace Talentree.Service.Services
                 }
 
 
-                // Assign Student role
-                await _userManager.AddToRoleAsync(user, "Student");
+                // Assign Customer role
+                await _userManager.AddToRoleAsync(user, "Customer");
             }
 
             // Get user roles
@@ -458,8 +468,8 @@ namespace Talentree.Service.Services
                 }
 
 
-                // Assign Student role
-                await _userManager.AddToRoleAsync(user, "Student");
+                // Assign Customer role
+                await _userManager.AddToRoleAsync(user, "Customer");
             }
 
             // Get user roles

@@ -1,6 +1,8 @@
-﻿using Talentree.Core;
+﻿using Talentree.API.Services;
+using Talentree.Core;
 using Talentree.Core.Repository.Contract;
 using Talentree.Repository;
+using Talentree.Service.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.Services;
 
@@ -18,11 +20,37 @@ namespace Talentree.API.Extentions
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ITokenService, TokenService>();
+
+            // Admin Services
             services.AddScoped<IAdminService, AdminService>();
+            services.AddScoped<ISupplierService, SupplierService>();           
+            services.AddScoped<IAdminRawMaterialService, AdminRawMaterialService>();
+
+            // product service
+            services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IImageService, ImageService>();
 
 
             // Add AutoMapper (scans assemblies)
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+            // Raw Material Store
+            services.AddScoped<IRawMaterialService, RawMaterialService>();
+            services.AddScoped<IMaterialBasketService, MaterialBasketService>();
+
+            // Order Service
+            services.AddScoped<IMaterialOrderService, MaterialOrderService>();
+
+            // BO Production Request Service
+            services.AddScoped<IBoProductionRequestService, BoProductionRequestService>();
+
+            // Admin Production Request Service
+            services.AddScoped<IAdminProductionRequestService, AdminProductionRequestService>();
+
+            // Notification and Hub Services
+            services.AddScoped<IHubService, HubService>();
+            services.AddScoped<INotificationService, NotificationService>();
+
             return services;
         }
 

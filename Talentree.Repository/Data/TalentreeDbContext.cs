@@ -16,9 +16,9 @@ namespace Talentree.Repository.Data
         // ===============================
         // Constructor
         // ===============================
-       //interceptor
-       private readonly AuditInterceptor _auditInterceptor;
-        public TalentreeDbContext(DbContextOptions<TalentreeDbContext> options , AuditInterceptor auditInterceptor )
+        //interceptor
+        private readonly AuditInterceptor _auditInterceptor;
+        public TalentreeDbContext(DbContextOptions<TalentreeDbContext> options, AuditInterceptor auditInterceptor)
             : base(options)
         {
             _auditInterceptor = auditInterceptor;
@@ -27,13 +27,28 @@ namespace Talentree.Repository.Data
         // ===============================
         // DbSets (Database Tables)
         // ===============================
-       
-         public DbSet<Product> Products { get; set; }
 
+        public DbSet<Product> Products { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<OtpCode> OtpCodes { get; set; }
         public DbSet<Address> Addresses { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<BusinessOwnerProfile> BusinessOwnerProfiles { get; set; }
+        public DbSet<RawMaterial> RawMaterials { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<MaterialBasket> MaterialBaskets { get; set; }
+        public DbSet<MaterialBasketItem> MaterialBasketItems { get; set; }
+
+        public DbSet<MaterialOrder> MaterialOrders { get; set; }
+        public DbSet<MaterialOrderItem> MaterialOrderItems { get; set; }
+
+        public DbSet<BoProductionRequest> BoProductionRequests { get; set; }
+        public DbSet<BoProductionRequestItem> BoProductionRequestItems { get; set; }
+        public DbSet<BoProductionRequestStatusHistory> BoProductionRequestStatusHistories { get; set; }
+
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<NotificationPreference> NotificationPreferences { get; set; }
 
         // ===============================
         // Model Configuration
@@ -54,24 +69,36 @@ namespace Talentree.Repository.Data
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(TalentreeDbContext).Assembly);
 
 
-            // Global query filter - automatically exclude soft-deleted entities
-            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-            {
-                if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
-                {
-                    // Add filter: IsDeleted == false
-                    var parameter = Expression.Parameter(entityType.ClrType, "e");
-                    var property = Expression.Property(parameter, nameof(BaseEntity.IsDeleted));
-                    var filter = Expression.Lambda(
-                        Expression.Equal(property, Expression.Constant(false)),
-                        parameter);
-
-                    entityType.SetQueryFilter(filter);
-                }
-            }
+            ApplyGlobalFilters(modelBuilder);
 
         }
 
-        
+        private void ApplyGlobalFilters(ModelBuilder modelBuilder)
+        {
+            // Get all entity types
+            var entityTypes = modelBuilder.Model.GetEntityTypes();
+
+            foreach (var entityType in entityTypes)
+            {
+                // ═══════════════════════════════════════════════════════════
+                // Soft Delete Filter (ISoftDelete)
+                // ═══════════════════════════════════════════════════════════
+                if (typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType))
+                {
+                    var parameter = Expression.Parameter(entityType.ClrType, "e");
+                    var property = Expression.Property(parameter, nameof(ISoftDelete.IsDeleted));
+                    var filterExpression = Expression.Lambda(
+                        Expression.Equal(property, Expression.Constant(false)),
+                        parameter
+                    );
+
+                    entityType.SetQueryFilter(filterExpression);
+                }
+
+
+            }
+
+
+        }
     }
 }

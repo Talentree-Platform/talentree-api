@@ -22,6 +22,6 @@ namespace Talentree.Service.DTOs.Auth
         /// Role to assign: "Customer" or "BusinessOwner"
         /// Admin cannot register through this endpoint
         /// </summary>
-        public string Role { get; set; } = "Customer";
+        //public string Role { get; set; } = "Customer";
     }
 }
