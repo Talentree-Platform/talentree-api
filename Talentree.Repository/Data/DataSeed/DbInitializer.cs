@@ -1,39 +1,51 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿// ============================================================
+// Talentree.Repository/Data/DataSeed/DbInitializer.cs
+// ============================================================
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Talentree.Core.Entities;
+using Talentree.Core.Entities.Identity;
 
 namespace Talentree.Repository.Data.DataSeed
 {
+    /// <summary>
+    /// Single entry point for all seed operations.
+    /// Called exclusively from HostExtensions.MigrateDatabaseAsync
+    /// AFTER migrations have been applied.
+    /// Order matters — each step depends on the previous one.
+    /// </summary>
     public static class DbInitializer
     {
         public static async Task SeedAllAsync(
             TalentreeDbContext context,
             RoleManager<IdentityRole> roleManager,
-            UserManager<AppUser> userManager)
+            UserManager<AppUser> userManager,
+            ILoggerFactory loggerFactory)
         {
-            // 1 — Roles must exist before any user is created
-            await SeedRolesAsync(roleManager);
+            var logger = loggerFactory.CreateLogger("DbInitializer");
 
-            // 2 — BO accounts (AppUser + BusinessOwnerProfile)
-            //     Must run before MaterialOrderSeed so user IDs exist in AspNetUsers
+            // 1 — Roles + Admin + Customers (TalentreeContextSeed handles all of these)
+            //     Also seeds its own set of BOs (ahmed.hassan etc.)
+            await TalentreeContextSeed.SeedAsync(userManager, roleManager, context, logger);
+
+            // 2 — Our additional seeded BOs with fixed GUIDs (nour.elsayed, karim.mansour, salma.tarek)
+            //     These are needed for MaterialOrderSeed and ProductionRequestSeed
             await BusinessOwnerSeed.SeedAsync(context, userManager);
 
-            // 3 — Material orders — references BO IDs and raw material IDs
+            // 3 — Categories
+            await CategoriesSeed.SeedAsync(context);
+
+            // 4 — Raw materials and suppliers
+            //     Must come before MaterialOrderSeed
+            await RawMaterialSeed.SeedAsync(context);
+
+            // 5 — Material orders (references BO GUIDs from step 2 + materials from step 4)
             await MaterialOrderSeed.SeedAsync(context);
 
-            // 4 — Production requests — references BO IDs and raw material IDs
+            // 6 — Production requests (references BO GUIDs from step 2 + materials from step 4)
             await ProductionRequestSeed.SeedAsync(context);
-        }
 
-        // ── Seed Roles ────────────────────────────────────────────
-        private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
-        {
-            string[] roles = ["Admin", "BusinessOwner"];
-
-            foreach (var role in roles)
-            {
-                if (!await roleManager.RoleExistsAsync(role))
-                    await roleManager.CreateAsync(new IdentityRole(role));
-            }
+            logger.LogInformation("✅ All seed operations completed successfully.");
         }
     }
 }
