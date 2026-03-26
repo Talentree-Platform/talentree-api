@@ -26,7 +26,8 @@ namespace Talentree.Repository.Data.DataSeed
                 City = "Cairo",
                 Country = "Egypt",
                 ContactPerson = "Ahmed Hassan",
-                IsActive = true
+                IsActive = true,
+                CreatedBy = "seed"
             };
 
             var craftSupplier = new Supplier
@@ -39,7 +40,8 @@ namespace Talentree.Repository.Data.DataSeed
                 City = "Alexandria",
                 Country = "Egypt",
                 ContactPerson = "Layla Ibrahim",
-                IsActive = true
+                IsActive = true,
+                CreatedBy = "seed"
             };
 
             var beautySupplier = new Supplier
@@ -52,7 +54,8 @@ namespace Talentree.Repository.Data.DataSeed
                 City = "Giza",
                 Country = "Egypt",
                 ContactPerson = "Sara Mostafa",
-                IsActive = true
+                IsActive = true,
+                CreatedBy = "seed"
             };
 
             var packagingSupplier = new Supplier
@@ -65,7 +68,8 @@ namespace Talentree.Repository.Data.DataSeed
                 City = "10th of Ramadan City",
                 Country = "Egypt",
                 ContactPerson = "Omar Khalil",
-                IsActive = true
+                IsActive = true,
+                CreatedBy = "seed"
             };
 
             context.Set<Supplier>().AddRange(fabricSupplier, craftSupplier, beautySupplier, packagingSupplier);
