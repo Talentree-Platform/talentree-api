@@ -1,78 +1,50 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿// ============================================================
+// Talentree.API/Extensions/HostExtensions.cs
+// ============================================================
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Talentree.Core.Entities;
 using Talentree.Repository.Data;
 using Talentree.Repository.Data.DataSeed;
 
 namespace Talentree.API.Extensions
 {
-    /// <summary>
-    /// Extension methods for IHost to handle database initialization
-    /// </summary>
     public static class HostExtensions
     {
         /// <summary>
-        /// Applies pending migrations and seeds initial data
-        /// Should only be used in Development environment
+        /// Applies pending migrations then runs all seed operations in the correct order.
+        /// This is the ONLY place seeding should be triggered.
         /// </summary>
-        /// <param name="host">The application host</param>
-        /// <returns>The host for chaining</returns>
         public static async Task<IHost> MigrateDatabaseAsync(this IHost host)
         {
-            // Create a scope to resolve scoped services
             using var scope = host.Services.CreateScope();
             var services = scope.ServiceProvider;
-
-            // Get logger factory for error logging
             var loggerFactory = services.GetRequiredService<ILoggerFactory>();
             var logger = loggerFactory.CreateLogger("DatabaseMigration");
 
             try
             {
-                // ===============================
-                // Migrate Main Database (Store)
-                // ===============================
-                logger.LogInformation("Starting migration for TalentreeDbContext...");
-
                 var dbContext = services.GetRequiredService<TalentreeDbContext>();
-
-                // Apply any pending migrations
-                await dbContext.Database.MigrateAsync();
-
-                logger.LogInformation("TalentreeDbContext migration completed successfully.");
-
-                // ===============================
-                // Seed Initial Data
-                // ===============================
                 var userManager = services.GetRequiredService<UserManager<AppUser>>();
                 var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
+                // 1 — Apply any pending EF Core migrations first
+                logger.LogInformation("Applying migrations...");
+                await dbContext.Database.MigrateAsync();
+                logger.LogInformation("Migrations applied successfully.");
+
+                // 2 — Run all seed operations via the single DbInitializer
                 logger.LogInformation("Starting data seeding...");
-
-                await TalentreeContextSeed.SeedAsync(userManager , roleManager , dbContext, logger);
-                await RawMaterialSeed.SeedAsync(dbContext);
-
+                await DbInitializer.SeedAllAsync(dbContext, roleManager, userManager, loggerFactory);
                 logger.LogInformation("Data seeding completed successfully.");
-
-                await TalentreeContextSeed.SeedAsync(userManager, roleManager, dbContext, logger);
-                logger.LogInformation("Data seeding completed successfully.");
-
-                // ADD THIS
-                await CategoriesSeed.SeedAsync(dbContext);
-                logger.LogInformation("Categories seeding completed successfully.");
-
             }
             catch (Exception ex)
             {
-                // Log the error with full stack trace
-                logger.LogError(ex, "An error occurred during database migration.");
-
-                
-                throw; 
+                logger.LogError(ex, "An error occurred during database migration or seeding.");
+                throw;
             }
 
             return host;
         }
-
-      
     }
 }

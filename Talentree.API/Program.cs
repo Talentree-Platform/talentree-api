@@ -10,7 +10,6 @@ using Talentree.API.Extentions;
 using Talentree.API.Hubs;
 using Talentree.Core;
 using Talentree.Repository.Data;
-using Talentree.Repository.Data.DataSeed;
 using Talentree.Repository.Data.Interceptors;
 using Talentree.Service.Mapping;
 
@@ -55,7 +54,7 @@ namespace Talentree.API
                                 Id = "Bearer"
                             }
                         },
-                        new string[] {} // No scopes required for JWT Bearer
+                        new string[] {}
                     }
                 });
             });
@@ -126,8 +125,6 @@ namespace Talentree.API
                     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-
-
                 })
                 .AddJwtBearer(options =>
                 {
@@ -143,23 +140,17 @@ namespace Talentree.API
                         ClockSkew = TimeSpan.Zero
                     };
 
-
                     options.Events = new JwtBearerEvents
                     {
                         OnMessageReceived = context =>
                         {
-                            // Get token from query string (SignalR sends it this way)
                             var accessToken = context.Request.Query["access_token"];
-
-                            // Check if request is for SignalR hub
                             var path = context.HttpContext.Request.Path;
                             if (!string.IsNullOrEmpty(accessToken) &&
                                 path.StartsWithSegments("/hubs"))
                             {
-                                // Set token for authentication
                                 context.Token = accessToken;
                             }
-
                             return Task.CompletedTask;
                         }
                     };
@@ -172,30 +163,20 @@ namespace Talentree.API
             // ===============================
             builder.Services.AddAutoMapper(typeof(MappingProfile));
 
-
-            // ═══════════════════════════════════════════════════════════
-            // ADD SIGNALR
-            // ═══════════════════════════════════════════════════════════
-
+            // ===============================
+            // SignalR (registered once)
+            // ===============================
             builder.Services.AddSignalR(options =>
             {
-                // Enable detailed errors in development
                 options.EnableDetailedErrors = builder.Environment.IsDevelopment();
-
-                // Keep-alive interval (ping client every 15 seconds)
                 options.KeepAliveInterval = TimeSpan.FromSeconds(15);
-
-                // Client timeout (disconnect if no response for 30 seconds)
                 options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
-
-                // Max message size (10MB)
                 options.MaximumReceiveMessageSize = 10 * 1024 * 1024;
             });
 
             // ===============================
             // CORS
             // ===============================
-
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", policy =>
@@ -211,31 +192,17 @@ namespace Talentree.API
                 });
             });
 
-            // SignalR
-            builder.Services.AddSignalR(options =>
-            {
-                options.EnableDetailedErrors = builder.Environment.IsDevelopment();
-                options.KeepAliveInterval = TimeSpan.FromSeconds(15);
-                options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
-            });
             var app = builder.Build();
-            using (var scope = app.Services.CreateScope())
-            {
-                var context = scope.ServiceProvider.GetRequiredService<TalentreeDbContext>();
-                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
 
-                await DbInitializer.SeedAllAsync(context, roleManager, userManager);
-            }
+            // ===============================
+            // Migrate DB + Seed all data
+            // (MigrateDatabaseAsync calls DbInitializer internally)
+            // ===============================
+            await app.MigrateDatabaseAsync();
+
             // ===============================
             // Middleware pipeline
             // ===============================
-
-
-            // DB Migration
-            await app.MigrateDatabaseAsync();
-
-            // Swagger middleware
             app.UseSwagger();
             app.UseSwaggerUI();
 
@@ -244,18 +211,13 @@ namespace Talentree.API
             app.UseStaticFiles();
 
             app.UseCors("AllowAll");
+
             app.UseGlobalExceptionHandling();
 
-            app.UseAuthentication(); // MUST be before Authorization
+            app.UseAuthentication();
             app.UseAuthorization();
 
-            // ═══════════════════════════════════════════════════════════
-            // MAP SIGNALR HUB ENDPOINT
-            // ═══════════════════════════════════════════════════════════
-
             app.MapHub<NotificationHub>("/hubs/notification");
-
-            app.UseStaticFiles();
 
             app.MapControllers();
 

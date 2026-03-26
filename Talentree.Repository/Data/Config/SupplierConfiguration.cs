@@ -55,7 +55,6 @@ namespace Talentree.Repository.Data.Config
                 .HasMaxLength(200);
 
             builder.Property(s => s.CreatedBy)
-                .IsRequired()
                 .HasMaxLength(450); // Same as AspNetUsers.Id
 
             builder.Property(s => s.IsActive)
