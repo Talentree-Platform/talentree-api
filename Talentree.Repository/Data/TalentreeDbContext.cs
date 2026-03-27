@@ -50,6 +50,9 @@ namespace Talentree.Repository.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<NotificationPreference> NotificationPreferences { get; set; }
 
+        public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<PayoutRequest> PayoutRequests { get; set; }
+
         // ===============================
         // Model Configuration
         // ===============================

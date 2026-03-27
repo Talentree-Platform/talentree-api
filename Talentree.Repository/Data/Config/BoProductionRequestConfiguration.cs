@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
+using Talentree.Core.Enums;
 
 namespace Talentree.Repository.Data.Configurations
 {
@@ -35,6 +36,14 @@ namespace Talentree.Repository.Data.Configurations
 
             builder.Property(r => r.AdminNotes)
                 .HasMaxLength(2000);
+
+            builder.Property(r => r.StripePaymentIntentId)
+                .HasMaxLength(300);
+
+            builder.Property(r => r.PaymentStatus)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .HasDefaultValue(PaymentStatus.Unpaid);
 
             // Fast lookup for BO's own request list
             builder.HasIndex(r => r.BusinessOwnerId);

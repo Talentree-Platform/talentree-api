@@ -25,16 +25,18 @@ namespace Talentree.Core.Entities
         public string ContactPhone { get; set; } = null!;
 
         // ── Payment ───────────────────────────────────────────────
-        /// <summary>
-        /// Payment method chosen at checkout — e.g. "CashOnDelivery".
-        /// Will hold a Stripe PaymentMethod ID once Stripe is integrated.
-        /// </summary>
-        public string PaymentMethod { get; set; } = null!;
 
         /// <summary>
-        /// Stripe PaymentIntent ID — null until Stripe integration is complete.
+        /// Stripe PaymentIntent ID — set when BO calls create-intent.
+        /// Null until payment is initiated.
         /// </summary>
         public string? StripePaymentIntentId { get; set; }
+
+        /// <summary>
+        /// Payment lifecycle state driven by Stripe webhook events.
+        /// Never set manually.
+        /// </summary>
+        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Unpaid;
 
         // ── Amounts ───────────────────────────────────────────────
         /// <summary>
