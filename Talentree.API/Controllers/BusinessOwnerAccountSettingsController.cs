@@ -34,13 +34,12 @@ namespace Talentree.API.Controllers
 
         // PUT: api/business-owner-settings/profile
         [HttpPut("profile")]
+        [Consumes("multipart/form-data")]
         public async Task<ActionResult<ApiResponse<ProfileDto>>> UpdateProfile(
-            [FromForm] UpdateProfileDto dto,
-            [FromForm] IFormFile? profilePhoto,
-            [FromForm] IFormFile? businessLogo)
+            [FromForm] UpdateProfileWithPhotosDto dto)
         {
             var result = await _accountSettingsService.UpdateProfileAsync(
-                GetUserId(), dto, profilePhoto, businessLogo);
+                GetUserId(), dto, dto.ProfilePhoto, dto.BusinessLogo);
             return Ok(ApiResponse<ProfileDto>.SuccessResponse(result, "Profile updated successfully"));
         }
 
