@@ -29,5 +29,23 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
             .WithOne(b => b.User)
             .HasForeignKey<BusinessOwnerProfile>(b => b.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // 1:1 PaymentInfo
+        builder.HasOne(u => u.PaymentInfo)
+            .WithOne(p => p.User)
+            .HasForeignKey<BusinessOwnerPaymentInfo>(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // 1:1 Preferences
+        builder.HasOne(u => u.Preferences)
+            .WithOne(p => p.User)
+            .HasForeignKey<UserPreferences>(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // 1:Many LoginHistories
+        builder.HasMany(u => u.LoginHistories)
+            .WithOne(l => l.User)
+            .HasForeignKey(l => l.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
