@@ -23,6 +23,10 @@ namespace Talentree.Core.Entities.Identity
         public string? InstagramLink { get; set; }
         public string? WebsiteLink { get; set; }
 
+        public string? ProfilePhotoUrl { get; set; }  // FR-BO-32 personal photo
+        public string? BusinessLogoUrl { get; set; }  // FR-BO-32 business logo
+        public string? PhoneNumber { get; set; }       // FR-BO-32 personal phone (editable)
+
         // Approval workflow
         public ApprovalStatus Status { get; set; } = ApprovalStatus.Pending;
 
