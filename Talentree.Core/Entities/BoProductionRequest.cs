@@ -45,6 +45,21 @@ namespace Talentree.Core.Entities
         /// </summary>
         public string? AdminNotes { get; set; }
 
+        // Payment
+        /// <summary>
+        /// Stripe PaymentIntent ID — set when BO initiates payment for the quoted price.
+        /// Null until payment is initiated.
+        /// </summary>
+        public string? StripePaymentIntentId { get; set; }
+
+        /// <summary>
+        /// Payment lifecycle state driven by Stripe webhook events.
+        /// When Paid, the webhook automatically transitions Status to Confirmed.
+        /// Never set manually.
+        /// </summary>
+        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Unpaid;
+        //──────────────────────────────────────────────
+
         /// <summary>
         /// Estimated date by which production will be completed, set by Talentree when quoting.
         /// </summary>
@@ -67,5 +82,12 @@ namespace Talentree.Core.Entities
         /// </summary>
         public ICollection<BoProductionRequestStatusHistory> StatusHistory { get; set; }
             = new List<BoProductionRequestStatusHistory>();
+
+        // AI/Analytics fields
+        public int? FulfillmentTimeHours { get; set; }
+
+        public bool IsFraudFlag { get; set; } = false;
+
+        public float? FraudScore { get; set; }
     }
 }

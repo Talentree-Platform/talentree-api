@@ -13,4 +13,11 @@ public class AppUser : IdentityUser
     // Navigation
     public Address? Address { get; set; }
     public BusinessOwnerProfile? BusinessOwnerProfile { get; set; }
+
+    // AI/Analytics fields
+    public int LoginCount { get; set; } = 0;
+
+    public float? ChurnRiskScore { get; set; }
+
+    public DateTime? ChurnRiskUpdatedAt { get; set; } 
 }

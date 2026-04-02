@@ -3,7 +3,6 @@ using Talentree.Core;
 using Talentree.Core.Repository.Contract;
 using Talentree.Repository;
 using Talentree.Service.Contracts;
-using Talentree.Service.Contracts;
 using Talentree.Service.Services;
 
 namespace Talentree.API.Extentions

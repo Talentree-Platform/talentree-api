@@ -23,6 +23,9 @@ namespace Talentree.Core.Entities.Identity
         public string? InstagramLink { get; set; }
         public string? WebsiteLink { get; set; }
 
+        // AI/Analytics fields
+        public byte ProfileCompletenessPct { get; set; } = 0;
+
         // Approval workflow
         public ApprovalStatus Status { get; set; } = ApprovalStatus.Pending;
 
