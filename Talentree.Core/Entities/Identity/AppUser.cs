@@ -14,6 +14,9 @@ public class AppUser : IdentityUser
     public Address? Address { get; set; }
     public BusinessOwnerProfile? BusinessOwnerProfile { get; set; }
 
+    public BusinessOwnerPaymentInfo? PaymentInfo { get; set; }
+    public UserPreferences? Preferences { get; set; }
+    public ICollection<LoginHistory> LoginHistories { get; set; } = new List<LoginHistory>();
     // AI/Analytics fields
     public int LoginCount { get; set; } = 0;
 
