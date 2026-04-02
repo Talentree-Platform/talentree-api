@@ -53,6 +53,8 @@ namespace Talentree.Repository.Data
         public DbSet<BusinessOwnerPaymentInfo> BusinessOwnerPaymentInfos { get; set; }
         public DbSet<LoginHistory> LoginHistories { get; set; }
         public DbSet<UserPreferences> UserPreferences { get; set; }
+        public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<PayoutRequest> PayoutRequests { get; set; }
 
         // ===============================
         // Model Configuration

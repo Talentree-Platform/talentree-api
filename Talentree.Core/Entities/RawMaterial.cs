@@ -67,6 +67,11 @@ namespace Talentree.Core.Entities
         public DateTime? DeletedAt { get; set; }
         public string? DeletedBy { get; set; }
 
+        // AI/Analytics fields
+
+        public int OrderFrequency { get; set; } = 0;
+
+        public string PriceTrend { get; set; } = "Stable";
 
     }
 }

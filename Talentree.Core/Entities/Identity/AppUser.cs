@@ -17,4 +17,10 @@ public class AppUser : IdentityUser
     public BusinessOwnerPaymentInfo? PaymentInfo { get; set; }
     public UserPreferences? Preferences { get; set; }
     public ICollection<LoginHistory> LoginHistories { get; set; } = new List<LoginHistory>();
+    // AI/Analytics fields
+    public int LoginCount { get; set; } = 0;
+
+    public float? ChurnRiskScore { get; set; }
+
+    public DateTime? ChurnRiskUpdatedAt { get; set; } 
 }

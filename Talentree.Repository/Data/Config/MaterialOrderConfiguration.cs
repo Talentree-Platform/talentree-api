@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
+using Talentree.Core.Enums;
 
 namespace Talentree.Repository.Data.Config
 {
@@ -35,9 +36,10 @@ namespace Talentree.Repository.Data.Config
                 .IsRequired()
                 .HasMaxLength(30);
 
-            builder.Property(o => o.PaymentMethod)
-                .IsRequired()
-                .HasMaxLength(100);
+            builder.Property(o => o.PaymentStatus)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .HasDefaultValue(PaymentStatus.Unpaid);
 
             builder.Property(o => o.StripePaymentIntentId)
                 .HasMaxLength(300);
