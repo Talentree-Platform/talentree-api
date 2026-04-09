@@ -61,7 +61,6 @@ namespace Talentree.Repository.Data.DataSeed
                 DeliveryCity = "Cairo",
                 DeliveryCountry = "Egypt",
                 ContactPhone = "+20-100-123-4567",
-                PaymentMethod = "CashOnDelivery",
                 Status = MaterialOrderStatus.Delivered,
                 CreatedAt = DateTime.UtcNow.AddDays(-30),
                 Items = new List<MaterialOrderItem>
@@ -80,7 +79,6 @@ namespace Talentree.Repository.Data.DataSeed
                 DeliveryCity = "Cairo",
                 DeliveryCountry = "Egypt",
                 ContactPhone = "+20-100-123-4567",
-                PaymentMethod = "CashOnDelivery",
                 Status = MaterialOrderStatus.Shipped,
                 CreatedAt = DateTime.UtcNow.AddDays(-12),
                 Items = new List<MaterialOrderItem>
@@ -99,7 +97,6 @@ namespace Talentree.Repository.Data.DataSeed
                 DeliveryCity = "Cairo",
                 DeliveryCountry = "Egypt",
                 ContactPhone = "+20-100-123-4567",
-                PaymentMethod = "CashOnDelivery",
                 Status = MaterialOrderStatus.Processing,
                 CreatedAt = DateTime.UtcNow.AddDays(-3),
                 Items = new List<MaterialOrderItem>
@@ -118,7 +115,6 @@ namespace Talentree.Repository.Data.DataSeed
                 DeliveryCity = "Cairo",
                 DeliveryCountry = "Egypt",
                 ContactPhone = "+20-100-123-4567",
-                PaymentMethod = "CashOnDelivery",
                 Status = MaterialOrderStatus.Pending,
                 CreatedAt = DateTime.UtcNow.AddDays(-1),
                 Items = new List<MaterialOrderItem>
@@ -140,7 +136,6 @@ namespace Talentree.Repository.Data.DataSeed
                 DeliveryCity = "Alexandria",
                 DeliveryCountry = "Egypt",
                 ContactPhone = "+20-110-987-6543",
-                PaymentMethod = "CashOnDelivery",
                 Status = MaterialOrderStatus.Delivered,
                 CreatedAt = DateTime.UtcNow.AddDays(-45),
                 Items = new List<MaterialOrderItem>
@@ -160,7 +155,6 @@ namespace Talentree.Repository.Data.DataSeed
                 DeliveryCity = "Alexandria",
                 DeliveryCountry = "Egypt",
                 ContactPhone = "+20-110-987-6543",
-                PaymentMethod = "CashOnDelivery",
                 Status = MaterialOrderStatus.Refunded,
                 CreatedAt = DateTime.UtcNow.AddDays(-20),
                 Items = new List<MaterialOrderItem>
@@ -178,7 +172,6 @@ namespace Talentree.Repository.Data.DataSeed
                 DeliveryCity = "Alexandria",
                 DeliveryCountry = "Egypt",
                 ContactPhone = "+20-110-987-6543",
-                PaymentMethod = "CashOnDelivery",
                 Status = MaterialOrderStatus.Pending,
                 CreatedAt = DateTime.UtcNow.AddHours(-6),
                 Items = new List<MaterialOrderItem>
@@ -201,7 +194,6 @@ namespace Talentree.Repository.Data.DataSeed
                 DeliveryCity = "Giza",
                 DeliveryCountry = "Egypt",
                 ContactPhone = "+20-122-456-7890",
-                PaymentMethod = "CashOnDelivery",
                 Status = MaterialOrderStatus.Delivered,
                 CreatedAt = DateTime.UtcNow.AddDays(-60),
                 Items = new List<MaterialOrderItem>
@@ -222,7 +214,6 @@ namespace Talentree.Repository.Data.DataSeed
                 DeliveryCity = "Giza",
                 DeliveryCountry = "Egypt",
                 ContactPhone = "+20-122-456-7890",
-                PaymentMethod = "CashOnDelivery",
                 Status = MaterialOrderStatus.Shipped,
                 CreatedAt = DateTime.UtcNow.AddDays(-7),
                 Items = new List<MaterialOrderItem>
@@ -241,7 +232,6 @@ namespace Talentree.Repository.Data.DataSeed
                 DeliveryCity = "Giza",
                 DeliveryCountry = "Egypt",
                 ContactPhone = "+20-122-456-7890",
-                PaymentMethod = "CashOnDelivery",
                 Status = MaterialOrderStatus.Processing,
                 CreatedAt = DateTime.UtcNow.AddDays(-2),
                 Items = new List<MaterialOrderItem>

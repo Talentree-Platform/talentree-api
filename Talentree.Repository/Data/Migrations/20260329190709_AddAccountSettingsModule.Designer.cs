@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Talentree.Repository.Data;
 
@@ -11,9 +12,11 @@ using Talentree.Repository.Data;
 namespace Talentree.Repository.Data.Migrations
 {
     [DbContext(typeof(TalentreeDbContext))]
-    partial class TalentreeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260329190709_AddAccountSettingsModule")]
+    partial class AddAccountSettingsModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -29,12 +32,6 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
-
-                    b.Property<float?>("ChurnRiskScore")
-                        .HasColumnType("real");
-
-                    b.Property<DateTime?>("ChurnRiskUpdatedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -70,9 +67,6 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
-
-                    b.Property<int>("LoginCount")
-                        .HasColumnType("int");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -276,25 +270,9 @@ namespace Talentree.Repository.Data.Migrations
                     b.Property<DateTime?>("EstimatedCompletionDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<float?>("FraudScore")
-                        .HasColumnType("real");
-
-                    b.Property<int?>("FulfillmentTimeHours")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsFraudFlag")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Notes")
                         .HasMaxLength(3000)
                         .HasColumnType("nvarchar(3000)");
-
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("Unpaid");
 
                     b.Property<decimal?>("QuotedPrice")
                         .HasColumnType("decimal(18,2)");
@@ -303,10 +281,6 @@ namespace Talentree.Repository.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("StripePaymentIntentId")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -682,8 +656,6 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.Property<string>("ProfilePhotoUrl")
                         .HasColumnType("nvarchar(max)");
-                    b.Property<byte>("ProfileCompletenessPct")
-                        .HasColumnType("tinyint");
 
                     b.Property<string>("RejectionReason")
                         .HasColumnType("nvarchar(max)");
@@ -1021,12 +993,10 @@ namespace Talentree.Repository.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("PaymentStatus")
+                    b.Property<string>("PaymentMethod")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("Unpaid");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1335,83 +1305,6 @@ namespace Talentree.Repository.Data.Migrations
                     b.ToTable("NotificationPreferences", (string)null);
                 });
 
-            modelBuilder.Entity("Talentree.Core.Entities.PayoutRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AccountHolderName")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("AccountIdentifierEnc")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(12,2)");
-
-                    b.Property<string>("BankName")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("BusinessOwnerId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasDefaultValue("EGP");
-
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ProcessedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("RejectionReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RoutingSwiftCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("BusinessOwnerId", "Status")
-                        .IsUnique()
-                        .HasFilter("[Status] = 'Pending'");
-
-                    b.ToTable("PayoutRequests");
-                });
-
             modelBuilder.Entity("Talentree.Core.Entities.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -1641,19 +1534,12 @@ namespace Talentree.Repository.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int>("OrderFrequency")
-                        .HasColumnType("int");
-
                     b.Property<string>("PictureUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("PriceTrend")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("StockQuantity")
                         .ValueGeneratedOnAdd()
@@ -1804,75 +1690,6 @@ namespace Talentree.Repository.Data.Migrations
                         .HasDatabaseName("IX_Supplier_IsDeleted_DeletedAt");
 
                     b.ToTable("Suppliers", (string)null);
-                });
-
-            modelBuilder.Entity("Talentree.Core.Entities.Transaction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(12,2)");
-
-                    b.Property<bool>("AnomalyFlag")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<float?>("AnomalyScore")
-                        .HasColumnType("real");
-
-                    b.Property<decimal>("BalanceAfter")
-                        .HasColumnType("decimal(14,2)");
-
-                    b.Property<string>("BusinessOwnerId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int?>("ReferenceId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ReferenceType")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("StripePaymentIntentId")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StripePaymentIntentId");
-
-                    b.HasIndex("BusinessOwnerId", "CreatedAt");
-
-                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

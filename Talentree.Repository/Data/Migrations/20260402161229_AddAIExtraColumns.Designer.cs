@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Talentree.Repository.Data;
 
@@ -11,9 +12,11 @@ using Talentree.Repository.Data;
 namespace Talentree.Repository.Data.Migrations
 {
     [DbContext(typeof(TalentreeDbContext))]
-    partial class TalentreeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260402161229_AddAIExtraColumns")]
+    partial class AddAIExtraColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -565,53 +568,6 @@ namespace Talentree.Repository.Data.Migrations
                     b.ToTable("Address", (string)null);
                 });
 
-            modelBuilder.Entity("Talentree.Core.Entities.Identity.BusinessOwnerPaymentInfo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AccountHolderName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("AccountNumberEncrypted")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("BankName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime?>("LastChangedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("LastChangedByIp")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("RoutingSwiftCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("BusinessOwnerPaymentInfos", (string)null);
-                });
-
             modelBuilder.Entity("Talentree.Core.Entities.Identity.BusinessOwnerProfile", b =>
                 {
                     b.Property<int>("Id")
@@ -641,9 +597,6 @@ namespace Talentree.Repository.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("BusinessLogoUrl")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("BusinessName")
                         .IsRequired()
@@ -677,11 +630,6 @@ namespace Talentree.Repository.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ProfilePhotoUrl")
-                        .HasColumnType("nvarchar(max)");
                     b.Property<byte>("ProfileCompletenessPct")
                         .HasColumnType("tinyint");
 
@@ -728,46 +676,6 @@ namespace Talentree.Repository.Data.Migrations
                         .HasDatabaseName("IX_BusinessOwnerProfile_IsDeleted_DeletedAt");
 
                     b.ToTable("BusinessOwnerProfile", (string)null);
-                });
-
-            modelBuilder.Entity("Talentree.Core.Entities.Identity.LoginHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("DeviceInfo")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<bool>("IsSuccessful")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Location")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime>("LoginAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LoginAt");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("LoginHistories", (string)null);
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Identity.OtpCode", b =>
@@ -847,58 +755,6 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("RefreshTokens", (string)null);
-                });
-
-            modelBuilder.Entity("Talentree.Core.Entities.Identity.UserPreferences", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CurrencyDisplay")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasDefaultValue("EGP");
-
-                    b.Property<string>("DashboardLayout")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("default");
-
-                    b.Property<string>("DateFormat")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("dd/MM/yyyy");
-
-                    b.Property<string>("Language")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("Timezone")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasDefaultValue("Africa/Cairo");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("UserPreferences", (string)null);
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.MaterialBasket", b =>
@@ -1966,33 +1822,11 @@ namespace Talentree.Repository.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Talentree.Core.Entities.Identity.BusinessOwnerPaymentInfo", b =>
-                {
-                    b.HasOne("AppUser", "User")
-                        .WithOne("PaymentInfo")
-                        .HasForeignKey("Talentree.Core.Entities.Identity.BusinessOwnerPaymentInfo", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Talentree.Core.Entities.Identity.BusinessOwnerProfile", b =>
                 {
                     b.HasOne("AppUser", "User")
                         .WithOne("BusinessOwnerProfile")
                         .HasForeignKey("Talentree.Core.Entities.Identity.BusinessOwnerProfile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Talentree.Core.Entities.Identity.LoginHistory", b =>
-                {
-                    b.HasOne("AppUser", "User")
-                        .WithMany("LoginHistories")
-                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2015,17 +1849,6 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasOne("AppUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Talentree.Core.Entities.Identity.UserPreferences", b =>
-                {
-                    b.HasOne("AppUser", "User")
-                        .WithOne("Preferences")
-                        .HasForeignKey("Talentree.Core.Entities.Identity.UserPreferences", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2138,12 +1961,6 @@ namespace Talentree.Repository.Data.Migrations
                     b.Navigation("Address");
 
                     b.Navigation("BusinessOwnerProfile");
-
-                    b.Navigation("LoginHistories");
-
-                    b.Navigation("PaymentInfo");
-
-                    b.Navigation("Preferences");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.BoProductionRequest", b =>

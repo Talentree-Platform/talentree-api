@@ -3,7 +3,6 @@ using Talentree.Core;
 using Talentree.Core.Repository.Contract;
 using Talentree.Repository;
 using Talentree.Service.Contracts;
-using Talentree.Service.Contracts;
 using Talentree.Service.Services;
 
 namespace Talentree.API.Extentions
@@ -50,6 +49,9 @@ namespace Talentree.API.Extentions
             // Notification and Hub Services
             services.AddScoped<IHubService, HubService>();
             services.AddScoped<INotificationService, NotificationService>();
+
+            services.AddScoped<IAccountSettingsService, AccountSettingsService>();
+            services.AddScoped<IEncryptionService, EncryptionService>();
 
             return services;
         }
