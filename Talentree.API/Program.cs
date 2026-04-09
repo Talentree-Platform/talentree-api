@@ -182,10 +182,10 @@ namespace Talentree.API
                 options.AddPolicy("AllowAll", policy =>
                 {
                     policy.WithOrigins(
-                            "http://localhost:5500",
-                            "http://127.0.0.1:5500",
-                            "http://localhost:4200",
-                            "https://talentree-platform.netlify.app"
+                        "http://localhost:5500",
+                        "http://127.0.0.1:5500",
+                        "http://localhost:4200",
+                        "https://talentree-platform.netlify.app"
                     )
                     .AllowAnyHeader()
                     .AllowAnyMethod()
@@ -206,12 +206,11 @@ namespace Talentree.API
             // ===============================
             app.UseSwagger();
             app.UseSwaggerUI();
-
+            
             app.UseHttpsRedirection();
+            app.UseCors("AllowAll");
 
             app.UseStaticFiles();
-
-            app.UseCors("AllowAll");
 
             app.UseGlobalExceptionHandling();
 
