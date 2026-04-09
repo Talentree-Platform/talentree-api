@@ -188,8 +188,7 @@ namespace Talentree.API
                         "https://talentree-platform.netlify.app"
                     )
                     .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .AllowCredentials();
+                    .AllowAnyMethod();
                 });
             });
 
