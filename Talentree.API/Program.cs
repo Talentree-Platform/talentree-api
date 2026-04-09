@@ -189,7 +189,6 @@ namespace Talentree.API
                     )
                     .AllowAnyHeader()
                     .AllowAnyMethod()
-                    .AllowCredentials();
                 });
             });
 
@@ -210,7 +209,7 @@ namespace Talentree.API
             app.UseHttpsRedirection();
 
             app.UseStaticFiles();
-
+            app.UseRouting();
             app.UseCors("AllowAll");
 
             app.UseGlobalExceptionHandling();
