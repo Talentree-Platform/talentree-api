@@ -185,7 +185,7 @@ namespace Talentree.API
                             "http://localhost:5500",
                             "http://127.0.0.1:5500",
                             "http://localhost:4200",
-                            "https://talentree-platform.netlify.app/"
+                            "https://talentree-platform.netlify.app"
                     )
                     .AllowAnyHeader()
                     .AllowAnyMethod()
