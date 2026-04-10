@@ -164,7 +164,7 @@ namespace Talentree.API
             builder.Services.AddAutoMapper(typeof(MappingProfile));
 
             // ===============================
-            // SignalR (registered once)
+            // SignalR
             // ===============================
             builder.Services.AddSignalR(options =>
             {
@@ -179,16 +179,14 @@ namespace Talentree.API
             // ===============================
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowAll", policy =>
+                options.AddPolicy("AllowFrontend", policy =>
                 {
                     policy.WithOrigins(
-                        "http://localhost:5500",
-                        "http://127.0.0.1:5500",
-                        "http://localhost:4200",
                         "https://talentree-platform.netlify.app"
                     )
                     .AllowAnyHeader()
-                    .AllowAnyMethod();
+                    .AllowAnyMethod()
+                    .AllowCredentials(); // IMPORTANT (JWT + SignalR)
                 });
             });
 
@@ -207,7 +205,8 @@ namespace Talentree.API
             app.UseSwaggerUI();
             
             app.UseHttpsRedirection();
-            app.UseCors("AllowAll");
+
+            app.UseCors("AllowFrontend");
 
             app.UseStaticFiles();
 
