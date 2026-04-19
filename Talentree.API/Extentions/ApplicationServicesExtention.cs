@@ -55,6 +55,8 @@ namespace Talentree.API.Extentions
 
             // Knowledge Base Service
             services.AddScoped<IKnowledgeService, KnowledgeService>();
+            // Review Service
+            services.AddScoped<IReviewService, ReviewService>();
 
             return services;
         }

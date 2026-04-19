@@ -24,8 +24,11 @@ namespace Talentree.Core.Entities
         /// <summary>Contact phone number captured at checkout for delivery coordination.</summary>
         public string ContactPhone { get; set; } = null!;
 
+        // ── Payment ───────────────────────────────────────────────
+
         /// <summary>
-        /// Stripe PaymentIntent ID — null until Stripe integration is complete.
+        /// Stripe PaymentIntent ID — set when BO calls create-intent.
+        /// Null until payment is initiated.
         /// </summary>
         public string? StripePaymentIntentId { get; set; }
 
