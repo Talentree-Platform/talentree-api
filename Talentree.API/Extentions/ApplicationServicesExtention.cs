@@ -53,6 +53,9 @@ namespace Talentree.API.Extentions
             services.AddScoped<IAccountSettingsService, AccountSettingsService>();
             services.AddScoped<IEncryptionService, EncryptionService>();
 
+            // Review Service
+            services.AddScoped<IReviewService, ReviewService>();
+
             return services;
         }
 

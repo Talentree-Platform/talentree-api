@@ -2,7 +2,7 @@
 
 namespace Talentree.Core.Entities
 {
-    public class ProductReview : BaseEntity
+    public class ProductReview : AuditableEntity
     {
         public int ProductId { get; set; }
         public Product Product { get; set; } = null!;
