@@ -45,6 +45,12 @@ namespace Talentree.Repository.Data.DataSeed
             // 6 — Production requests (references BO GUIDs from step 2 + materials from step 4)
             await ProductionRequestSeed.SeedAsync(context);
 
+            // 7 — Transactions (ledger entries for all material orders + production requests)
+            await TransactionSeed.SeedAsync(context);
+
+            // 8 — Payout requests (BO withdrawal requests in various statuses)
+            await PayoutRequestSeed.SeedAsync(context);
+
             logger.LogInformation("✅ All seed operations completed successfully.");
         }
     }
