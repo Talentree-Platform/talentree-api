@@ -121,28 +121,7 @@ namespace Talentree.Service.Services
             return await LoadBoDetailAsync(requestId, businessOwnerId);
         }
 
-        /// <inheritdoc/>
-        public async Task<ProductionRequestDetailDto> ConfirmQuoteAsync(
-            string businessOwnerId, int requestId)
-        {
-            var request = await GetOwnedRequestAsync(businessOwnerId, requestId);
-
-            if (request.Status != BoProductionRequestStatus.Quoted)
-                throw new InvalidOperationException(
-                    "You can only confirm a request that has been quoted by Talentree.");
-
-            request.Status = BoProductionRequestStatus.Confirmed;
-            request.StatusHistory.Add(new BoProductionRequestStatusHistory
-            {
-                Status = BoProductionRequestStatus.Confirmed,
-                ChangedByUserId = businessOwnerId,
-                Notes = "Quote accepted by business owner. Talentree will begin production."
-            });
-
-            await _unitOfWork.CompleteAsync();
-            return await LoadBoDetailAsync(requestId, businessOwnerId);
-        }
-
+        
         // ── Private helpers ───────────────────────────────────────
 
         /// <summary>
