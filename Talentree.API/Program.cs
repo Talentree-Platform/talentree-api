@@ -112,7 +112,7 @@ namespace Talentree.API
             // ===============================
             // Application Services (DI)
             // ===============================
-            builder.Services.AddApplicationServices();
+            builder.Services.AddApplicationServices(builder.Configuration);
 
             // ===============================
             // Authentication (JWT)
@@ -216,6 +216,14 @@ namespace Talentree.API
             app.UseAuthorization();
 
             app.MapHub<NotificationHub>("/hubs/notification");
+
+            // Stripe webhook requires raw, un-buffered body for signature verification
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path.StartsWithSegments("/api/payment/webhook"))
+                    context.Request.EnableBuffering();
+                await next();
+            });
 
             app.MapControllers();
 

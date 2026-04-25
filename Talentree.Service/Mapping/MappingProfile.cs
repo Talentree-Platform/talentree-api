@@ -13,8 +13,10 @@ using Talentree.Service.DTOs.Basket;
 using Talentree.Service.DTOs.BoProductionRequest;
 using Talentree.Service.DTOs.MaterialOrder;
 using Talentree.Service.DTOs.Notification;
+using Talentree.Service.DTOs.Payout;
 using Talentree.Service.DTOs.Products;
 using Talentree.Service.DTOs.RawMaterial;
+using Talentree.Service.DTOs.Transaction;
 
 namespace Talentree.Service.Mapping
 {
@@ -481,6 +483,16 @@ namespace Talentree.Service.Mapping
             CreateMap<BoProductionRequestStatusHistory, ProductionRequestHistoryDto>()
                 .ForMember(dest => dest.ChangedAt,
                     opt => opt.MapFrom(src => src.CreatedAt));
+
+            // Transaction → TransactionDto
+            CreateMap<Transaction, TransactionDto>();
+
+            CreateMap<PayoutRequest, PayoutRequestDto>()
+                .ForMember(dest => dest.MaskedAccountIdentifier,
+                    opt => opt.MapFrom(src =>
+                        src.AccountIdentifierEnc != null && src.AccountIdentifierEnc.Length >= 4
+                            ? "****" + src.AccountIdentifierEnc.Substring(src.AccountIdentifierEnc.Length - 4)
+                            : "****"));
         }
 
         // <summary>
