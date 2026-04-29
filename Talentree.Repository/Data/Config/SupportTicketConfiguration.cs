@@ -1,25 +1,20 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
+using Talentree.Core.Enums;
+using Talentree.Repository.Data.Config.Base;
 
 namespace Talentree.Repository.Data.Config
 {
-    public class SupportTicketConfiguration : BaseEntityConfiguration<SupportTicket>
+    public class SupportTicketConfiguration : SoftDeleteEntityConfiguration<SupportTicket>
     {
         public override void Configure(EntityTypeBuilder<SupportTicket> builder)
         {
             base.Configure(builder);
+
             builder.ToTable("SupportTickets");
 
-            builder.Property(t => t.UserId)
-                .IsRequired()
-                .HasMaxLength(450);
-
-            builder.Property(t => t.UserType)
-                .IsRequired()
-                .HasMaxLength(20);
-
-            builder.Property(t => t.Category)
+            builder.Property(t => t.TicketNumber)
                 .IsRequired()
                 .HasMaxLength(50);
 
@@ -27,36 +22,67 @@ namespace Talentree.Repository.Data.Config
                 .IsRequired()
                 .HasMaxLength(255);
 
-            builder.Property(t => t.Status)
+           
+            builder.Property(t => t.Description)
                 .IsRequired()
-                .HasMaxLength(50)
-                .HasDefaultValue("Open");
+                .HasColumnType("nvarchar(max)");
+
+            builder.Property(t => t.Category)
+                .HasConversion<int>()
+                .IsRequired();
+
+            builder.Property(t => t.Status)
+                .HasConversion<int>()
+                .HasDefaultValue(TicketStatus.Open);
 
             builder.Property(t => t.Priority)
-                .IsRequired()
-                .HasMaxLength(20)
-                .HasDefaultValue("Medium");
+                .HasConversion<int>()
+                .HasDefaultValue(TicketPriority.Normal);
 
-            builder.Property(t => t.AutoCategory)
-                .HasMaxLength(50);
+            builder.Property(t => t.BusinessOwnerUserId)
+                .IsRequired()
+                .HasMaxLength(450);
 
             builder.Property(t => t.AssignedToAdminId)
                 .HasMaxLength(450);
 
-            // Relationships
-            builder.HasOne(t => t.User)
+            builder.Property(t => t.ResolvedBy)
+                .HasMaxLength(450);
+
+            builder.Property(t => t.ClosedBy)
+                .HasMaxLength(450);
+
+            builder.HasOne(t => t.BusinessOwner)
                 .WithMany()
-                .HasForeignKey(t => t.UserId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .HasForeignKey(t => t.BusinessOwnerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasMany(t => t.Messages)
                 .WithOne(m => m.Ticket)
                 .HasForeignKey(m => m.TicketId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Indexes
-            builder.HasIndex(t => t.UserId);
-            builder.HasIndex(t => t.Status);
+            //builder.HasMany(t => t.Attachments)
+            //    .WithOne(a => a.Ticket)
+            //    .HasForeignKey(a => a.TicketId)
+            //    .OnDelete(DeleteBehavior.Restrict);
+            //    //.OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasIndex(t => t.TicketNumber)
+                .IsUnique()
+                .HasDatabaseName("IX_SupportTickets_TicketNumber");
+
+            builder.HasIndex(t => t.BusinessOwnerUserId)
+                .HasDatabaseName("IX_SupportTickets_BusinessOwnerUserId");
+
+            builder.HasIndex(t => t.Status)
+                .HasDatabaseName("IX_SupportTickets_Status");
+
+            builder.HasIndex(t => new { t.Status, t.CreatedAt })
+                .HasDatabaseName("IX_SupportTickets_Status_CreatedAt");
+
+            builder.HasIndex(t => t.AssignedToAdminId)
+                .HasDatabaseName("IX_SupportTickets_AssignedToAdminId");
         }
     }
 }

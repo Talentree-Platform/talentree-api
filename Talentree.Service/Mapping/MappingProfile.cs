@@ -16,6 +16,7 @@ using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.Payout;
 using Talentree.Service.DTOs.Products;
 using Talentree.Service.DTOs.RawMaterial;
+using Talentree.Service.DTOs.Support;
 using Talentree.Service.DTOs.Transaction;
 
 namespace Talentree.Service.Mapping
@@ -484,6 +485,55 @@ namespace Talentree.Service.Mapping
                 .ForMember(dest => dest.ChangedAt,
                     opt => opt.MapFrom(src => src.CreatedAt));
 
+
+            // ═══════════════════════════════════════════════════════════
+            // SUPPORT TICKET MAPPINGS
+            // ═══════════════════════════════════════════════════════════
+
+            CreateMap<SupportTicket, TicketDto>()
+                .ForMember(dest => dest.CategoryText,
+                    opt => opt.MapFrom(src => src.Category.ToString()))
+                .ForMember(dest => dest.StatusText,
+                    opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.PriorityText,
+                    opt => opt.MapFrom(src => src.Priority.ToString()))
+                .ForMember(dest => dest.BusinessOwnerName,
+                    opt => opt.MapFrom(src => src.BusinessOwner.DisplayName))
+                .ForMember(dest => dest.BusinessOwnerEmail,
+                    opt => opt.MapFrom(src => src.BusinessOwner.Email))
+                .ForMember(dest => dest.MessageCount,
+                    opt => opt.MapFrom(src => src.Messages.Count))
+                .ForMember(dest => dest.AttachmentCount,
+                    opt => opt.MapFrom(src => src.Attachments.Count))
+                .ForMember(dest => dest.TimeAgo,
+                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+
+            CreateMap<SupportTicket, TicketListItemDto>()
+                .ForMember(dest => dest.CategoryText,
+                    opt => opt.MapFrom(src => src.Category.ToString()))
+                .ForMember(dest => dest.StatusText,
+                    opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.PriorityText,
+                    opt => opt.MapFrom(src => src.Priority.ToString()))
+                .ForMember(dest => dest.MessageCount,
+                    opt => opt.MapFrom(src => src.Messages.Count))
+                .ForMember(dest => dest.HasUnreadMessages,
+                    opt => opt.MapFrom(src => false)) // TODO: implement
+                .ForMember(dest => dest.TimeAgo,
+                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+
+            CreateMap<TicketMessage, TicketMessageDto>()
+                .ForMember(dest => dest.SenderName,
+                    opt => opt.MapFrom(src => src.Sender.DisplayName))
+                .ForMember(dest => dest.TimeAgo,
+                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+
+            CreateMap<TicketAttachment, TicketAttachmentDto>()
+                .ForMember(dest => dest.FileSizeMB,
+                    opt => opt.MapFrom(src => $"{src.FileSizeBytes / 1024.0 / 1024.0:F2} MB"));
+
+            CreateMap<FAQ, FAQDto>();
+
             // Transaction → TransactionDto
             CreateMap<Transaction, TransactionDto>();
 
@@ -494,6 +544,9 @@ namespace Talentree.Service.Mapping
                             ? "****" + src.AccountIdentifierEnc.Substring(src.AccountIdentifierEnc.Length - 4)
                             : "****"));
         }
+
+
+
 
         // <summary>
         /// Calculate human-readable time ago

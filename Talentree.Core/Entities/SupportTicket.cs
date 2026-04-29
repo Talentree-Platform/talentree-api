@@ -1,25 +1,34 @@
 ﻿using Talentree.Core.Entities.Identity;
+using Talentree.Core.Enums;
 
 namespace Talentree.Core.Entities
 {
-    public class SupportTicket : BaseEntity
+    public class SupportTicket : AuditableEntity, ISoftDelete
     {
-        public string UserId { get; set; } = null!;
-        public AppUser User { get; set; } = null!;
-
-        public string UserType { get; set; } = null!;    // Customer / BusinessOwner
-        public string Category { get; set; } = null!;   // Technical / Account / Payment / Other
+        public string TicketNumber { get; set; } = null!;
         public string Subject { get; set; } = null!;
-        public string Status { get; set; } = "Open";     // Open / InProgress / Resolved / Closed
-        public string Priority { get; set; } = "Medium"; // Low / Medium / High / Urgent
+        public string Description { get; set; } = null!;
 
-        // AI fields
-        public float? PriorityScore { get; set; }
-        public string? AutoCategory { get; set; }
+        public TicketCategory Category { get; set; }
+        public TicketStatus Status { get; set; } = TicketStatus.Open;
+        public TicketPriority Priority { get; set; } = TicketPriority.Normal;
+
+        public string BusinessOwnerUserId { get; set; } = null!;
+        public AppUser BusinessOwner { get; set; } = null!;
 
         public string? AssignedToAdminId { get; set; }
+        public DateTime? AssignedAt { get; set; }
 
-        // Navigation
+        public DateTime? ResolvedAt { get; set; }
+        public string? ResolvedBy { get; set; }
+        public DateTime? ClosedAt { get; set; }
+        public string? ClosedBy { get; set; }
+
         public ICollection<TicketMessage> Messages { get; set; } = new List<TicketMessage>();
+        public ICollection<TicketAttachment> Attachments { get; set; } = new List<TicketAttachment>();
+
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        public string? DeletedBy { get; set; }
     }
 }
