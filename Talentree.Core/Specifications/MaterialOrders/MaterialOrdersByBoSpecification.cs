@@ -51,4 +51,16 @@ namespace Talentree.Core.Specifications.MaterialOrders
             AddInclude("Items.RawMaterial");
         }
     }
+
+    /// <summary>
+    /// Looks up a MaterialOrder by Stripe PaymentIntent ID.
+    /// Used by the webhook handler — no BO scope (webhook has no auth context).
+    /// </summary>
+    public class MaterialOrderByPaymentIntentSpecification : BaseSpecifications<MaterialOrder>
+    {
+        public MaterialOrderByPaymentIntentSpecification(string paymentIntentId)
+            : base(o => o.StripePaymentIntentId == paymentIntentId)
+        {
+        }
+    }
 }
