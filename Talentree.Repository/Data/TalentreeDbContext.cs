@@ -56,6 +56,15 @@ namespace Talentree.Repository.Data
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<PayoutRequest> PayoutRequests { get; set; }
 
+
+
+
+        public DbSet<SupportTicket> SupportTickets { get; set; }
+        public DbSet<TicketMessage> TicketMessages { get; set; }
+        public DbSet<TicketAttachment> TicketAttachments { get; set; }
+        public DbSet<FAQ> FAQs { get; set; }
+
+
         // ===============================
         // Model Configuration
         // ===============================

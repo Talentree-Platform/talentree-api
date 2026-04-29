@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
+using Talentree.Repository.Data.SeedData;
 
 namespace Talentree.Repository.Data.DataSeed
 {
@@ -44,6 +45,9 @@ namespace Talentree.Repository.Data.DataSeed
 
             // 6 — Production requests (references BO GUIDs from step 2 + materials from step 4)
             await ProductionRequestSeed.SeedAsync(context);
+
+            // Seed FAQs
+            await FAQSeeder.SeedFAQsAsync(context);
 
             logger.LogInformation("✅ All seed operations completed successfully.");
         }
