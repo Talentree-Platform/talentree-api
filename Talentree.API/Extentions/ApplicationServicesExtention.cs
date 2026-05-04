@@ -57,7 +57,7 @@ namespace Talentree.API.Extentions
 
 
             services.AddScoped<ISupportService, SupportService>();
-            services.AddScoped<IFileService, FileService>();
+            services.AddScoped<IFileService, Talentree.Service.Services.FileService>();
             // Knowledge Base Service
             services.AddScoped<IKnowledgeService, KnowledgeService>();
             // Review Service
