@@ -76,6 +76,9 @@ namespace Talentree.API.Extentions
             // Payout Service
             services.AddScoped<IPayoutService, Talentree.Service.Services.PayoutService>();
 
+            // user management service
+            services.AddScoped<IUserManagementService, UserManagementService>();
+
             return services;
         }
 

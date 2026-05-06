@@ -65,6 +65,12 @@ namespace Talentree.Repository.Data.Config
                 .HasForeignKey(i => i.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Property(p => p.IsVisible)
+                .HasDefaultValue(true);
+
+            builder.HasIndex(p => p.IsVisible)
+                .HasDatabaseName("IX_Product_IsVisible");
+
             // Indexes
             builder.HasIndex(p => p.Status);
             builder.HasIndex(p => p.BusinessOwnerProfileId);

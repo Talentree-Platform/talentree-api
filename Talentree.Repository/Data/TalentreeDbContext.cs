@@ -65,12 +65,16 @@ namespace Talentree.Repository.Data
         public DbSet<FAQ> FAQs { get; set; }
 
         public DbSet<ProductReview> ProductReviews { get; set; }
-        //public DbSet<SupportTicket> SupportTickets { get; set; }
-        //public DbSet<TicketMessage> TicketMessages { get; set; }
+     
         public DbSet<OnboardingProgress> OnboardingProgresses { get; set; }
 
         public DbSet<KnowledgeArticle> KnowledgeArticles { get; set; }
         public DbSet<ArticleBookmark> ArticleBookmarks { get; set; }
+
+        // User management and moderation logs
+        public DbSet<UserActionLog> UserActionLogs { get; set; }
+        public DbSet<Complaint> Complaints { get; set; }
+        public DbSet<AutoBlockLog> AutoBlockLogs { get; set; }
 
         // ===============================
         // Model Configuration
