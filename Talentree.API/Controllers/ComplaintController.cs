@@ -18,26 +18,29 @@ namespace Talentree.API.Controllers
         }
 
         /// <summary>
-        /// Create a complaint against a user
+        /// Create a complaint
+        /// Route: POST /api/complaint
         /// </summary>
-        [HttpPost("complaints")]
+        [HttpPost]  // ✅ No route specified - uses base route
         [ProducesResponseType(typeof(ApiResponse<ComplaintDto>), StatusCodes.Status201Created)]
-        public async Task<ActionResult<ApiResponse<ComplaintDto>>> CreateComplaint([FromBody] CreateComplaintDto dto)
+        public async Task<ActionResult<ApiResponse<ComplaintDto>>> CreateComplaint(
+            [FromBody] CreateComplaintDto dto)
         {
             var reportedByUserId = GetCurrentUserId();
             var complaint = await _userManagementService.CreateComplaintAsync(dto, reportedByUserId);
 
-            return Created($"/api/complaints/{complaint.Id}",
+            return Created($"/api/complaint/{complaint.Id}",
                 ApiResponse<ComplaintDto>.SuccessResponse(
                     data: complaint,
-                    message: "Complaint submitted successfully. Our team will review it."
+                    message: "Complaint submitted successfully."
                 ));
         }
 
         /// <summary>
         /// Get complaint by ID
+        /// Route: GET /api/complaint/{id}
         /// </summary>
-        [HttpGet("complaints/{id}")]
+        [HttpGet("{id}")]  // ✅ Relative to base route
         [ProducesResponseType(typeof(ApiResponse<ComplaintDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<ComplaintDto>>> GetComplaintById(int id)
         {

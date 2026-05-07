@@ -26,8 +26,7 @@ namespace Talentree.Core.Specifications.UserManagementSpecifications
                 var validPageIndex = pageIndex.Value < 1 ? 1 : pageIndex.Value;
                 var validPageSize = pageSize.Value < 1 ? 20 : (pageSize.Value > 100 ? 100 : pageSize.Value);
 
-                var skip = (validPageIndex - 1) * validPageSize;
-                ApplyPagination(skip, validPageSize);
+                ApplyPagination(validPageIndex, validPageSize);
             }
         }
     }
