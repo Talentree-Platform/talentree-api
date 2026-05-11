@@ -20,19 +20,21 @@ namespace Talentree.Service.Services
         private readonly INotificationService _notificationService;
         private readonly IEmailService _emailService;
         private readonly IFileService _fileService;
+        private readonly IAIService _aiService;
 
         public SupportService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             INotificationService notificationService,
             IEmailService emailService,
-            IFileService fileService)
+            IFileService fileService, IAIService aiService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationService = notificationService;
             _emailService = emailService;
             _fileService = fileService;
+            _aiService = aiService;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -76,6 +78,9 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<SupportTicket>().Add(ticket);
             await _unitOfWork.CompleteAsync();
+
+            // Fire-and-forget AI call
+            _ = _aiService.PredictTriageAsync(ticket.Id);
 
             // Upload attachments
             if (dto.Attachments != null && dto.Attachments.Count > 0)
