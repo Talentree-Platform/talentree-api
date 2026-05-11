@@ -13,10 +13,12 @@ namespace Talentree.Service.Services
     public class ReviewService : IReviewService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IAIService _aiService;
 
-        public ReviewService(IUnitOfWork unitOfWork)
+        public ReviewService(IUnitOfWork unitOfWork, IAIService aiService)
         {
             _unitOfWork = unitOfWork;
+            _aiService = aiService;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -121,6 +123,9 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<ProductReview>().Update(review);
             await _unitOfWork.CompleteAsync();
+
+            // Fire-and-forget AI call
+            _ = _aiService.PredictSentimentAsync(review.Id);
 
             return MapToDto(review);
         }
