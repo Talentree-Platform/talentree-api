@@ -76,6 +76,12 @@ namespace Talentree.API.Extentions
             // Payout Service
             services.AddScoped<IPayoutService, Talentree.Service.Services.PayoutService>();
 
+            // Register HttpClient for AI service
+            services.AddHttpClient<IAIService, AIService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+
             return services;
         }
 
