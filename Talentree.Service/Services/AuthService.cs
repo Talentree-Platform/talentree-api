@@ -24,6 +24,7 @@ namespace Talentree.Service.Services
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
+        private readonly IAIService _aiService;
 
         public AuthService(
             UserManager<AppUser> userManager,
@@ -32,7 +33,7 @@ namespace Talentree.Service.Services
             IEmailService emailService,
             IMapper mapper,
             IUnitOfWork unitOfWork,
-            IConfiguration configuration)
+            IConfiguration configuration, IAIService aiService)
         {
             _userManager = userManager;
             //_roleManager = roleManager;
@@ -41,6 +42,7 @@ namespace Talentree.Service.Services
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _configuration = configuration;
+            _aiService = aiService;
         }
         public async Task<string> RegisterAsync(RegisterDto registerDto)
         {
@@ -116,6 +118,9 @@ namespace Talentree.Service.Services
             // Map user to UserInfoDto
             var userInfo = _mapper.Map<UserInfoDto>(user);
             userInfo.Roles = roles.ToList();
+
+            // Predict churn risk on every login — fire and forget
+            _ = Task.Run(() => _aiService.PredictChurnAsync(user.Id));
 
             // Return auth response
             return new AuthResponseDto
