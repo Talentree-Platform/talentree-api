@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
-using Talentree.Repository.Data.SeedData;
+//using Talentree.Repository.Data.SeedData;
 
 namespace Talentree.Repository.Data.DataSeed
 {
@@ -47,7 +47,7 @@ namespace Talentree.Repository.Data.DataSeed
             await ProductionRequestSeed.SeedAsync(context);
 
             // Seed FAQs
-            await FAQSeeder.SeedFAQsAsync(context);
+            //await FAQSeeder.SeedFAQsAsync(context);
 
             logger.LogInformation("✅ All seed operations completed successfully.");
         }

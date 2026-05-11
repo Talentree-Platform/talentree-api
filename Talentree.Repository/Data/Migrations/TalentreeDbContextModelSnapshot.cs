@@ -526,102 +526,6 @@ namespace Talentree.Repository.Data.Migrations
                     b.ToTable("Categories", (string)null);
                 });
 
-            modelBuilder.Entity("Talentree.Core.Entities.FAQ", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Answer")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("DisplayOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsPublished")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("Keywords")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Question")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("RelatedFaqIds")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("ViewCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Category")
-                        .HasDatabaseName("IX_FAQs_Category");
-
-                    b.HasIndex("CreatedAt")
-                        .HasDatabaseName("IX_FAQ_CreatedAt");
-
-                    b.HasIndex("IsDeleted")
-                        .HasDatabaseName("IX_FAQ_IsDeleted");
-
-                    b.HasIndex("CreatedBy", "CreatedAt")
-                        .HasDatabaseName("IX_FAQ_CreatedBy_CreatedAt");
-
-                    b.HasIndex("IsDeleted", "DeletedAt")
-                        .HasDatabaseName("IX_FAQ_IsDeleted_DeletedAt");
-
-                    b.HasIndex("IsPublished", "Category", "DisplayOrder")
-                        .HasDatabaseName("IX_FAQs_IsPublished_Category_DisplayOrder");
-
-                    b.ToTable("FAQs", (string)null);
-                });
-
             modelBuilder.Entity("Talentree.Core.Entities.Identity.Address", b =>
                 {
                     b.Property<int>("Id")
@@ -2146,169 +2050,58 @@ namespace Talentree.Repository.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime?>("AssignedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("AssignedToAdminId")
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("BusinessOwnerUserId")
+                    b.Property<string>("AutoCategory")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Category")
                         .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
-                    b.Property<int>("Category")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ClosedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ClosedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Description")
+                    b.Property<string>("Priority")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Medium");
 
-                    b.Property<int>("Priority")
+                    b.Property<float?>("PriorityScore")
+                        .HasColumnType("real");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(2);
-
-                    b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ResolvedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("Open");
 
                     b.Property<string>("Subject")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("TicketNumber")
+                    b.Property<string>("UserId")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("UserType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("AssignedToAdminId")
-                        .HasDatabaseName("IX_SupportTickets_AssignedToAdminId");
+                    b.HasIndex("Status");
 
-                    b.HasIndex("BusinessOwnerUserId")
-                        .HasDatabaseName("IX_SupportTickets_BusinessOwnerUserId");
-
-                    b.HasIndex("CreatedAt")
-                        .HasDatabaseName("IX_SupportTicket_CreatedAt");
-
-                    b.HasIndex("IsDeleted")
-                        .HasDatabaseName("IX_SupportTicket_IsDeleted");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("IX_SupportTickets_Status");
-
-                    b.HasIndex("TicketNumber")
-                        .IsUnique()
-                        .HasDatabaseName("IX_SupportTickets_TicketNumber");
-
-                    b.HasIndex("CreatedBy", "CreatedAt")
-                        .HasDatabaseName("IX_SupportTicket_CreatedBy_CreatedAt");
-
-                    b.HasIndex("IsDeleted", "DeletedAt")
-                        .HasDatabaseName("IX_SupportTicket_IsDeleted_DeletedAt");
-
-                    b.HasIndex("Status", "CreatedAt")
-                        .HasDatabaseName("IX_SupportTickets_Status_CreatedAt");
+                    b.HasIndex("UserId");
 
                     b.ToTable("SupportTickets", (string)null);
-                });
-
-            modelBuilder.Entity("Talentree.Core.Entities.TicketAttachment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<long>("FileSizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileUrl")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int?>("MessageId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TicketId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UploadedBy")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MessageId")
-                        .HasDatabaseName("IX_TicketAttachments_MessageId");
-
-                    b.HasIndex("TicketId")
-                        .HasDatabaseName("IX_TicketAttachments_TicketId");
-
-                    b.ToTable("TicketAttachments", (string)null);
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.TicketMessage", b =>
@@ -2319,59 +2112,25 @@ namespace Talentree.Repository.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Content")
+                    b.Property<string>("AttachmentUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Message")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<bool>("EmailSent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsAdminMessage")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("SenderId")
+                    b.Property<string>("SenderType")
                         .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<int>("TicketId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt")
-                        .HasDatabaseName("IX_TicketMessage_CreatedAt");
-
-                    b.HasIndex("SenderId");
-
-                    b.HasIndex("TicketId")
-                        .HasDatabaseName("IX_TicketMessages_TicketId");
-
-                    b.HasIndex("CreatedBy", "CreatedAt")
-                        .HasDatabaseName("IX_TicketMessage_CreatedBy_CreatedAt");
-
-                    b.HasIndex("TicketId", "CreatedAt")
-                        .HasDatabaseName("IX_TicketMessages_TicketId_CreatedAt");
+                    b.HasIndex("TicketId");
 
                     b.ToTable("TicketMessages", (string)null);
                 });
@@ -2754,48 +2513,22 @@ namespace Talentree.Repository.Data.Migrations
 
             modelBuilder.Entity("Talentree.Core.Entities.SupportTicket", b =>
                 {
-                    b.HasOne("AppUser", "BusinessOwner")
+                    b.HasOne("AppUser", "User")
                         .WithMany()
-                        .HasForeignKey("BusinessOwnerUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.Navigation("BusinessOwner");
-                });
-
-            modelBuilder.Entity("Talentree.Core.Entities.TicketAttachment", b =>
-                {
-                    b.HasOne("Talentree.Core.Entities.TicketMessage", "Message")
-                        .WithMany("Attachments")
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Talentree.Core.Entities.SupportTicket", "Ticket")
-                        .WithMany("Attachments")
-                        .HasForeignKey("TicketId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Message");
-
-                    b.Navigation("Ticket");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.TicketMessage", b =>
                 {
-                    b.HasOne("AppUser", "Sender")
-                        .WithMany()
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Talentree.Core.Entities.SupportTicket", "Ticket")
                         .WithMany("Messages")
                         .HasForeignKey("TicketId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Sender");
 
                     b.Navigation("Ticket");
                 });
@@ -2857,14 +2590,7 @@ namespace Talentree.Repository.Data.Migrations
 
             modelBuilder.Entity("Talentree.Core.Entities.SupportTicket", b =>
                 {
-                    b.Navigation("Attachments");
-
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("Talentree.Core.Entities.TicketMessage", b =>
-                {
-                    b.Navigation("Attachments");
                 });
 #pragma warning restore 612, 618
         }

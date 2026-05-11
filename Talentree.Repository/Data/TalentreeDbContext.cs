@@ -62,11 +62,11 @@ namespace Talentree.Repository.Data
         public DbSet<SupportTicket> SupportTickets { get; set; }
         public DbSet<TicketMessage> TicketMessages { get; set; }
         public DbSet<TicketAttachment> TicketAttachments { get; set; }
-        public DbSet<FAQ> FAQs { get; set; }
+        //public DbSet<FAQ> FAQs { get; set; }
 
         public DbSet<ProductReview> ProductReviews { get; set; }
-        public DbSet<SupportTicket> SupportTickets { get; set; }
-        public DbSet<TicketMessage> TicketMessages { get; set; }
+        //public DbSet<SupportTicket> SupportTickets { get; set; }
+        //public DbSet<TicketMessage> TicketMessages { get; set; }
         public DbSet<OnboardingProgress> OnboardingProgresses { get; set; }
 
         public DbSet<KnowledgeArticle> KnowledgeArticles { get; set; }
