@@ -32,5 +32,11 @@ public class BusinessOwnerProfileConfiguration
 
         builder.HasIndex(b => b.UserId)
             .IsUnique();
+
+        builder.Property(b => b.TargetAudience)
+             .HasMaxLength(500);
+
+        builder.Property(b => b.BrandTone)
+            .HasMaxLength(200);
     }
 }

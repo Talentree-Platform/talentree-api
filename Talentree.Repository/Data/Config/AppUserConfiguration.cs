@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities.Identity;
+using Talentree.Core.Enums;
 
 public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
 {
@@ -47,5 +48,38 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
             .WithOne(l => l.User)
             .HasForeignKey(l => l.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // User Mangement Properties
+        builder.Property(u => u.AccountStatus)
+            .HasConversion<int>()
+            .HasDefaultValue(AccountStatus.Active);
+
+        builder.Property(u => u.SuspensionReason)
+            .HasMaxLength(500);
+
+        builder.Property(u => u.BanReason)
+            .HasMaxLength(500);
+
+        builder.Property(u => u.BlockReason)
+            .HasMaxLength(500);
+
+        builder.Property(u => u.SuspendedBy)
+            .HasMaxLength(450);
+
+        builder.Property(u => u.BannedBy)
+            .HasMaxLength(450);
+
+        builder.Property(u => u.BlockedBy)
+            .HasMaxLength(450);
+
+        // Indexes
+        builder.HasIndex(u => u.AccountStatus)
+            .HasDatabaseName("IX_AppUser_AccountStatus");
+
+        builder.HasIndex(u => u.LastLoginAt)
+            .HasDatabaseName("IX_AppUser_LastLoginAt");
+
+        builder.HasIndex(u => u.IsBlocked)
+            .HasDatabaseName("IX_AppUser_IsBlocked");
     }
 }

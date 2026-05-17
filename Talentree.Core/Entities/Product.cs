@@ -54,5 +54,10 @@ namespace Talentree.Core.Entities
         public DateTime? DeletedAt { get; set; }
         public string? DeletedBy { get; set; }
 
+
+
+        public bool IsVisible { get; set; } = true;
+
+
     }
 }

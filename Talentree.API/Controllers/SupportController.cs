@@ -19,16 +19,7 @@ namespace Talentree.API.Controllers
             _supportService = supportService;
         }
 
-        protected string GetCurrentUserId()
-        {
-            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrEmpty(userId))
-                throw new UnauthorizedAccessException("User is not authenticated");
-
-            return userId;
-        }
-
+   
         // ═══════════════════════════════════════════════════════════
         // TICKET MANAGEMENT
         // ═══════════════════════════════════════════════════════════

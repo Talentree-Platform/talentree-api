@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Talentree.Core.Entities;
 using Talentree.Core.Specifications;
@@ -79,5 +80,9 @@ namespace Talentree.Core.Repository.Contract
         Task<int> GetCountWithSpecificationsAsync(ISpecifications<T> specifications);
 
         #endregion
+
+
+        Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate);
+        Task<int> CountAsync(Expression<Func<T, bool>> predicate);
     }
 }

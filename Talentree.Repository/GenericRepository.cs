@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Talentree.Core.Entities;
 using Talentree.Core.Repository.Contract;
@@ -150,6 +151,16 @@ namespace Talentree.Repository
 
         #endregion
 
+
+        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbContext.Set<T>().Where(predicate).ToListAsync();
+        }
+
+        public async Task<int> CountAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbContext.Set<T>().CountAsync(predicate);
+        }
 
         private IQueryable<T> ApplySpecifications(ISpecifications<T> spec)
         {

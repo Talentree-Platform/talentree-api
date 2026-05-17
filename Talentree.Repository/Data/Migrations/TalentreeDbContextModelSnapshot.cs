@@ -30,6 +30,33 @@ namespace Talentree.Repository.Data.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<int>("AccountStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("BanReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("BannedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("BannedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("BlockReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("BlockedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("BlockedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<float?>("ChurnRiskScore")
                         .HasColumnType("real");
 
@@ -62,6 +89,9 @@ namespace Talentree.Repository.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("datetime2");
 
@@ -70,6 +100,9 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("LoginAttempts")
+                        .HasColumnType("int");
 
                     b.Property<int>("LoginCount")
                         .HasColumnType("int");
@@ -91,8 +124,22 @@ namespace Talentree.Repository.Data.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("ProfilePhotoUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("SuspendedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SuspendedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("SuspensionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
@@ -102,6 +149,15 @@ namespace Talentree.Repository.Data.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AccountStatus")
+                        .HasDatabaseName("IX_AppUser_AccountStatus");
+
+                    b.HasIndex("IsBlocked")
+                        .HasDatabaseName("IX_AppUser_IsBlocked");
+
+                    b.HasIndex("LastLoginAt")
+                        .HasDatabaseName("IX_AppUser_LastLoginAt");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -285,6 +341,58 @@ namespace Talentree.Repository.Data.Migrations
                     b.ToTable("ArticleBookmarks", (string)null);
                 });
 
+            modelBuilder.Entity("Talentree.Core.Entities.AutoBlockLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminDecision")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("AdminNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("BlockedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsReviewed")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReviewedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlockedAt")
+                        .HasDatabaseName("IX_AutoBlockLogs_BlockedAt");
+
+                    b.HasIndex("IsReviewed")
+                        .HasDatabaseName("IX_AutoBlockLogs_IsReviewed");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_AutoBlockLogs_UserId");
+
+                    b.ToTable("AutoBlockLogs", (string)null);
+                });
+
             modelBuilder.Entity("Talentree.Core.Entities.BoProductionRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -363,7 +471,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("BoProductionRequests", (string)null);
+                    b.ToTable("BoProductionRequests");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.BoProductionRequestItem", b =>
@@ -410,7 +518,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("PreferredRawMaterialId");
 
-                    b.ToTable("BoProductionRequestItems", (string)null);
+                    b.ToTable("BoProductionRequestItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.BoProductionRequestStatusHistory", b =>
@@ -454,7 +562,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("BoProductionRequestId");
 
-                    b.ToTable("BoProductionRequestStatusHistories", (string)null);
+                    b.ToTable("BoProductionRequestStatusHistories");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Category", b =>
@@ -524,6 +632,147 @@ namespace Talentree.Repository.Data.Migrations
                         .HasDatabaseName("IX_Category_IsDeleted_DeletedAt");
 
                     b.ToTable("Categories", (string)null);
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.ChatHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Agent")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("BusinessOwnerProfileId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Agent");
+
+                    b.HasIndex("BusinessOwnerProfileId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("BusinessOwnerProfileId", "CreatedAt");
+
+                    b.ToTable("ChatHistory", (string)null);
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.Complaint", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdminNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RelatedContext")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RelatedOrderId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RelatedProductId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ReportedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ReportedUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Resolution")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReviewedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("ViolationType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_Complaint_CreatedAt");
+
+                    b.HasIndex("RelatedOrderId")
+                        .HasDatabaseName("IX_Complaints_RelatedOrderId");
+
+                    b.HasIndex("RelatedProductId")
+                        .HasDatabaseName("IX_Complaints_RelatedProductId");
+
+                    b.HasIndex("ReportedByUserId");
+
+                    b.HasIndex("ReportedUserId")
+                        .HasDatabaseName("IX_Complaints_ReportedUserId");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_Complaints_Status");
+
+                    b.HasIndex("CreatedBy", "CreatedAt")
+                        .HasDatabaseName("IX_Complaint_CreatedBy_CreatedAt");
+
+                    b.HasIndex("ReportedUserId", "Status")
+                        .HasDatabaseName("IX_Complaints_ReportedUserId_Status");
+
+                    b.ToTable("Complaints", (string)null);
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.FAQ", b =>
@@ -763,6 +1012,10 @@ namespace Talentree.Repository.Data.Migrations
                     b.Property<DateTime?>("AutoApprovalDeadline")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("BrandTone")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("BusinessAddress")
                         .HasColumnType("nvarchar(max)");
 
@@ -825,6 +1078,10 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<string>("TargetAudience")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("TaxId")
                         .IsRequired()
@@ -1202,7 +1459,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CreatedBy", "CreatedAt")
                         .HasDatabaseName("IX_MaterialBasket_CreatedBy_CreatedAt");
 
-                    b.ToTable("MaterialBaskets", (string)null);
+                    b.ToTable("MaterialBaskets");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.MaterialBasketItem", b =>
@@ -1240,7 +1497,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("RawMaterialId");
 
-                    b.ToTable("MaterialBasketItems", (string)null);
+                    b.ToTable("MaterialBasketItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.MaterialOrder", b =>
@@ -1311,7 +1568,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("BusinessOwnerId");
 
-                    b.ToTable("MaterialOrders", (string)null);
+                    b.ToTable("MaterialOrders");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.MaterialOrderItem", b =>
@@ -1352,7 +1609,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("RawMaterialId");
 
-                    b.ToTable("MaterialOrderItems", (string)null);
+                    b.ToTable("MaterialOrderItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Notification", b =>
@@ -1670,7 +1927,7 @@ namespace Talentree.Repository.Data.Migrations
                         .IsUnique()
                         .HasFilter("[Status] = 'Pending'");
 
-                    b.ToTable("PayoutRequests", (string)null);
+                    b.ToTable("PayoutRequests");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Product", b =>
@@ -1737,6 +1994,11 @@ namespace Talentree.Repository.Data.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsVisible")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<bool>("LowStockFlag")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -1799,6 +2061,9 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_Product_IsDeleted");
+
+                    b.HasIndex("IsVisible")
+                        .HasDatabaseName("IX_Product_IsVisible");
 
                     b.HasIndex("Name");
 
@@ -2442,7 +2707,55 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("BusinessOwnerId", "CreatedAt");
 
-                    b.ToTable("Transactions", (string)null);
+                    b.ToTable("Transactions");
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.UserActionLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("ActionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AdminId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionDate")
+                        .HasDatabaseName("IX_UserActionLogs_ActionDate");
+
+                    b.HasIndex("AdminId")
+                        .HasDatabaseName("IX_UserActionLogs_AdminId");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_UserActionLogs_UserId");
+
+                    b.ToTable("UserActionLogs", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -2515,6 +2828,17 @@ namespace Talentree.Repository.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Talentree.Core.Entities.AutoBlockLog", b =>
+                {
+                    b.HasOne("AppUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Talentree.Core.Entities.BoProductionRequestItem", b =>
                 {
                     b.HasOne("Talentree.Core.Entities.BoProductionRequest", "Request")
@@ -2542,6 +2866,36 @@ namespace Talentree.Repository.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Request");
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.ChatHistory", b =>
+                {
+                    b.HasOne("Talentree.Core.Entities.Identity.BusinessOwnerProfile", "BusinessOwnerProfile")
+                        .WithMany()
+                        .HasForeignKey("BusinessOwnerProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BusinessOwnerProfile");
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.Complaint", b =>
+                {
+                    b.HasOne("AppUser", "ReportedBy")
+                        .WithMany()
+                        .HasForeignKey("ReportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AppUser", "ReportedUser")
+                        .WithMany()
+                        .HasForeignKey("ReportedUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ReportedBy");
+
+                    b.Navigation("ReportedUser");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Identity.Address", b =>
@@ -2798,6 +3152,25 @@ namespace Talentree.Repository.Data.Migrations
                     b.Navigation("Sender");
 
                     b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.UserActionLog", b =>
+                {
+                    b.HasOne("AppUser", "Admin")
+                        .WithMany()
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AppUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Admin");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("AppUser", b =>
