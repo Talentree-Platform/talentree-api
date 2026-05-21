@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // Talentree.Repository/Data/DataSeed/BusinessOwnerSeed.cs
 // ============================================================
 // Creates seeded BO accounts with fixed, known GUIDs so that
@@ -61,7 +61,12 @@ namespace Talentree.Repository.Data.DataSeed
                     ApprovedAt = DateTime.UtcNow.AddDays(-30),
                     ApprovedBy = "seed",
                     RejectionReason = null,
-                    AutoApprovalDeadline = null
+                    AutoApprovalDeadline = null,
+                    BusinessLogoUrl = "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400",
+                    ProfilePhotoUrl = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200",
+                    PhoneNumber = "+20-100-111-2233",
+                    TargetAudience = "Women aged 20-45 who appreciate handcrafted modest fashion",
+                    BrandTone = "Elegant, Culturally-inspired, Artisan"
                 });
                 await context.SaveChangesAsync();
             }
@@ -103,7 +108,12 @@ namespace Talentree.Repository.Data.DataSeed
                     ApprovedAt = DateTime.UtcNow.AddDays(-45),
                     ApprovedBy = "seed",
                     RejectionReason = null,
-                    AutoApprovalDeadline = null
+                    AutoApprovalDeadline = null,
+                    BusinessLogoUrl = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+                    ProfilePhotoUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200",
+                    PhoneNumber = "+20-110-987-6543",
+                    TargetAudience = "Home décor enthusiasts and gift shoppers aged 25-50",
+                    BrandTone = "Warm, Creative, Handcrafted"
                 });
                 await context.SaveChangesAsync();
             }
@@ -145,7 +155,12 @@ namespace Talentree.Repository.Data.DataSeed
                     ApprovedAt = DateTime.UtcNow.AddDays(-60),
                     ApprovedBy = "seed",
                     RejectionReason = null,
-                    AutoApprovalDeadline = null
+                    AutoApprovalDeadline = null,
+                    BusinessLogoUrl = "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=400",
+                    ProfilePhotoUrl = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200",
+                    PhoneNumber = "+20-122-456-7890",
+                    TargetAudience = "Health-conscious women who prefer organic, cruelty-free beauty products",
+                    BrandTone = "Natural, Trustworthy, Nurturing"
                 });
                 await context.SaveChangesAsync();
             }
