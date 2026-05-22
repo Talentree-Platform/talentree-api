@@ -1,4 +1,4 @@
-﻿using Talentree.Service.DTOs.Payment;
+using Talentree.Service.DTOs.Payment;
 
 namespace Talentree.Service.Contracts
 {
@@ -21,6 +21,12 @@ namespace Talentree.Service.Contracts
         /// the manual confirm step — webhook transitions to Confirmed automatically.
         /// </summary>
         Task<PaymentIntentDto> CreateProductionRequestIntentAsync(int requestId, string boId);
+
+        /// <summary>
+        /// Creates a Stripe PaymentIntent for a customer order.
+        /// If an active intent already exists on the order, returns it instead.
+        /// </summary>
+        Task<PaymentIntentDto> CreateCustomerOrderIntentAsync(int orderId, string customerId);
 
         /// <summary>
         /// Processes a raw Stripe webhook event.

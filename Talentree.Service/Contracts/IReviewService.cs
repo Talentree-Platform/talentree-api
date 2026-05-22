@@ -1,5 +1,9 @@
-﻿using Talentree.Service.DTOs.Common;
+using Microsoft.AspNetCore.Http;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Reviews;
+using Talentree.Service.DTOs.Customer;
 
 namespace Talentree.Service.Contracts
 {
@@ -24,5 +28,11 @@ namespace Talentree.Service.Contracts
 
         // FR-BO-26: Analytics
         Task<ReviewAnalyticsDto> GetReviewAnalyticsAsync(string businessOwnerUserId);
+
+        // Customer product review endpoints
+        Task<Pagination<CustomerReviewDto>> GetProductReviewsAsync(int productId, CustomerReviewFilterDto filter);
+        Task<ProductRatingDistributionDto> GetProductRatingDistributionAsync(int productId);
+        Task<CustomerReviewDto> CreateReviewAsync(CreateReviewDto dto, List<IFormFile>? photos, string customerUserId);
+        Task MarkReviewHelpfulAsync(int reviewId, string customerUserId);
     }
 }

@@ -1,31 +1,54 @@
-﻿using Talentree.Core;
+using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Talentree.Core;
 using Talentree.Core.Entities;
+using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
 using Talentree.Core.Specifications.ReviewSpecifications;
+using Talentree.Core.Specifications.ProductSpecifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Reviews;
+using Talentree.Service.DTOs.Customer;
 
 namespace Talentree.Service.Services
 {
     public class ReviewService : IReviewService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
+        private readonly IImageService _imageService;
+        private readonly INotificationService _notificationService;
+        private readonly UserManager<AppUser> _userManager;
 
-        public ReviewService(IUnitOfWork unitOfWork)
+        public ReviewService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IImageService imageService,
+            INotificationService notificationService,
+            UserManager<AppUser> userManager)
         {
             _unitOfWork = unitOfWork;
+            _mapper = mapper;
+            _imageService = imageService;
+            _notificationService = notificationService;
+            _userManager = userManager;
         }
 
         // ═══════════════════════════════════════════════════════════
         // PRIVATE HELPER: Get approved BO profile
         // ═══════════════════════════════════════════════════════════
-        private async Task<Core.Entities.Identity.BusinessOwnerProfile> GetApprovedProfileAsync(string userId)
+        private async Task<BusinessOwnerProfile> GetApprovedProfileAsync(string userId)
         {
             var spec = new BusinessOwnerProfileByUserIdSpecification(userId);
-            var profile = await _unitOfWork.Repository<Core.Entities.Identity.BusinessOwnerProfile>()
+            var profile = await _unitOfWork.Repository<BusinessOwnerProfile>()
                 .GetByIdWithSpecificationsAsync(spec);
 
             if (profile == null)
@@ -175,7 +198,7 @@ namespace Talentree.Service.Services
                     TotalReviews = 0,
                     TotalResponded = 0,
                     ResponseRate = 0,
-                    Distribution = new RatingDistributionDto(),
+                    Distribution = new ReviewRatingDistributionDto(),
                     SentimentTrend = new List<SentimentTrendDto>()
                 };
             }
@@ -187,7 +210,7 @@ namespace Talentree.Service.Services
                 ? Math.Round((double)totalResponded / totalReviews * 100, 1)
                 : 0;
 
-            var distribution = new RatingDistributionDto
+            var distribution = new ReviewRatingDistributionDto
             {
                 FiveStar = list.Count(r => r.Rating == 5),
                 FourStar = list.Count(r => r.Rating == 4),
@@ -237,6 +260,188 @@ namespace Talentree.Service.Services
                 throw new ForbiddenException("This review does not belong to your products");
 
             return review;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // CUSTOMER PRODUCT REVIEW ENDPOINTS (BRANCH 1)
+        // ═══════════════════════════════════════════════════════════
+
+        public async Task<Pagination<CustomerReviewDto>> GetProductReviewsAsync(int productId, CustomerReviewFilterDto filter)
+        {
+            var filterParams = new CustomerReviewFilterParams
+            {
+                Rating = filter.Rating,
+                SortBy = filter.SortBy,
+                PageIndex = filter.PageIndex,
+                PageSize = filter.PageSize
+            };
+
+            var countSpec = new ProductReviewsSpecification(productId, filterParams, true);
+            var totalCount = await _unitOfWork.Repository<ProductReview>()
+                .GetCountWithSpecificationsAsync(countSpec);
+
+            var spec = new ProductReviewsSpecification(productId, filterParams);
+            var reviews = await _unitOfWork.Repository<ProductReview>()
+                .GetAllWithSpecificationsAsync(spec);
+
+            var dtos = _mapper.Map<List<CustomerReviewDto>>(reviews);
+
+            return new Pagination<CustomerReviewDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
+        }
+
+        public async Task<ProductRatingDistributionDto> GetProductRatingDistributionAsync(int productId)
+        {
+            var spec = new ProductReviewsSpecification(productId, new CustomerReviewFilterParams { PageSize = 1000 });
+            var reviews = await _unitOfWork.Repository<ProductReview>()
+                .GetAllWithSpecificationsAsync(spec);
+
+            var list = reviews.ToList();
+            var totalReviews = list.Count;
+            var averageRating = totalReviews > 0 ? (float)Math.Round(list.Average(r => (double)r.Rating), 1) : 0f;
+
+            var starCounts = new Dictionary<int, int>
+            {
+                { 5, list.Count(r => r.Rating == 5) },
+                { 4, list.Count(r => r.Rating == 4) },
+                { 3, list.Count(r => r.Rating == 3) },
+                { 2, list.Count(r => r.Rating == 2) },
+                { 1, list.Count(r => r.Rating == 1) }
+            };
+
+            return new ProductRatingDistributionDto
+            {
+                TotalReviews = totalReviews,
+                AverageRating = averageRating,
+                StarCounts = starCounts
+            };
+        }
+
+        public async Task<CustomerReviewDto> CreateReviewAsync(CreateReviewDto dto, List<IFormFile>? photos, string customerUserId)
+        {
+            // 1. Verify customer exists
+            var customer = await _userManager.FindByIdAsync(customerUserId);
+            if (customer == null)
+                throw new NotFoundException("Customer not found");
+
+            // 2. Check product exists and is Approved
+            var productSpec = new ProductByIdPublicSpecification(dto.ProductId);
+            var product = await _unitOfWork.Repository<Product>()
+                .GetByIdWithSpecificationsAsync(productSpec);
+
+            if (product == null)
+                throw new NotFoundException("Product not found or not approved");
+
+            // 2.5 Verify customer has purchased this product (Delivered order)
+            var purchaseSpec = new Talentree.Core.Specifications.OrderSpecifications.CustomerOrderPurchasedSpecification(customerUserId, dto.ProductId);
+            var purchasedOrdersCount = await _unitOfWork.Repository<CustomerOrder>()
+                .GetCountWithSpecificationsAsync(purchaseSpec);
+
+            if (purchasedOrdersCount == 0)
+                throw new BadRequestException("You can only review products that you have purchased and have been successfully delivered.");
+
+            // 3. Check customer has not already reviewed this product
+            var existingReviewSpec = new ProductReviewsSpecification(dto.ProductId, new CustomerReviewFilterParams { PageSize = 1000 });
+            var productReviews = await _unitOfWork.Repository<ProductReview>()
+                .GetAllWithSpecificationsAsync(existingReviewSpec);
+
+            var alreadyReviewed = productReviews.Any(r => r.CustomerUserId == customerUserId);
+            if (alreadyReviewed)
+                throw new BadRequestException("You have already reviewed this product");
+
+            // 4. Validate and upload photos (up to 3 photos allowed)
+            var reviewPhotos = new List<ReviewPhoto>();
+            if (photos != null && photos.Any())
+            {
+                if (photos.Count > 3)
+                    throw new BadRequestException("Maximum of 3 photos allowed for a review");
+
+                for (int i = 0; i < photos.Count; i++)
+                {
+                    var file = photos[i];
+                    if (!_imageService.IsValidImage(file))
+                        throw new BadRequestException($"Image '{file.FileName}' is invalid. Max 5MB, JPEG/PNG only");
+
+                    var imageUrl = await _imageService.UploadImageAsync(file, "reviews");
+                    reviewPhotos.Add(new ReviewPhoto
+                    {
+                        ImageUrl = imageUrl,
+                        SortOrder = i
+                    });
+                }
+            }
+
+            // 5. Create ProductReview
+            var review = new ProductReview
+            {
+                ProductId = dto.ProductId,
+                CustomerUserId = customerUserId,
+                CustomerName = customer.DisplayName,
+                ReviewTitle = dto.ReviewTitle,
+                Rating = dto.Rating,
+                ReviewText = dto.ReviewText,
+                IsAnonymous = dto.IsAnonymous,
+                HelpfulVotes = 0,
+                Photos = reviewPhotos
+            };
+
+            _unitOfWork.Repository<ProductReview>().Add(review);
+            await _unitOfWork.CompleteAsync();
+
+            // 6. Recalculate Product.AvgRating
+            var allReviewsSpec = new ProductReviewsSpecification(dto.ProductId, new CustomerReviewFilterParams { PageSize = 1000 });
+            var allReviews = await _unitOfWork.Repository<ProductReview>()
+                .GetAllWithSpecificationsAsync(allReviewsSpec);
+
+            var list = allReviews.ToList();
+            if (list.Any())
+            {
+                product.AvgRating = (float)Math.Round(list.Average(r => (double)r.Rating), 1);
+            }
+            else
+            {
+                product.AvgRating = dto.Rating;
+            }
+
+            _unitOfWork.Repository<Product>().Update(product);
+            await _unitOfWork.CompleteAsync();
+
+            // 7. Send notification to Business Owner via INotificationService
+            if (product.BusinessOwner != null)
+            {
+                await _notificationService.CreateNotificationAsync(new DTOs.Notification.CreateNotificationDto
+                {
+                    UserId = product.BusinessOwner.UserId,
+                    Title = "New Product Review",
+                    Message = $"A customer has reviewed your product '{product.Name}' with a rating of {dto.Rating}/5 stars.",
+                    Type = NotificationType.System,
+                    Priority = NotificationPriority.Normal
+                });
+            }
+
+            // Return created review mapped to DTO
+            var spec = new ProductReviewsSpecification(dto.ProductId, new CustomerReviewFilterParams { PageSize = 1000 });
+            var refreshedReviews = await _unitOfWork.Repository<ProductReview>()
+                .GetAllWithSpecificationsAsync(spec);
+            var savedReview = refreshedReviews.First(r => r.Id == review.Id);
+
+            return _mapper.Map<CustomerReviewDto>(savedReview);
+        }
+
+        public async Task MarkReviewHelpfulAsync(int reviewId, string customerUserId)
+        {
+            var spec = new ReviewByIdSpecification(reviewId);
+            var review = await _unitOfWork.Repository<ProductReview>()
+                .GetByIdWithSpecificationsAsync(spec);
+
+            if (review == null)
+                throw new NotFoundException("Review not found");
+
+            if (review.CustomerUserId == customerUserId)
+                throw new BadRequestException("You cannot vote your own review as helpful");
+
+            review.HelpfulVotes++;
+            _unitOfWork.Repository<ProductReview>().Update(review);
+            await _unitOfWork.CompleteAsync();
         }
     }
 }

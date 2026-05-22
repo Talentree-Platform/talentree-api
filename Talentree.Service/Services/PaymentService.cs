@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Stripe;
 using Talentree.Core;
 using Talentree.Core.Entities;
@@ -6,6 +6,7 @@ using Talentree.Core.Enums;
 using Talentree.Core.Specifications.BoProductionRequests;
 using Talentree.Core.Specifications.MaterialOrders;
 using Talentree.Core.Specifications.Transactions;
+using Talentree.Core.Specifications.OrderSpecifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Payment;
 
@@ -114,6 +115,43 @@ namespace Talentree.Service.Services
             return ToDto(intent, request.QuotedPrice.Value);
         }
 
+        /// <inheritdoc/>
+        public async Task<PaymentIntentDto> CreateCustomerOrderIntentAsync(int orderId, string customerId)
+        {
+            var spec = new CustomerOrderByIdSpecification(orderId, customerId);
+            var order = await _unitOfWork.Repository<CustomerOrder>()
+                .GetByIdWithSpecificationsAsync(spec)
+                ?? throw new KeyNotFoundException($"Order #{orderId} not found.");
+
+            if (order.PaymentStatus == PaymentStatus.Paid)
+                throw new InvalidOperationException("This order has already been paid.");
+
+            // Return existing usable intent if present — handles page refresh / retry
+            if (!string.IsNullOrEmpty(order.StripePaymentIntentId))
+            {
+                var existing = await _stripeIntentService.GetAsync(order.StripePaymentIntentId);
+                if (IsIntentReusable(existing))
+                    return ToDto(existing, order.TotalAmount);
+            }
+
+            var intent = await _stripeIntentService.CreateAsync(new PaymentIntentCreateOptions
+            {
+                Amount = ToStripeAmount(order.TotalAmount),
+                Currency = "egp",
+                Metadata = new Dictionary<string, string>
+                {
+                    { "type",       "customer_order" },
+                    { "orderId",    orderId.ToString() },
+                    { "customerId", customerId }
+                }
+            });
+
+            order.StripePaymentIntentId = intent.Id;
+            await _unitOfWork.CompleteAsync();
+
+            return ToDto(intent, order.TotalAmount);
+        }
+
         // ── Webhook handler ────────────────────────────────────
 
         /// <inheritdoc/>
@@ -205,6 +243,47 @@ namespace Talentree.Service.Services
                     intentId: intent.Id);
 
                 // TODO: notify BO (confirmed) + Admin (ready to start production)
+                return;
+            }
+
+            // Try CustomerOrder
+            var customerOrderSpec = new CustomerOrderByPaymentIntentSpecification(intent.Id);
+            var customerOrder = await _unitOfWork.Repository<CustomerOrder>()
+                .GetByIdWithSpecificationsAsync(customerOrderSpec);
+
+            if (customerOrder is not null)
+            {
+                customerOrder.PaymentStatus = PaymentStatus.Paid;
+                customerOrder.Status = CustomerOrderStatus.Processing;
+                customerOrder.StatusHistory.Add(new OrderStatusHistory
+                {
+                    Status = CustomerOrderStatus.Processing,
+                    Notes = $"Payment received via Stripe (Intent: {intent.Id}). Order is now being processed.",
+                    ChangedBy = "stripe-webhook",
+                    ChangedAt = DateTime.UtcNow
+                });
+
+                // Group items by business owner profile's UserId
+                var itemsGroupedBySeller = customerOrder.Items
+                    .Where(i => i.Product != null && i.Product.BusinessOwner != null)
+                    .GroupBy(i => i.Product.BusinessOwner.UserId);
+
+                foreach (var group in itemsGroupedBySeller)
+                {
+                    var sellerUserId = group.Key;
+                    var sellerTotal = group.Sum(i => i.UnitPrice * i.Quantity);
+
+                    await CreateTransactionAsync(
+                        boId: sellerUserId,
+                        type: TransactionType.Sale,
+                        amount: sellerTotal, // positive credit
+                        description: $"Product sale from Customer Order #{customerOrder.Id}",
+                        referenceId: customerOrder.Id,
+                        referenceType: "CustomerOrder",
+                        intentId: intent.Id);
+                }
+
+                await _unitOfWork.CompleteAsync();
             }
         }
 
@@ -235,6 +314,18 @@ namespace Talentree.Service.Services
             {
                 request.PaymentStatus = PaymentStatus.Failed;
                 request.StripePaymentIntentId = null; // allow retry
+                await _unitOfWork.CompleteAsync();
+                return;
+            }
+
+            var customerOrderSpec = new CustomerOrderByPaymentIntentSpecification(intent.Id);
+            var customerOrder = await _unitOfWork.Repository<CustomerOrder>()
+                .GetByIdWithSpecificationsAsync(customerOrderSpec);
+
+            if (customerOrder is not null)
+            {
+                customerOrder.PaymentStatus = PaymentStatus.Failed;
+                customerOrder.StripePaymentIntentId = null; // allow retry
                 await _unitOfWork.CompleteAsync();
             }
         }

@@ -1,7 +1,7 @@
-﻿using Talentree.Core.Entities;
+using Talentree.Core.Entities;
 using Talentree.Repository.Data;
 
-namespace Talentree.Repository.Data.SeedData
+namespace Talentree.Repository.Data.DataSeed
 {
     public static class FAQSeeder
     {

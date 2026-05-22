@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Entities.Identity;
+using Talentree.Core.Entities.Identity;
 
 namespace Talentree.Core.Entities
 {
@@ -11,9 +11,11 @@ namespace Talentree.Core.Entities
         public AppUser Customer { get; set; } = null!;
 
         public string CustomerName { get; set; } = null!;
+        public string? ReviewTitle { get; set; } // Max 100 chars
         public byte Rating { get; set; } // 1-5
         public string? ReviewText { get; set; }
         public bool IsAnonymous { get; set; } = false;
+        public int HelpfulVotes { get; set; } = 0;
 
         // Owner response
         public string? OwnerResponse { get; set; }
@@ -23,5 +25,8 @@ namespace Talentree.Core.Entities
         public float? SentimentScore { get; set; }   // -1 to +1
         public string? SentimentLabel { get; set; }  // Positive/Neutral/Negative
         public bool FlaggedToxic { get; set; } = false;
+
+        // Navigation
+        public ICollection<ReviewPhoto> Photos { get; set; } = new List<ReviewPhoto>();
     }
 }

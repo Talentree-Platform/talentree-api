@@ -1,4 +1,4 @@
-﻿using Stripe;
+using Stripe;
 using Talentree.API.Services;
 using Talentree.Core;
 using Talentree.Core.Repository.Contract;
@@ -65,6 +65,11 @@ namespace Talentree.API.Extentions
 
             // Payment Service
             services.AddScoped<IPaymentService, PaymentService>();
+
+            // Customer Services
+            services.AddScoped<ICartService, CartService>();
+            services.AddScoped<ICustomerOrderService, CustomerOrderService>();
+            services.AddScoped<IWishlistService, WishlistService>();
 
             // ── Stripe ────────────────────────────────────────────────
             StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];

@@ -1,4 +1,4 @@
-﻿namespace Talentree.Service.DTOs.Reviews
+namespace Talentree.Service.DTOs.Reviews
 {
     public class ReviewAnalyticsDto
     {
@@ -6,11 +6,11 @@
         public int TotalReviews { get; set; }
         public int TotalResponded { get; set; }
         public double ResponseRate { get; set; } // percentage
-        public RatingDistributionDto Distribution { get; set; } = new();
+        public ReviewRatingDistributionDto Distribution { get; set; } = new();
         public List<SentimentTrendDto> SentimentTrend { get; set; } = new();
     }
 
-    public class RatingDistributionDto
+    public class ReviewRatingDistributionDto
     {
         public int FiveStar { get; set; }
         public int FourStar { get; set; }

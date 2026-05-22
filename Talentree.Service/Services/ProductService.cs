@@ -1,6 +1,9 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
@@ -12,6 +15,7 @@ using Talentree.Service.Contracts;
 using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Products;
+using Talentree.Service.DTOs.Customer;
 
 namespace Talentree.Service.Services
 {
@@ -21,6 +25,7 @@ namespace Talentree.Service.Services
         private readonly IMapper _mapper;
         private readonly IImageService _imageService;
         private readonly INotificationService _notificationService;
+
         public ProductService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
@@ -266,6 +271,181 @@ namespace Talentree.Service.Services
             // AuditInterceptor handles setting IsDeleted = true automatically
             _unitOfWork.Repository<Product>().Delete(product);
             await _unitOfWork.CompleteAsync();
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // CUSTOMER PRODUCT DISCOVERY ENDPOINTS (BRANCH 1)
+        // ═══════════════════════════════════════════════════════════
+
+        public async Task<HomepageDto> GetHomepageDataAsync()
+        {
+            // 1. Get Categories
+            var categories = await _unitOfWork.Repository<Category>().GetAllAsync();
+            var categoryDtos = _mapper.Map<List<CategoryDto>>(categories);
+
+            // 2. Get Featured Products
+            var featuredSpec = new FeaturedProductsSpecification();
+            var featuredProducts = await _unitOfWork.Repository<Product>().GetAllWithSpecificationsAsync(featuredSpec);
+            var featuredDtos = _mapper.Map<List<CustomerProductDto>>(featuredProducts);
+
+            // 3. Get Trending Products
+            var trendingSpec = new TrendingProductsSpecification();
+            var trendingProducts = await _unitOfWork.Repository<Product>().GetAllWithSpecificationsAsync(trendingSpec);
+            var trendingDtos = _mapper.Map<List<CustomerProductDto>>(trendingProducts);
+
+            return new HomepageDto
+            {
+                Categories = categoryDtos,
+                FeaturedProducts = featuredDtos,
+                TrendingProducts = trendingDtos
+            };
+        }
+
+        public async Task<Pagination<CustomerProductDto>> SearchProductsAsync(CustomerProductFilterDto filter)
+        {
+            var filterParams = new CustomerProductFilterParams
+            {
+                Search = filter.Search,
+                CategoryId = filter.CategoryId,
+                BrandId = filter.BrandId,
+                MinPrice = filter.MinPrice,
+                MaxPrice = filter.MaxPrice,
+                SortBy = filter.SortBy,
+                PageIndex = filter.PageIndex,
+                PageSize = filter.PageSize
+            };
+
+            var countSpec = new CustomerProductsSpecification(filterParams, true);
+            var totalCount = await _unitOfWork.Repository<Product>()
+                .GetCountWithSpecificationsAsync(countSpec);
+
+            var spec = new CustomerProductsSpecification(filterParams);
+            var products = await _unitOfWork.Repository<Product>()
+                .GetAllWithSpecificationsAsync(spec);
+
+            var dtos = _mapper.Map<List<CustomerProductDto>>(products);
+
+            return new Pagination<CustomerProductDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
+        }
+
+        public async Task<CustomerProductDetailDto> GetPublicProductByIdAsync(int productId)
+        {
+            var spec = new ProductByIdPublicSpecification(productId);
+            var product = await _unitOfWork.Repository<Product>()
+                .GetByIdWithSpecificationsAsync(spec);
+
+            if (product == null)
+                throw new NotFoundException("Product not found or not active");
+
+            // Increment view count for trending engagement scoring
+            product.ViewCount++;
+            _unitOfWork.Repository<Product>().Update(product);
+            await _unitOfWork.CompleteAsync();
+
+            var dto = _mapper.Map<CustomerProductDetailDto>(product);
+
+            // Fetch similar products (same category, excluding current product, top 6)
+            var similarSpec = new SimilarProductsSpecification(product.CategoryId, product.Id);
+            var similarProducts = await _unitOfWork.Repository<Product>()
+                .GetAllWithSpecificationsAsync(similarSpec);
+
+            dto.SimilarProducts = _mapper.Map<List<CustomerProductDto>>(similarProducts);
+
+            return dto;
+        }
+
+        public async Task<Pagination<CustomerProductDto>> GetByCategoryAsync(int categoryId, CustomerProductFilterDto filter)
+        {
+            filter.CategoryId = categoryId;
+            return await SearchProductsAsync(filter);
+        }
+
+        public async Task<List<string>> GetAutocompleteAsync(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return new List<string>();
+
+            var lowercaseQuery = query.ToLower();
+
+            // Fetch approved & visible products matching query prefix/contains in name/tags
+            var filterParams = new CustomerProductFilterParams
+            {
+                Search = lowercaseQuery,
+                PageSize = 10
+            };
+            var spec = new CustomerProductsSpecification(filterParams);
+            var products = await _unitOfWork.Repository<Product>()
+                .GetAllWithSpecificationsAsync(spec);
+
+            var suggestions = products
+                .Select(p => p.Name)
+                .Distinct()
+                .Take(10)
+                .ToList();
+
+            return suggestions;
+        }
+
+        public async Task<Pagination<BrandListDto>> GetBrandsAsync(BrandFilterDto filter)
+        {
+            var filterParams = new BrandFilterParams
+            {
+                Search = filter.Search,
+                Category = filter.Category,
+                SortBy = filter.SortBy,
+                PageIndex = filter.PageIndex,
+                PageSize = filter.PageSize
+            };
+
+            var countSpec = new BrandsSpecification(filterParams, true);
+            var totalCount = await _unitOfWork.Repository<BusinessOwnerProfile>()
+                .GetCountWithSpecificationsAsync(countSpec);
+
+            var spec = new BrandsSpecification(filterParams);
+            var brands = await _unitOfWork.Repository<BusinessOwnerProfile>()
+                .GetAllWithSpecificationsAsync(spec);
+
+            var dtos = _mapper.Map<List<BrandListDto>>(brands);
+
+            return new Pagination<BrandListDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
+        }
+
+        public async Task<BrandDetailDto> GetBrandByIdAsync(int brandProfileId)
+        {
+            var spec = new BrandByIdSpecification(brandProfileId);
+            var brand = await _unitOfWork.Repository<BusinessOwnerProfile>()
+                .GetByIdWithSpecificationsAsync(spec);
+
+            if (brand == null || brand.Status != ApprovalStatus.Approved)
+                throw new NotFoundException("Brand profile not found or not approved");
+
+            var dto = _mapper.Map<BrandDetailDto>(brand);
+
+            // Fetch top 6 products of this brand to populate initial list
+            var productFilter = new CustomerProductFilterParams
+            {
+                BrandId = brandProfileId,
+                PageSize = 6
+            };
+            var productSpec = new CustomerProductsSpecification(productFilter);
+            var products = await _unitOfWork.Repository<Product>()
+                .GetAllWithSpecificationsAsync(productSpec);
+
+            dto.Products = _mapper.Map<List<CustomerProductDto>>(products);
+
+            return dto;
+        }
+
+        public async Task<Pagination<CustomerProductDto>> GetBrandProductsAsync(int brandProfileId, CustomerProductFilterDto filter)
+        {
+            filter.BrandId = brandProfileId;
+            return await SearchProductsAsync(filter);
+        }
+
+        public async Task<IReadOnlyList<CategoryDto>> GetCategoriesAsync()
+        {
+            var categories = await _unitOfWork.Repository<Category>().GetAllAsync();
+            return _mapper.Map<List<CategoryDto>>(categories);
         }
     }
 }

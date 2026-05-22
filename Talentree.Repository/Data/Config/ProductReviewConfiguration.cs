@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
 
@@ -30,6 +30,12 @@ namespace Talentree.Repository.Data.Config
 
             builder.Property(r => r.IsAnonymous)
                 .HasDefaultValue(false);
+
+            builder.Property(r => r.ReviewTitle)
+                .HasMaxLength(100);
+
+            builder.Property(r => r.HelpfulVotes)
+                .HasDefaultValue(0);
 
             // Relationships
             builder.HasOne(r => r.Product)
