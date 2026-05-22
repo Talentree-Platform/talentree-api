@@ -3,12 +3,12 @@
 // ============================================================
 // Seeds realistic product reviews written by the seeded customer
 // accounts. Covers approved products from all three brands.
-// Each product with AvgRating gets matching reviews whose average
-// matches the seeded score.
+// Populates new fields: ReviewTitle, HelpfulVotes, and ReviewPhotos.
 // Must run AFTER CategoriesSeed (products must exist).
 // ============================================================
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
+using Talentree.Core.Enums;
 
 namespace Talentree.Repository.Data.DataSeed
 {
@@ -30,7 +30,7 @@ namespace Talentree.Repository.Data.DataSeed
 
             // ── Resolve products ──────────────────────────────────────
             var products = context.Products
-                .Where(p => p.Status == Core.Enums.ProductStatus.Approved)
+                .Where(p => p.Status == ProductStatus.Approved)
                 .ToList();
 
             if (!products.Any()) return;
@@ -52,31 +52,43 @@ namespace Talentree.Repository.Data.DataSeed
                     {
                         ProductId = toteBag.Id, CustomerUserId = mona!.Id,
                         CustomerName = "Mona Ahmed", Rating = 5,
+                        ReviewTitle = "Absolutely Stunning Tote Bag!",
                         ReviewText = "Absolutely love this bag! The craftsmanship is incredible — the embroidery is so detailed and the cotton is really durable. Been using it for grocery shopping every week. Highly recommend.",
                         OwnerResponse = "Thank you so much Mona! Your kind words mean the world to us 💛",
                         ResponseAt = DateTime.UtcNow.AddDays(-8),
-                        CreatedAt = DateTime.UtcNow.AddDays(-12)
+                        CreatedAt = DateTime.UtcNow.AddDays(-12),
+                        HelpfulVotes = 14,
+                        Photos = new List<ReviewPhoto>
+                        {
+                            new() { ImageUrl = "https://images.unsplash.com/photo-1544816155-12df9643f363?w=800", SortOrder = 0 }
+                        }
                     },
                     new ProductReview
                     {
                         ProductId = toteBag.Id, CustomerUserId = khaled!.Id,
                         CustomerName = "Khaled Mahmoud", Rating = 5,
+                        ReviewTitle = "Perfect Gift Idea",
                         ReviewText = "Bought this as a gift for my wife and she absolutely loves it. The quality is top notch and the design is uniquely Egyptian. Arrived well packaged.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-18)
+                        CreatedAt = DateTime.UtcNow.AddDays(-18),
+                        HelpfulVotes = 8
                     },
                     new ProductReview
                     {
                         ProductId = toteBag.Id, CustomerUserId = nour!.Id,
                         CustomerName = "Nour Hassan", Rating = 4,
+                        ReviewTitle = "High quality cotton, very sturdy",
                         ReviewText = "Really nice bag, good quality cotton. The handles are sturdy. Only giving 4 stars because delivery took a little longer than expected, but the product itself is great.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-22)
+                        CreatedAt = DateTime.UtcNow.AddDays(-22),
+                        HelpfulVotes = 3
                     },
                     new ProductReview
                     {
                         ProductId = toteBag.Id, CustomerUserId = laila!.Id,
                         CustomerName = "Laila Mohamed", Rating = 5,
+                        ReviewTitle = "خامة ممتازة وصنعة يدوية رائعة",
                         ReviewText = "بايعة بصراحة! الشنطة جميلة جداً والخامة ممتازة. الصنعة اليدوية واضحة بشكل رائع. هشتريها تاني.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-28)
+                        CreatedAt = DateTime.UtcNow.AddDays(-28),
+                        HelpfulVotes = 5
                     }
                 });
             }
@@ -90,17 +102,21 @@ namespace Talentree.Repository.Data.DataSeed
                     {
                         ProductId = bracelet.Id, CustomerUserId = yasser!.Id,
                         CustomerName = "Yasser Ali", Rating = 5,
+                        ReviewTitle = "Excellent leather quality",
                         ReviewText = "The leather quality is exceptional. All three bracelets look amazing together. Great gift idea — my girlfriend was thrilled.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-10)
+                        CreatedAt = DateTime.UtcNow.AddDays(-10),
+                        HelpfulVotes = 6
                     },
                     new ProductReview
                     {
                         ProductId = bracelet.Id, CustomerUserId = mona!.Id,
                         CustomerName = "Mona Ahmed", Rating = 4,
+                        ReviewTitle = "Very nice and detailed",
                         ReviewText = "Lovely set, the leather is genuine and smells great. The brass buckles are well finished. Would have loved a small carrying pouch to be included.",
                         OwnerResponse = "Thank you for the feedback! We'll look into adding a gift pouch. Glad you liked the leather quality!",
                         ResponseAt = DateTime.UtcNow.AddDays(-5),
-                        CreatedAt = DateTime.UtcNow.AddDays(-15)
+                        CreatedAt = DateTime.UtcNow.AddDays(-15),
+                        HelpfulVotes = 4
                     }
                 });
             }
@@ -114,17 +130,25 @@ namespace Talentree.Repository.Data.DataSeed
                     {
                         ProductId = kimono.Id, CustomerUserId = laila!.Id,
                         CustomerName = "Laila Mohamed", Rating = 5,
+                        ReviewTitle = "Stunning Wearable Art!",
                         ReviewText = "Absolutely STUNNING piece. The painting is so intricate, you can tell so much care and skill went into it. It's literally wearable art. I wear it over my outfits and get so many compliments.",
                         OwnerResponse = "You've made our day! This piece took 3 days to paint ❤️",
                         ResponseAt = DateTime.UtcNow.AddDays(-3),
-                        CreatedAt = DateTime.UtcNow.AddDays(-7)
+                        CreatedAt = DateTime.UtcNow.AddDays(-7),
+                        HelpfulVotes = 19,
+                        Photos = new List<ReviewPhoto>
+                        {
+                            new() { ImageUrl = "https://images.unsplash.com/photo-1578587018452-892bacefd3f2?w=800", SortOrder = 0 }
+                        }
                     },
                     new ProductReview
                     {
                         ProductId = kimono.Id, CustomerUserId = nour!.Id,
                         CustomerName = "Nour Hassan", Rating = 5,
+                        ReviewTitle = "Softest silk ever",
                         ReviewText = "The silk is incredibly soft and the colours are vibrant. Each piece is truly one-of-a-kind. Worth every penny.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-14)
+                        CreatedAt = DateTime.UtcNow.AddDays(-14),
+                        HelpfulVotes = 9
                     }
                 });
             }
@@ -142,24 +166,34 @@ namespace Talentree.Repository.Data.DataSeed
                     {
                         ProductId = coasters.Id, CustomerUserId = mona!.Id,
                         CustomerName = "Mona Ahmed", Rating = 5,
+                        ReviewTitle = "Beautiful Craftsmanship!",
                         ReviewText = "These coasters are absolutely gorgeous! The dried flowers inside the resin look so delicate and beautiful. Great quality — not a single bubble in the resin. Gift box was also lovely.",
                         OwnerResponse = "So happy you love them Mona! Each coaster takes about 3 hours to make 😊",
                         ResponseAt = DateTime.UtcNow.AddDays(-15),
-                        CreatedAt = DateTime.UtcNow.AddDays(-20)
+                        CreatedAt = DateTime.UtcNow.AddDays(-20),
+                        HelpfulVotes = 22,
+                        Photos = new List<ReviewPhoto>
+                        {
+                            new() { ImageUrl = "https://images.unsplash.com/photo-1618220179428-22790b461013?w=800", SortOrder = 0 }
+                        }
                     },
                     new ProductReview
                     {
                         ProductId = coasters.Id, CustomerUserId = khaled!.Id,
                         CustomerName = "Khaled Mahmoud", Rating = 5,
+                        ReviewTitle = "Perfect wedding gift!",
                         ReviewText = "Bought as a wedding gift. The couple loved them! Very well-made and heat-resistant as described. The colours are vibrant and each piece is unique.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-30)
+                        CreatedAt = DateTime.UtcNow.AddDays(-30),
+                        HelpfulVotes = 11
                     },
                     new ProductReview
                     {
                         ProductId = coasters.Id, CustomerUserId = yasser!.Id,
                         CustomerName = "Yasser Ali", Rating = 4,
+                        ReviewTitle = "Very beautiful, highly detailed",
                         ReviewText = "Really nice coasters, great quality. The only issue was one of the four had a tiny air bubble but it's barely visible. Still love the product overall.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-42)
+                        CreatedAt = DateTime.UtcNow.AddDays(-42),
+                        HelpfulVotes = 2
                     }
                 });
             }
@@ -173,31 +207,43 @@ namespace Talentree.Repository.Data.DataSeed
                     {
                         ProductId = candles.Id, CustomerUserId = laila!.Id,
                         CustomerName = "Laila Mohamed", Rating = 5,
+                        ReviewTitle = "Divine Oud Scent",
                         ReviewText = "The Oud & Sandalwood scent is heavenly! Burns clean with no black smoke. Been burning it every evening and it fills the entire room. Will definitely reorder.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-5)
+                        CreatedAt = DateTime.UtcNow.AddDays(-5),
+                        HelpfulVotes = 15,
+                        Photos = new List<ReviewPhoto>
+                        {
+                            new() { ImageUrl = "https://images.unsplash.com/photo-1602874801007-e534cf0428b1?w=800", SortOrder = 0 }
+                        }
                     },
                     new ProductReview
                     {
                         ProductId = candles.Id, CustomerUserId = nour!.Id,
                         CustomerName = "Nour Hassan", Rating = 5,
+                        ReviewTitle = "Lovely scent and glass design",
                         ReviewText = "All three scents are amazing but the Jasmine Garden is my favourite. The glass jars are also beautiful — keeping them as décor after the wax runs out.",
                         OwnerResponse = "We love hearing that! The jasmine is our bestseller for a reason 🌸",
                         ResponseAt = DateTime.UtcNow.AddDays(-12),
-                        CreatedAt = DateTime.UtcNow.AddDays(-18)
+                        CreatedAt = DateTime.UtcNow.AddDays(-18),
+                        HelpfulVotes = 7
                     },
                     new ProductReview
                     {
                         ProductId = candles.Id, CustomerUserId = mona!.Id,
                         CustomerName = "Mona Ahmed", Rating = 5,
+                        ReviewTitle = "Ideal Eid gift!",
                         ReviewText = "Perfect gift! I bought this for Eid and everyone loved it. The packaging is beautiful and the candles smell incredible.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-50)
+                        CreatedAt = DateTime.UtcNow.AddDays(-50),
+                        HelpfulVotes = 12
                     },
                     new ProductReview
                     {
                         ProductId = candles.Id, CustomerUserId = khaled!.Id,
                         CustomerName = "Khaled Mahmoud", Rating = 4,
+                        ReviewTitle = "Pleasant and subtle scent",
                         ReviewText = "Really nice candles. Good burn time. The only thing — I expected the scent to be stronger but it's quite subtle. Might buy again.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-38)
+                        CreatedAt = DateTime.UtcNow.AddDays(-38),
+                        HelpfulVotes = 4
                     }
                 });
             }
@@ -211,15 +257,23 @@ namespace Talentree.Repository.Data.DataSeed
                     {
                         ProductId = macrame.Id, CustomerUserId = khaled!.Id,
                         CustomerName = "Khaled Mahmoud", Rating = 5,
+                        ReviewTitle = "Breathtaking Macrame Hanging",
                         ReviewText = "My wife has been wanting a macramé wall hanging for months. This one is perfect — the knotting is tight and even, the cotton is soft and natural looking. Looks amazing above our bed.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-8)
+                        CreatedAt = DateTime.UtcNow.AddDays(-8),
+                        HelpfulVotes = 18,
+                        Photos = new List<ReviewPhoto>
+                        {
+                            new() { ImageUrl = "https://images.unsplash.com/photo-1614627585-700dec5e8900?w=800", SortOrder = 0 }
+                        }
                     },
                     new ProductReview
                     {
                         ProductId = macrame.Id, CustomerUserId = laila!.Id,
                         CustomerName = "Laila Mohamed", Rating = 5,
+                        ReviewTitle = "Highest professional grade",
                         ReviewText = "Stunning piece! Took it to an interior designer friend and she couldn't believe it was locally made. The craftsmanship is that good.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-25)
+                        CreatedAt = DateTime.UtcNow.AddDays(-25),
+                        HelpfulVotes = 10
                     }
                 });
             }
@@ -237,31 +291,43 @@ namespace Talentree.Repository.Data.DataSeed
                     {
                         ProductId = sheaButter.Id, CustomerUserId = mona!.Id,
                         CustomerName = "Mona Ahmed", Rating = 5,
+                        ReviewTitle = "A Miracle for Dry Skin!",
                         ReviewText = "This cream is a miracle worker for my dry skin! It absorbs quickly without leaving a greasy feeling. The lavender scent is calming and not overpowering. 100% natural as described.",
                         OwnerResponse = "Thank you beautiful! Your skin deserves the best 🌿",
                         ResponseAt = DateTime.UtcNow.AddDays(-20),
-                        CreatedAt = DateTime.UtcNow.AddDays(-28)
+                        CreatedAt = DateTime.UtcNow.AddDays(-28),
+                        HelpfulVotes = 25,
+                        Photos = new List<ReviewPhoto>
+                        {
+                            new() { ImageUrl = "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=800", SortOrder = 0 }
+                        }
                     },
                     new ProductReview
                     {
                         ProductId = sheaButter.Id, CustomerUserId = laila!.Id,
                         CustomerName = "Laila Mohamed", Rating = 5,
+                        ReviewTitle = "Unbelievably soft skin",
                         ReviewText = "I've tried so many body creams and this is hands down the best. My skin has never felt softer. The 200ml jar lasts a long time too. Reordering immediately.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-45)
+                        CreatedAt = DateTime.UtcNow.AddDays(-45),
+                        HelpfulVotes = 13
                     },
                     new ProductReview
                     {
                         ProductId = sheaButter.Id, CustomerUserId = nour!.Id,
                         CustomerName = "Nour Hassan", Rating = 5,
+                        ReviewTitle = "Love that it's vegan!",
                         ReviewText = "Love that it's vegan and cruelty-free. Works beautifully on my elbows and knees which are always dry. Recommend to everyone!",
-                        CreatedAt = DateTime.UtcNow.AddDays(-55)
+                        CreatedAt = DateTime.UtcNow.AddDays(-55),
+                        HelpfulVotes = 8
                     },
                     new ProductReview
                     {
                         ProductId = sheaButter.Id, CustomerUserId = yasser!.Id,
                         CustomerName = "Yasser Ali", Rating = 4,
+                        ReviewTitle = "Great product for my mom",
                         ReviewText = "Bought for my mother and she's been using it happily. Good quality, natural ingredients. The only downside is the jar lid could be sealed better during shipping.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-35)
+                        CreatedAt = DateTime.UtcNow.AddDays(-35),
+                        HelpfulVotes = 3
                     }
                 });
             }
@@ -275,24 +341,34 @@ namespace Talentree.Repository.Data.DataSeed
                     {
                         ProductId = faceOil.Id, CustomerUserId = laila!.Id,
                         CustomerName = "Laila Mohamed", Rating = 5,
+                        ReviewTitle = "Transformed my skin completely!",
                         ReviewText = "My skin has literally transformed in 3 weeks of use. Fine lines are visibly reduced and my complexion is glowing. I use 3 drops every night before bed. Worth every EGP.",
                         OwnerResponse = "We're so thrilled to hear that! Consistency is key and you're nailing it 🌹",
                         ResponseAt = DateTime.UtcNow.AddDays(-10),
-                        CreatedAt = DateTime.UtcNow.AddDays(-22)
+                        CreatedAt = DateTime.UtcNow.AddDays(-22),
+                        HelpfulVotes = 31,
+                        Photos = new List<ReviewPhoto>
+                        {
+                            new() { ImageUrl = "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?w=800", SortOrder = 0 }
+                        }
                     },
                     new ProductReview
                     {
                         ProductId = faceOil.Id, CustomerUserId = mona!.Id,
                         CustomerName = "Mona Ahmed", Rating = 5,
+                        ReviewTitle = "High quality dropper and pure oil",
                         ReviewText = "The dropper makes it so easy to apply just the right amount. My skin absorbs it fast, no sticky feeling. Smells beautiful and natural. Already on my second bottle.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-40)
+                        CreatedAt = DateTime.UtcNow.AddDays(-40),
+                        HelpfulVotes = 15
                     },
                     new ProductReview
                     {
                         ProductId = faceOil.Id, CustomerUserId = nour!.Id,
                         CustomerName = "Nour Hassan", Rating = 5,
+                        ReviewTitle = "Best face oil I've used",
                         ReviewText = "Best face oil I've ever used. Cold-pressed quality is obvious — the oil is clear and pure. My combination skin loves it.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-30)
+                        CreatedAt = DateTime.UtcNow.AddDays(-30),
+                        HelpfulVotes = 10
                     }
                 });
             }
@@ -306,22 +382,28 @@ namespace Talentree.Repository.Data.DataSeed
                     {
                         ProductId = soaps.Id, CustomerUserId = khaled!.Id,
                         CustomerName = "Khaled Mahmoud", Rating = 5,
+                        ReviewTitle = "Gorgeous scent and lather",
                         ReviewText = "The Oud & Rose bar has a gorgeous scent that lingers after washing. All four bars lather well and leave skin feeling clean without that tight, dry feeling. Great value for a set.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-15)
+                        CreatedAt = DateTime.UtcNow.AddDays(-15),
+                        HelpfulVotes = 12
                     },
                     new ProductReview
                     {
                         ProductId = soaps.Id, CustomerUserId = yasser!.Id,
                         CustomerName = "Yasser Ali", Rating = 4,
+                        ReviewTitle = "Nice cold-process collection",
                         ReviewText = "Nice soap bars, good ingredients. The Mint & Tea Tree one is refreshing. Giving 4 stars because one bar was slightly smaller than the others, but overall great quality.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-25)
+                        CreatedAt = DateTime.UtcNow.AddDays(-25),
+                        HelpfulVotes = 5
                     },
                     new ProductReview
                     {
                         ProductId = soaps.Id, CustomerUserId = mona!.Id,
                         CustomerName = "Mona Ahmed", Rating = 5,
+                        ReviewTitle = "Gentle and non-irritating",
                         ReviewText = "I've switched from commercial soap to these and my skin is noticeably less irritated. The Honey & Oat bar is my favourite — so gentle.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-48)
+                        CreatedAt = DateTime.UtcNow.AddDays(-48),
+                        HelpfulVotes = 8
                     }
                 });
             }
@@ -335,15 +417,19 @@ namespace Talentree.Repository.Data.DataSeed
                     {
                         ProductId = essentialOils.Id, CustomerUserId = laila!.Id,
                         CustomerName = "Laila Mohamed", Rating = 5,
+                        ReviewTitle = "Pure therapeutic grade oils",
                         ReviewText = "The Egyptian Rose oil smells exactly like fresh roses — so authentic. I use the Frankincense in my diffuser every night. Pure quality, no fillers.",
-                        CreatedAt = DateTime.UtcNow.AddDays(-12)
+                        CreatedAt = DateTime.UtcNow.AddDays(-12),
+                        HelpfulVotes = 17
                     },
                     new ProductReview
                     {
                         ProductId = essentialOils.Id, CustomerUserId = nour!.Id,
                         CustomerName = "Nour Hassan", Rating = 4,
+                        ReviewTitle = "Great packaging and strong aroma",
                         ReviewText = "Good quality oils, well packaged. The amber glass bottles are a nice touch. The peppermint oil is very strong — a little goes a long way!",
-                        CreatedAt = DateTime.UtcNow.AddDays(-38)
+                        CreatedAt = DateTime.UtcNow.AddDays(-38),
+                        HelpfulVotes = 6
                     }
                 });
             }

@@ -62,6 +62,10 @@ namespace Talentree.Repository.Data.DataSeed
             //       Requires approved products (step 3) and customer accounts (step 1).
             await ProductReviewSeed.SeedAsync(context);
 
+            // ── 9b: Customer features (Carts, Wishlists, Orders) ──────────────────────
+            //        Requires approved products (step 3) and customer accounts (step 1).
+            await CustomerFeaturesSeed.SeedAsync(context);
+
             // ── 10: Support tickets ───────────────────────────────────────────────────
             //        Requires BO accounts (step 2) and admin user (step 1).
             await SupportTicketSeed.SeedAsync(context);
