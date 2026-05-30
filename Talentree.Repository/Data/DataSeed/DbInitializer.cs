@@ -23,8 +23,7 @@ namespace Talentree.Repository.Data.DataSeed
         {
             var logger = loggerFactory.CreateLogger("DbInitializer");
 
-            // ── 1: Roles + Admin + 5 generic BOs + 5 Customers ───────────────────────
-            //       (TalentreeContextSeed handles ahmed.hassan, fatma.mohamed, etc.)
+            // ── 1: Roles + Admin + 5 Customers ───────────────────────
             await TalentreeContextSeed.SeedAsync(userManager, roleManager, context, logger);
 
             // ── 2: Fixed-GUID BOs — Nour Couture, Karim Craft Studio, Salma Naturals ─

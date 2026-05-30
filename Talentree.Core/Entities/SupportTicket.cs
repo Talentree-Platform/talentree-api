@@ -13,6 +13,10 @@ namespace Talentree.Core.Entities
         public TicketStatus Status { get; set; } = TicketStatus.Open;
         public TicketPriority Priority { get; set; } = TicketPriority.Normal;
 
+        // -------------- AI ---------------------
+        public float? PriorityScore { get; set; } // 0.0 to 1.0
+        public string? AutoCategory { get; set; }
+        // ---------------------------------------
         public string BusinessOwnerUserId { get; set; } = null!;
         public AppUser BusinessOwner { get; set; } = null!;
 
