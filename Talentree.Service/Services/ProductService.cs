@@ -25,17 +25,19 @@ namespace Talentree.Service.Services
         private readonly IMapper _mapper;
         private readonly IImageService _imageService;
         private readonly INotificationService _notificationService;
-
+        private readonly IAIService _aiService;
         public ProductService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IImageService imageService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IAIService aiService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _imageService = imageService;
             _notificationService = notificationService;
+            _aiService = aiService;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -174,7 +176,8 @@ namespace Talentree.Service.Services
             }
 
             await _unitOfWork.CompleteAsync();
-
+            // Notify AI to compute quality + demand for this product
+            _ = Task.Run(() => _aiService.ComputeProductAsync(product.Id));
             return await GetProductByIdAsync(product.Id, businessOwnerUserId);
         }
 
@@ -256,7 +259,8 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<Product>().Update(product);
             await _unitOfWork.CompleteAsync();
-
+            // Notify AI to recompute product metrics
+            _ = Task.Run(() => _aiService.ComputeProductAsync(product.Id));
             return await GetProductByIdAsync(product.Id, businessOwnerUserId);
         }
 
