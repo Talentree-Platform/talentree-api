@@ -72,14 +72,51 @@ namespace Talentree.Service.Services
             var otpCode = GenerateOtpCode();
 
 
-            await SaveOtpCodeAsync(user.Id, otpCode, OtpPurpose.VerifyEmail);
+            await SaveOtpCodeAsync(user.Id, otpCode, OtpPurpose.EmailVerification);
 
 
-            await _emailService.SendOtpAsync(user.Email!, otpCode , OtpPurpose.VerifyEmail );
+            await _emailService.SendOtpAsync(user.Email!, otpCode , OtpPurpose.EmailVerification );
 
             return "Registration successful. Please check your email for the verification code.";
         }
 
+
+        public async Task<string> ResendVerificationEmailAsync(string email)
+        {
+            // Find user by email
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                throw new NotFoundException("User not found");
+
+            // Check if already verified
+            if (user.EmailConfirmed)
+                throw new BadRequestException("Email is already verified");
+
+            // ✅ Invalidate old OTP codes
+            var oldOtpsSpec = new OtpCodeSpecification(user.Id, null, OtpPurpose.EmailVerification);
+            var oldOtps = await _unitOfWork.Repository<OtpCode>()
+                                            .GetAllWithSpecificationsAsync(oldOtpsSpec);
+
+            foreach (var otp in oldOtps)
+            {
+                if (!otp.IsUsed && otp.ExpiresAt > DateTime.UtcNow)
+                {
+                    otp.IsUsed = true; // Mark as used so it can't be used
+                    _unitOfWork.Repository<OtpCode>().Update(otp);
+                }
+            }
+
+            await _unitOfWork.CompleteAsync();
+
+            // ✅ Generate new OTP
+            var otpCode = GenerateOtpCode();
+            await SaveOtpCodeAsync(user.Id, otpCode, OtpPurpose.EmailVerification);
+
+            // ✅ Send verification email
+            await _emailService.SendOtpAsync(user.Email!, otpCode, OtpPurpose.EmailVerification);
+
+            return "Verification code has been resent to your email";
+        }
 
 
         public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
@@ -231,7 +268,7 @@ namespace Talentree.Service.Services
             if (user.EmailConfirmed)
                 throw new BadRequestException("Email is already verified");
 
-            var spec = new OtpCodeSpecification(user.Id, verifyEmailDto.OtpCode, OtpPurpose.VerifyEmail);
+            var spec = new OtpCodeSpecification(user.Id, verifyEmailDto.OtpCode, OtpPurpose.EmailVerification);
             var otpEntity = await _unitOfWork.Repository<OtpCode>()
                                               .GetByIdWithSpecificationsAsync(spec);
 
@@ -603,8 +640,8 @@ namespace Talentree.Service.Services
 
             // 7️⃣ Send verification email
             var otpCode = GenerateOtpCode();
-            await SaveOtpCodeAsync(user.Id, otpCode, OtpPurpose.VerifyEmail);
-            await _emailService.SendOtpAsync(user.Email!, otpCode, OtpPurpose.VerifyEmail);
+            await SaveOtpCodeAsync(user.Id, otpCode, OtpPurpose.EmailVerification);
+            await _emailService.SendOtpAsync(user.Email!, otpCode, OtpPurpose.EmailVerification);
 
             // 8️⃣ Notify admin (TODO)
             // await _emailService.NotifyAdminNewBusinessOwnerAsync(businessProfile);

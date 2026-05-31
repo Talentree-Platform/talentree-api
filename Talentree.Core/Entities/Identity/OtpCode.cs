@@ -4,8 +4,9 @@ namespace Talentree.Core.Entities.Identity
 {
     public enum OtpPurpose
     {
-        VerifyEmail = 1,
-        ResetPassword = 2
+        EmailVerification = 1,
+        ResetPassword = 2,
+        TwoFactorAuth = 3
     }
 
     public class OtpCode : BaseEntity
