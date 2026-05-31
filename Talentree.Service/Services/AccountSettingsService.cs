@@ -18,17 +18,19 @@ namespace Talentree.Service.Services
         private readonly UserManager<AppUser> _userManager;
         private readonly IImageService _imageService;
         private readonly IEncryptionService _encryptionService;
-
+        private readonly IAIService _aiService;
         public AccountSettingsService(
             IUnitOfWork unitOfWork,
             UserManager<AppUser> userManager,
             IImageService imageService,
-            IEncryptionService encryptionService)
+            IEncryptionService encryptionService,
+            IAIService aiService)
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
             _imageService = imageService;
             _encryptionService = encryptionService;
+            _aiService = aiService;
         }
 
         // ─────────────────────────────────────────────
@@ -132,6 +134,9 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<BusinessOwnerProfile>().Update(profile);
             await _unitOfWork.CompleteAsync();
+
+            // Notify AI to recompute profile completeness
+            _ = Task.Run(() => _aiService.ComputeProfileAsync(userId));
 
             // Email change — send OTP (handled separately via FR-BO-32 email verification flow)
             // We don't change email here directly — we send OTP first
