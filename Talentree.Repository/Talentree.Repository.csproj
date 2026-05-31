@@ -8,7 +8,7 @@
 
 	<ItemGroup>
 		<!-- Include JSON files and copy to output directory -->
-		<None Update="Data\DataSeed\*.json">
+		<None Update="Data\DataSeed\**\*.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>

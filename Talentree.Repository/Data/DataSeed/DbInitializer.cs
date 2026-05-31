@@ -23,7 +23,7 @@ namespace Talentree.Repository.Data.DataSeed
         {
             var logger = loggerFactory.CreateLogger("DbInitializer");
 
-            // ── 1: Roles + Admin + 5 Customers ───────────────────────
+            // ── 1: Roles + Admin + 6 Customers (fixed GUIDs) ─────────────────────
             await TalentreeContextSeed.SeedAsync(userManager, roleManager, context, logger);
 
             // ── 2: Fixed-GUID BOs — Nour Couture, Karim Craft Studio, Salma Naturals ─
@@ -48,13 +48,10 @@ namespace Talentree.Repository.Data.DataSeed
 
             // ── 7: Transactions ───────────────────────────────────────────────────────
             //       Matches material orders (step 5) and production requests (step 6).
-            //       Guards with Any() so it only runs on a fresh DB — backup JSON
-            //       (step 12) then adds historical records starting from higher IDs.
             await TransactionSeed.SeedAsync(context);
 
             // ── 8: Payout requests ────────────────────────────────────────────────────
             //       Requires BO accounts from step 2.
-            //       Same guard pattern as transactions above.
             await PayoutRequestSeed.SeedAsync(context);
 
             // ── 9: Product reviews ────────────────────────────────────────────────────
@@ -72,59 +69,48 @@ namespace Talentree.Repository.Data.DataSeed
             // ── 11: FAQs ─────────────────────────────────────────────────────────────
             await FAQSeeder.SeedFAQsAsync(context);
 
-            // ── 12: JSON Backup (seeded_data_backup.json) ─────────────────────────────
-            //        Bulk-loads historical Transactions, LoginHistories, ProductReviews,
-            //        SupportTickets, TicketMessages, OnboardingProgress, PayoutRequests,
-            //        and BoProductionRequests from the exported backup file.
-            //
-            //        The file lives in DataSeed/ and is copied to the output directory
-            //        on build so it works on every machine without manual file placement.
-            //
-            //        Each section is idempotent — it skips insertion if its first ID
-            //        already exists, so re-running the seeder is safe.
-            var jsonBackupPath = ResolveBackupJsonPath();
-            if (jsonBackupPath != null)
-                await JsonBackupSeed.SeedAsync(context, jsonBackupPath);
+            // ── 12: JSON seed folder (jsonSeed/) ─────────────────────────────────────
+            //        Bulk-loads Transactions, LoginHistories, ProductReviews,
+            //        SupportTickets, TicketMessages, OnboardingProgress,
+            //        PayoutRequests, BoProductionRequests, and Product stats
+            //        from the jsonSeed/ folder alongside this assembly.
+            //        All user/product FK references are validated before insert.
+            //        Each section is idempotent — it checks Any() before inserting.
+            var jsonSeedFolder = ResolveJsonSeedFolderPath();
+            if (jsonSeedFolder != null)
+                await JsonSeedLoader.SeedAsync(context, jsonSeedFolder);
             else
-                logger.LogWarning("[JsonBackupSeed] seeded_data_backup.json not found — skipping bulk import.");
+                logger.LogWarning("[JsonSeedLoader] jsonSeed/ folder not found — skipping bulk import.");
 
             logger.LogInformation("✅ All seed operations completed successfully.");
         }
 
         /// <summary>
-        /// Resolves the path to seeded_data_backup.json.
-        /// Primary location: DataSeed/ folder next to the assembly (copied on build).
-        /// Fallback: repo root and Downloads folder for developer convenience.
+        /// Resolves the path to the jsonSeed/ folder.
+        /// Primary:   output directory alongside the assembly (copied on build).
+        /// Fallbacks: repo source tree locations for developer convenience.
         /// </summary>
-        private static string? ResolveBackupJsonPath()
+        private static string? ResolveJsonSeedFolderPath()
         {
-            const string fileName = "seeded_data_backup.json";
+            const string folderName = "jsonSeed";
 
             var candidates = new[]
             {
                 // ── Primary: copied to output directory alongside the assembly ─────
-                // (requires <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-                //  on the .json file in the .csproj — see Talentree.Repository.csproj)
-                Path.Combine(AppContext.BaseDirectory, fileName),
+                Path.Combine(AppContext.BaseDirectory, folderName),
 
-                // ── Secondary: DataSeed folder relative to the repo root ───────────
-                // Resolves correctly when running from the API project (3 levels up).
+                // ── Secondary: DataSeed folder in the repo (API runs 3 levels up) ──
                 Path.GetFullPath(Path.Combine(
                     AppContext.BaseDirectory, "..", "..", "..",
-                    "Talentree.Repository", "Data", "DataSeed", fileName)),
+                    "Talentree.Repository", "Data", "DataSeed", folderName)),
 
-                // ── Tertiary: two levels up from net8.0/ inside Repository project ─
+                // ── Tertiary: two levels up (inside Repository net8.0 output) ──────
                 Path.GetFullPath(Path.Combine(
                     AppContext.BaseDirectory, "..", "..", "..", "..",
-                    "Talentree.Repository", "Data", "DataSeed", fileName)),
-
-                // ── Developer fallback: Downloads folder ──────────────────────────
-                Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    "Downloads", fileName),
+                    "Talentree.Repository", "Data", "DataSeed", folderName)),
             };
 
-            return candidates.FirstOrDefault(File.Exists);
+            return candidates.FirstOrDefault(Directory.Exists);
         }
     }
 }
