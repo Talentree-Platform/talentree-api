@@ -17,6 +17,8 @@ namespace Talentree.Service.Contracts
         // Resgisters a new business owner
         Task<string> RegisterBusinessOwnerAsync(BusinessOwnerRegisterDto registerDto);
 
+        //ResendVerificationEmailAsync
+        Task<string> ResendVerificationEmailAsync(string email);
         /// <summary>
         /// Authenticates user and generates JWT tokens
         /// </summary>

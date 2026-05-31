@@ -1,4 +1,4 @@
-using FluentValidation.AspNetCore;
+﻿using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -9,9 +9,12 @@ using Talentree.API.Extensions;
 using Talentree.API.Extentions;
 using Talentree.API.Hubs;
 using Talentree.Core;
+using Talentree.Core.Settings;
 using Talentree.Repository.Data;
 using Talentree.Repository.Data.Interceptors;
+using Talentree.Service.Contracts;
 using Talentree.Service.Mapping;
+using Talentree.Service.Services;
 
 namespace Talentree.API
 {
@@ -113,6 +116,11 @@ namespace Talentree.API
             // Application Services (DI)
             // ===============================
             builder.Services.AddApplicationServices(builder.Configuration);
+            builder.Services.Configure<EmailSettings>(
+            builder.Configuration.GetSection("EmailSettings"));
+
+            // ✅ Register Email Service
+            builder.Services.AddScoped<IEmailService, EmailService>();
 
             // ===============================
             // Authentication (JWT)
