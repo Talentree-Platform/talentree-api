@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using Talentree.Core.Entities;
@@ -55,6 +55,36 @@ namespace Talentree.Repository.Data
         public DbSet<UserPreferences> UserPreferences { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<PayoutRequest> PayoutRequests { get; set; }
+
+
+
+
+        public DbSet<SupportTicket> SupportTickets { get; set; }
+        public DbSet<TicketMessage> TicketMessages { get; set; }
+        public DbSet<TicketAttachment> TicketAttachments { get; set; }
+        public DbSet<FAQ> FAQs { get; set; }
+
+        public DbSet<ProductReview> ProductReviews { get; set; }
+        public DbSet<ReviewPhoto> ReviewPhotos { get; set; }
+     
+        public DbSet<OnboardingProgress> OnboardingProgresses { get; set; }
+
+        public DbSet<KnowledgeArticle> KnowledgeArticles { get; set; }
+        public DbSet<ArticleBookmark> ArticleBookmarks { get; set; }
+
+        // User management and moderation logs
+        public DbSet<UserActionLog> UserActionLogs { get; set; }
+        public DbSet<Complaint> Complaints { get; set; }
+        public DbSet<AutoBlockLog> AutoBlockLogs { get; set; }
+
+        // Customer Module Branch 2
+        public DbSet<CustomerCart> CustomerCarts { get; set; }
+        public DbSet<CustomerCartItem> CustomerCartItems { get; set; }
+        public DbSet<CustomerOrder> CustomerOrders { get; set; }
+        public DbSet<CustomerOrderItem> CustomerOrderItems { get; set; }
+        public DbSet<OrderStatusHistory> OrderStatusHistories { get; set; }
+        public DbSet<CustomerWishlist> CustomerWishlists { get; set; }
+        public DbSet<CustomerWishlistItem> CustomerWishlistItems { get; set; }
 
         // ===============================
         // Model Configuration

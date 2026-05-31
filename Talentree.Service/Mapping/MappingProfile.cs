@@ -1,4 +1,4 @@
-﻿// Talentree.Service/Mapping/MappingProfile.cs
+// Talentree.Service/Mapping/MappingProfile.cs
 
 using AutoMapper;
 using Talentree.Core.Entities;
@@ -13,8 +13,13 @@ using Talentree.Service.DTOs.Basket;
 using Talentree.Service.DTOs.BoProductionRequest;
 using Talentree.Service.DTOs.MaterialOrder;
 using Talentree.Service.DTOs.Notification;
+using Talentree.Service.DTOs.Payout;
 using Talentree.Service.DTOs.Products;
 using Talentree.Service.DTOs.RawMaterial;
+using Talentree.Service.DTOs.Support;
+using Talentree.Service.DTOs.Transaction;
+using Talentree.Service.DTOs.UserManagement;
+using Talentree.Service.DTOs.Customer;
 
 namespace Talentree.Service.Mapping
 {
@@ -481,7 +486,295 @@ namespace Talentree.Service.Mapping
             CreateMap<BoProductionRequestStatusHistory, ProductionRequestHistoryDto>()
                 .ForMember(dest => dest.ChangedAt,
                     opt => opt.MapFrom(src => src.CreatedAt));
+
+
+            // ═══════════════════════════════════════════════════════════
+            // SUPPORT TICKET MAPPINGS
+            // ═══════════════════════════════════════════════════════════
+
+            CreateMap<SupportTicket, TicketDto>()
+                .ForMember(dest => dest.CategoryText,
+                    opt => opt.MapFrom(src => src.Category.ToString()))
+                .ForMember(dest => dest.StatusText,
+                    opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.PriorityText,
+                    opt => opt.MapFrom(src => src.Priority.ToString()))
+                .ForMember(dest => dest.BusinessOwnerName,
+                    opt => opt.MapFrom(src => src.BusinessOwner.DisplayName))
+                .ForMember(dest => dest.BusinessOwnerEmail,
+                    opt => opt.MapFrom(src => src.BusinessOwner.Email))
+                .ForMember(dest => dest.MessageCount,
+                    opt => opt.MapFrom(src => src.Messages.Count))
+                .ForMember(dest => dest.AttachmentCount,
+                    opt => opt.MapFrom(src => src.Attachments.Count))
+                .ForMember(dest => dest.TimeAgo,
+                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+
+            CreateMap<SupportTicket, TicketListItemDto>()
+                .ForMember(dest => dest.CategoryText,
+                    opt => opt.MapFrom(src => src.Category.ToString()))
+                .ForMember(dest => dest.StatusText,
+                    opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.PriorityText,
+                    opt => opt.MapFrom(src => src.Priority.ToString()))
+                .ForMember(dest => dest.MessageCount,
+                    opt => opt.MapFrom(src => src.Messages.Count))
+                .ForMember(dest => dest.HasUnreadMessages,
+                    opt => opt.MapFrom(src => false)) // TODO: implement
+                .ForMember(dest => dest.TimeAgo,
+                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+
+            CreateMap<TicketMessage, TicketMessageDto>()
+                .ForMember(dest => dest.SenderName,
+                    opt => opt.MapFrom(src => src.Sender.DisplayName))
+                .ForMember(dest => dest.TimeAgo,
+                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+
+            CreateMap<TicketAttachment, TicketAttachmentDto>()
+                .ForMember(dest => dest.FileSizeMB,
+                    opt => opt.MapFrom(src => $"{src.FileSizeBytes / 1024.0 / 1024.0:F2} MB"));
+
+            CreateMap<FAQ, FAQDto>();
+
+            // Transaction → TransactionDto
+            CreateMap<Transaction, TransactionDto>();
+
+            CreateMap<PayoutRequest, PayoutRequestDto>()
+                .ForMember(dest => dest.MaskedAccountIdentifier,
+                    opt => opt.MapFrom(src =>
+                        src.AccountIdentifierEnc != null && src.AccountIdentifierEnc.Length >= 4
+                            ? "****" + src.AccountIdentifierEnc.Substring(src.AccountIdentifierEnc.Length - 4)
+                            : "****"));
+
+
+            CreateMap<AppUser, BusinessOwnerListDto>()
+               .ForMember(dest => dest.BusinessName,
+                   opt => opt.MapFrom(src => src.BusinessOwnerProfile!.BusinessName))
+               .ForMember(dest => dest.OwnerName,
+                   opt => opt.MapFrom(src => src.DisplayName))
+               .ForMember(dest => dest.Email,
+                   opt => opt.MapFrom(src => src.Email))
+               .ForMember(dest => dest.Category,
+                   opt => opt.MapFrom(src => src.BusinessOwnerProfile!.BusinessCategory))
+               .ForMember(dest => dest.ApprovalStatus,
+                   opt => opt.MapFrom(src => src.BusinessOwnerProfile!.Status))
+               .ForMember(dest => dest.ApprovalStatusText,
+                   opt => opt.MapFrom(src => src.BusinessOwnerProfile!.Status.ToString()))
+               .ForMember(dest => dest.AccountStatus,
+                   opt => opt.MapFrom(src => src.AccountStatus))
+               .ForMember(dest => dest.AccountStatusText,
+                   opt => opt.MapFrom(src => src.AccountStatus.ToString()))
+               .ForMember(dest => dest.RegistrationDate,
+                   opt => opt.MapFrom(src => src.CreatedAt))
+               .ForMember(dest => dest.LastLoginAt,
+                   opt => opt.MapFrom(src => src.LastLoginAt))
+               .ForMember(dest => dest.IsSuspended,
+                   opt => opt.MapFrom(src => src.AccountStatus == AccountStatus.Suspended))
+               .ForMember(dest => dest.IsBanned,
+                   opt => opt.MapFrom(src => src.AccountStatus == AccountStatus.Banned))
+               .ForMember(dest => dest.IsBlocked,
+                   opt => opt.MapFrom(src => src.IsBlocked))
+               .ForMember(dest => dest.TotalProducts, opt => opt.Ignore())
+               .ForMember(dest => dest.TotalOrders, opt => opt.Ignore())
+               .ForMember(dest => dest.TotalRevenue, opt => opt.Ignore());
+
+            CreateMap<AppUser, BusinessOwnerDetailsDto>()
+                .ForMember(dest => dest.BusinessName,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.BusinessName))
+                .ForMember(dest => dest.BusinessDescription,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.BusinessDescription))
+                .ForMember(dest => dest.BusinessCategory,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.BusinessCategory))
+                .ForMember(dest => dest.BusinessAddress,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.BusinessAddress))
+                .ForMember(dest => dest.TaxId,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.TaxId))
+                .ForMember(dest => dest.ProfilePhotoUrl,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.ProfilePhotoUrl))
+                .ForMember(dest => dest.BusinessLogoUrl,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.BusinessLogoUrl))
+                .ForMember(dest => dest.FacebookLink,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.FacebookLink))
+                .ForMember(dest => dest.InstagramLink,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.InstagramLink))
+                .ForMember(dest => dest.WebsiteLink,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.WebsiteLink))
+                .ForMember(dest => dest.ApprovalStatus,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.Status))
+                .ForMember(dest => dest.ApprovalStatusText,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.Status.ToString()))
+                .ForMember(dest => dest.AccountStatus,
+                    opt => opt.MapFrom(src => src.AccountStatus))
+                .ForMember(dest => dest.AccountStatusText,
+                    opt => opt.MapFrom(src => src.AccountStatus.ToString()))
+                .ForMember(dest => dest.ApprovedAt,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.ApprovedAt))
+                .ForMember(dest => dest.ApprovedBy,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.ApprovedBy))
+                .ForMember(dest => dest.RejectionReason,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfile!.RejectionReason))
+                .ForMember(dest => dest.RegistrationDate,
+                    opt => opt.MapFrom(src => src.CreatedAt))
+                .ForMember(dest => dest.TotalProducts, opt => opt.Ignore())
+                .ForMember(dest => dest.TotalOrders, opt => opt.Ignore())
+                .ForMember(dest => dest.TotalRevenue, opt => opt.Ignore())
+                .ForMember(dest => dest.ComplaintCount, opt => opt.Ignore())
+                .ForMember(dest => dest.ActionLogs, opt => opt.Ignore());
+
+            CreateMap<AppUser, CustomerListDto>()
+                .ForMember(dest => dest.Name,
+                    opt => opt.MapFrom(src => src.DisplayName))
+                .ForMember(dest => dest.RegistrationDate,
+                    opt => opt.MapFrom(src => src.CreatedAt))
+                .ForMember(dest => dest.AccountStatusText,
+                    opt => opt.MapFrom(src => src.AccountStatus.ToString()))
+                .ForMember(dest => dest.TotalOrders, opt => opt.Ignore())
+                .ForMember(dest => dest.TotalSpent, opt => opt.Ignore());
+
+            CreateMap<AppUser, CustomerDetailsDto>()
+                .ForMember(dest => dest.Name,
+                    opt => opt.MapFrom(src => src.DisplayName))
+                .ForMember(dest => dest.ProfilePhotoUrl,
+                    opt => opt.MapFrom(src => src.ProfilePhotoUrl))
+                .ForMember(dest => dest.RegistrationDate,
+                    opt => opt.MapFrom(src => src.CreatedAt))
+                .ForMember(dest => dest.AccountStatusText,
+                    opt => opt.MapFrom(src => src.AccountStatus.ToString()))
+                .ForMember(dest => dest.TotalOrders, opt => opt.Ignore())
+                .ForMember(dest => dest.TotalSpent, opt => opt.Ignore())
+                .ForMember(dest => dest.TotalReviews, opt => opt.Ignore())
+                .ForMember(dest => dest.ActionLogs, opt => opt.Ignore());
+
+            CreateMap<UserActionLog, UserActionLogDto>()
+                .ForMember(dest => dest.AdminName,
+                    opt => opt.MapFrom(src => src.Admin.DisplayName))
+                .ForMember(dest => dest.AdminEmail,
+                    opt => opt.MapFrom(src => src.Admin.Email));
+
+            CreateMap<Complaint, ComplaintDto>()
+                .ForMember(dest => dest.ReportedUserName,
+                    opt => opt.MapFrom(src => src.ReportedUser.DisplayName))
+                .ForMember(dest => dest.ReportedUserEmail,
+                    opt => opt.MapFrom(src => src.ReportedUser.Email))
+                .ForMember(dest => dest.ReportedByName,
+                    opt => opt.MapFrom(src => src.ReportedBy.DisplayName))
+                .ForMember(dest => dest.ViolationTypeText,
+                    opt => opt.MapFrom(src => src.ViolationType.ToString()))
+                .ForMember(dest => dest.StatusText,
+                    opt => opt.MapFrom(src => src.Status.ToString()));
+
+            // ═══════════════════════════════════════════════════════════
+            // CUSTOMER PRODUCT & REVIEW MAPPINGS (BRANCH 1)
+            // ═══════════════════════════════════════════════════════════
+
+            CreateMap<Category, CategoryDto>();
+
+            CreateMap<Product, CustomerProductDto>()
+                .ForMember(dest => dest.CategoryName,
+                    opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : string.Empty))
+                .ForMember(dest => dest.BrandName,
+                    opt => opt.MapFrom(src => src.BusinessOwner != null ? src.BusinessOwner.BusinessName : string.Empty))
+                .ForMember(dest => dest.BrandId,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfileId))
+                .ForMember(dest => dest.ImageUrls,
+                    opt => opt.MapFrom(src => src.Images != null
+                        ? src.Images.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).ToList()
+                        : new List<string>()));
+
+            CreateMap<Product, CustomerProductDetailDto>()
+                .ForMember(dest => dest.CategoryName,
+                    opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : string.Empty))
+                .ForMember(dest => dest.BrandName,
+                    opt => opt.MapFrom(src => src.BusinessOwner != null ? src.BusinessOwner.BusinessName : string.Empty))
+                .ForMember(dest => dest.BrandId,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfileId))
+                .ForMember(dest => dest.BrandLogoUrl,
+                    opt => opt.MapFrom(src => src.BusinessOwner != null ? src.BusinessOwner.BusinessLogoUrl : null))
+                .ForMember(dest => dest.ImageUrls,
+                    opt => opt.MapFrom(src => src.Images != null
+                        ? src.Images.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).ToList()
+                        : new List<string>())
+                )
+                .ForMember(dest => dest.SimilarProducts, opt => opt.Ignore()); // set in service
+
+            CreateMap<BusinessOwnerProfile, BrandListDto>()
+                .ForMember(dest => dest.ProductCount,
+                    opt => opt.MapFrom(src => src.Products != null
+                        ? src.Products.Count(p => p.Status == ProductStatus.Approved && p.IsVisible == true)
+                        : 0));
+
+            CreateMap<BusinessOwnerProfile, BrandDetailDto>();
+
+            CreateMap<ProductReview, CustomerReviewDto>()
+                .ForMember(dest => dest.CustomerName,
+                    opt => opt.MapFrom(src => src.IsAnonymous ? "Anonymous Customer" : src.CustomerName))
+                .ForMember(dest => dest.PhotoUrls,
+                    opt => opt.MapFrom(src => src.Photos != null
+                        ? src.Photos.OrderBy(p => p.SortOrder).Select(p => p.ImageUrl).ToList()
+                        : new List<string>()));
+
+            // ═══════════════════════════════════════════════════════════
+            // CUSTOMER CART, CHECKOUT, ORDERS, WISHLIST MAPPINGS
+            // ═══════════════════════════════════════════════════════════
+
+            CreateMap<CustomerCartItem, CartItemDto>()
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product.Name))
+                .ForMember(dest => dest.ProductImageUrl, opt => opt.MapFrom(src => src.Product.Images != null && src.Product.Images.Any()
+                    ? src.Product.Images.OrderBy(i => i.SortOrder).First().ImageUrl
+                    : null))
+                .ForMember(dest => dest.SellerName, opt => opt.MapFrom(src => src.Product.BusinessOwner != null
+                    ? src.Product.BusinessOwner.BusinessName
+                    : string.Empty))
+                .ForMember(dest => dest.UnitPrice, opt => opt.MapFrom(src => src.Product.Price))
+                .ForMember(dest => dest.LineTotal, opt => opt.MapFrom(src => src.Product.Price * src.Quantity))
+                .ForMember(dest => dest.StockQuantity, opt => opt.MapFrom(src => src.Product.StockQuantity));
+
+            CreateMap<CustomerCart, CartDto>()
+                .ForMember(dest => dest.Subtotal, opt => opt.Ignore())
+                .ForMember(dest => dest.EstimatedShipping, opt => opt.Ignore())
+                .ForMember(dest => dest.Total, opt => opt.Ignore());
+
+            CreateMap<CustomerOrder, CustomerOrderSummaryDto>()
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.PaymentStatus.ToString()))
+                .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => src.PaymentMethod.ToString()))
+                .ForMember(dest => dest.ItemCount, opt => opt.MapFrom(src => src.Items != null ? src.Items.Sum(i => i.Quantity) : 0));
+
+            CreateMap<CustomerOrder, CustomerOrderDetailDto>()
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.PaymentStatus, opt => opt.MapFrom(src => src.PaymentStatus.ToString()))
+                .ForMember(dest => dest.PaymentMethod, opt => opt.MapFrom(src => src.PaymentMethod.ToString()))
+                .ForMember(dest => dest.Delivery, opt => opt.MapFrom(src => new CheckoutDeliveryDto
+                {
+                    FullName = src.FullName,
+                    PhoneNumber = src.PhoneNumber,
+                    Street = src.Street,
+                    City = src.City,
+                    PostalCode = src.PostalCode,
+                    Country = src.Country
+                }));
+
+            CreateMap<CustomerOrderItem, OrderItemDto>();
+
+            CreateMap<OrderStatusHistory, OrderStatusHistoryDto>()
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
+
+            CreateMap<CustomerWishlist, WishlistDto>();
+
+            CreateMap<CustomerWishlistItem, WishlistItemDto>()
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product.Name))
+                .ForMember(dest => dest.ProductImageUrl, opt => opt.MapFrom(src => src.Product.Images != null && src.Product.Images.Any()
+                    ? src.Product.Images.OrderBy(i => i.SortOrder).First().ImageUrl
+                    : null))
+                .ForMember(dest => dest.ProductPrice, opt => opt.MapFrom(src => src.Product.Price))
+                .ForMember(dest => dest.ProductStockQuantity, opt => opt.MapFrom(src => src.Product.StockQuantity))
+                .ForMember(dest => dest.ProductBrandName, opt => opt.MapFrom(src => src.Product.BusinessOwner != null
+                    ? src.Product.BusinessOwner.BusinessName
+                    : string.Empty));
         }
+
+
+
 
         // <summary>
         /// Calculate human-readable time ago

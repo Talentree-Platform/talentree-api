@@ -68,19 +68,6 @@ namespace Talentree.API.Controllers
         }
 
         /// <summary>
-        /// Accepts Talentree's price quote, authorising production to begin.
-        /// Only allowed when the request is in Quoted status.
-        /// </summary>
-        /// <remarks>POST /api/bo-production-requests/3/confirm</remarks>
-        [HttpPost("{id:int}/confirm")]
-        public async Task<IActionResult> ConfirmQuote(int id)
-        {
-            var result = await _service.ConfirmQuoteAsync(GetBoId(), id);
-            return Ok(ApiResponse<object>.SuccessResponse(result,
-                "Quote confirmed. Talentree will start production shortly."));
-        }
-
-        /// <summary>
         /// Cancels the production request.
         /// Only allowed while the request is in Submitted or Quoted status.
         /// </summary>

@@ -1,4 +1,5 @@
-﻿using Talentree.API.Services;
+using Stripe;
+using Talentree.API.Services;
 using Talentree.Core;
 using Talentree.Core.Repository.Contract;
 using Talentree.Repository;
@@ -9,7 +10,7 @@ namespace Talentree.API.Extentions
 {
     public static class ApplicationServicesExtention
     {
-        public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+        public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -17,8 +18,9 @@ namespace Talentree.API.Extentions
 
             // Auth Service
             services.AddScoped<IAuthService, AuthService>();
-            services.AddScoped<IEmailService, EmailService>();
-            services.AddScoped<ITokenService, TokenService>();
+
+            //services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<ITokenService, Talentree.Service.Services.TokenService>();
 
             // Admin Services
             services.AddScoped<IAdminService, AdminService>();
@@ -26,7 +28,7 @@ namespace Talentree.API.Extentions
             services.AddScoped<IAdminRawMaterialService, AdminRawMaterialService>();
 
             // product service
-            services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IProductService, Talentree.Service.Services.ProductService>();
             services.AddScoped<IImageService, ImageService>();
 
 
@@ -50,8 +52,38 @@ namespace Talentree.API.Extentions
             services.AddScoped<IHubService, HubService>();
             services.AddScoped<INotificationService, NotificationService>();
 
+            // Account Settings and Encryption Services
             services.AddScoped<IAccountSettingsService, AccountSettingsService>();
             services.AddScoped<IEncryptionService, EncryptionService>();
+
+
+            services.AddScoped<ISupportService, SupportService>();
+            services.AddScoped<IFileService, Talentree.Service.Services.FileService>();
+            // Knowledge Base Service
+            services.AddScoped<IKnowledgeService, KnowledgeService>();
+            // Review Service
+            services.AddScoped<IReviewService, Talentree.Service.Services.ReviewService>();
+
+            // Payment Service
+            services.AddScoped<IPaymentService, PaymentService>();
+
+            // Customer Services
+            services.AddScoped<ICartService, CartService>();
+            services.AddScoped<ICustomerOrderService, CustomerOrderService>();
+            services.AddScoped<IWishlistService, WishlistService>();
+
+            // ── Stripe ────────────────────────────────────────────────
+            StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];
+            services.AddScoped<Stripe.PaymentIntentService>();
+
+            // Financial Service 
+            services.AddScoped<IFinancialService, FinancialService>();
+
+            // Payout Service
+            services.AddScoped<IPayoutService, Talentree.Service.Services.PayoutService>();
+
+            // user management service
+            services.AddScoped<IUserManagementService, UserManagementService>();
 
             return services;
         }

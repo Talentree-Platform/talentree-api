@@ -11,10 +11,14 @@ namespace Talentree.API.Controllers
 
 
         private readonly IAuthService _authService;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IAuthService authService)
+        public AuthController(
+            IAuthService authService,
+            ILogger<AuthController> logger)
         {
             _authService = authService;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -36,6 +40,35 @@ namespace Talentree.API.Controllers
                 message: "Business owner registration successful"
             ));
         }
+
+
+        /// <summary>
+        /// Resend Verification Email (NEW)
+        /// </summary>
+        [HttpPost("resend-verification-email")]
+        [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ApiResponse<string>>> ResendVerificationEmail([FromBody] ResendVerificationEmailDto dto)
+        {
+            try
+            {
+                _logger.LogInformation("Resend verification email request for: {Email}", dto.Email);
+
+            //TODO: Implement in AuthService
+            var message = await _authService.ResendVerificationEmailAsync(dto.Email);
+
+                return Ok(ApiResponse<string>.SuccessResponse(
+                    data: "Verification code has been resent to your email",
+                    message: "Check your email for the verification code"
+                ));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during resend verification email");
+                throw;
+            }
+        }
+
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)

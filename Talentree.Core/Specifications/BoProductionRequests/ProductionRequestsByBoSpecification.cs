@@ -108,4 +108,18 @@ namespace Talentree.Core.Specifications.BoProductionRequests
             AddInclude(r => r.StatusHistory);
         }
     }
+
+    /// <summary>
+    /// Looks up a BoProductionRequest by Stripe PaymentIntent ID.
+    /// Includes StatusHistory so the webhook handler can append a history entry.
+    /// No BO scope — webhook has no auth context.
+    /// </summary>
+    public class ProductionRequestByPaymentIntentSpecification : BaseSpecifications<BoProductionRequest>
+    {
+        public ProductionRequestByPaymentIntentSpecification(string paymentIntentId)
+            : base(r => r.StripePaymentIntentId == paymentIntentId)
+        {
+            AddInclude(r => r.StatusHistory);
+        }
+    }
 }

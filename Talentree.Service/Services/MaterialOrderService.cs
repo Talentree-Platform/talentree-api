@@ -64,6 +64,7 @@ namespace Talentree.Service.Services
                 DeliveryCity = dto.DeliveryCity,
                 DeliveryCountry = dto.DeliveryCountry,
                 ContactPhone = dto.ContactPhone,
+                PaymentStatus = PaymentStatus.Unpaid,    
                 Status = MaterialOrderStatus.Pending,
                 Items = basket.Items.Select(i => new MaterialOrderItem
                 {

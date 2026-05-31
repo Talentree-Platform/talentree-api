@@ -46,5 +46,9 @@ namespace Talentree.Core.Entities.Identity
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
         public string? DeletedBy { get; set; }
+
+        // For AI Agents
+        public string? TargetAudience { get; set; }
+        public string? BrandTone { get; set; }
     }
 }

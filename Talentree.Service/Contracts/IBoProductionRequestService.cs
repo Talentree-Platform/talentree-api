@@ -50,14 +50,5 @@ namespace Talentree.Service.Contracts
         Task<ProductionRequestDetailDto> CancelRequestAsync(
             string businessOwnerId, int requestId);
 
-        /// <summary>
-        /// Confirms Talentree's price quote, authorising production to begin.
-        /// Only allowed when the request is in <c>Quoted</c> status.
-        /// Throws <see cref="InvalidOperationException"/> if the request is not in Quoted status.
-        /// </summary>
-        /// <param name="businessOwnerId">The authenticated BO's identity ID.</param>
-        /// <param name="requestId">The request's primary key.</param>
-        Task<ProductionRequestDetailDto> ConfirmQuoteAsync(
-            string businessOwnerId, int requestId);
     }
 }

@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Entities.Identity;
+using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 
 namespace Talentree.Core.Entities
@@ -54,5 +54,12 @@ namespace Talentree.Core.Entities
         public DateTime? DeletedAt { get; set; }
         public string? DeletedBy { get; set; }
 
+
+
+        public bool IsVisible { get; set; } = true;
+
+        // Homepage curation (FR-CU-04)
+        public bool IsFeatured { get; set; } = false;
+        public int FeaturedOrder { get; set; } = 0;
     }
 }
