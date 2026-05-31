@@ -27,19 +27,21 @@ namespace Talentree.Service.Services
         private readonly IImageService _imageService;
         private readonly INotificationService _notificationService;
         private readonly UserManager<AppUser> _userManager;
-
+        private readonly IAIService _aiService;
         public ReviewService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IImageService imageService,
             INotificationService notificationService,
-            UserManager<AppUser> userManager)
+            UserManager<AppUser> userManager,
+            IAIService aiService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _imageService = imageService;
             _notificationService = notificationService;
             _userManager = userManager;
+            _aiService = aiService;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -144,7 +146,8 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<ProductReview>().Update(review);
             await _unitOfWork.CompleteAsync();
-
+            
+            _ = Task.Run(() => _aiService.PredictSentimentAsync(review.Id));
             return MapToDto(review);
         }
 
