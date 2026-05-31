@@ -85,6 +85,12 @@ namespace Talentree.API.Extentions
             // user management service
             services.AddScoped<IUserManagementService, UserManagementService>();
 
+            // Register HttpClient for AI service
+            services.AddHttpClient<IAIService, AIService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+
             return services;
         }
 
