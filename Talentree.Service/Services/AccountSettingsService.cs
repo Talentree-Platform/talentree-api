@@ -7,6 +7,7 @@ using Talentree.Core;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
+using Talentree.Core.Specifications;
 using Talentree.Core.Specifications.AccountSettingsSpecifications;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
 using Talentree.Service.Contracts;
@@ -23,6 +24,7 @@ namespace Talentree.Service.Services
         private readonly IEncryptionService _encryptionService;
         private readonly IAIService _aiService;
         private readonly ITokenService _tokenService;
+        private readonly IEmailService _emailService;
 
         private readonly INotificationService _notificationService;  
         private readonly ILogger<AccountSettingsService> _logger;
@@ -34,7 +36,8 @@ namespace Talentree.Service.Services
             IAIService aiService,
             INotificationService notificationService,  
             ILogger<AccountSettingsService> logger,
-            ITokenService tokenService)    
+            ITokenService tokenService,
+            IEmailService emailService)    
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
@@ -44,6 +47,7 @@ namespace Talentree.Service.Services
             _notificationService = notificationService;  
             _logger = logger;
             _tokenService = tokenService;
+            _emailService = emailService;
         }
 
         // ─────────────────────────────────────────────
@@ -154,10 +158,9 @@ namespace Talentree.Service.Services
             // Email change — send OTP (handled separately via FR-BO-32 email verification flow)
             // We don't change email here directly — we send OTP first
             if (!string.IsNullOrEmpty(dto.NewEmail) &&
-                !dto.NewEmail.Equals(user.Email, StringComparison.OrdinalIgnoreCase))
+    !dto.NewEmail.Equals(user.Email, StringComparison.OrdinalIgnoreCase))
             {
-                // TODO: trigger OTP email verification flow (reuse existing IEmailService + OtpCode)
-                // For now return profile without changing email
+                await RequestEmailChangeAsync(userId, dto.NewEmail);
             }
 
             return await GetProfileAsync(userId);
@@ -414,5 +417,73 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
             return await GetPreferencesAsync(userId);
         }
+        // ─────────────────────────────────────────────
+        // FR-BO-32: Request Email Change → sends OTP
+        // ─────────────────────────────────────────────
+        public async Task RequestEmailChangeAsync(string userId, string newEmail)
+        {
+            var user = await _userManager.FindByIdAsync(userId)
+                ?? throw new NotFoundException("User not found");
+
+            // Check new email not already taken
+            var existing = await _userManager.FindByEmailAsync(newEmail);
+            if (existing != null)
+                throw new BadRequestException("This email is already registered");
+
+            // Generate OTP and save with purpose = ChangeEmail
+            var otpCode = GenerateOtpCode();
+
+            var otpEntity = new OtpCode
+            {
+                UserId = userId,
+                Code = otpCode,
+                Purpose = OtpPurpose.EmailVerification,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _unitOfWork.Repository<OtpCode>().Add(otpEntity);
+            await _unitOfWork.CompleteAsync();
+
+            // Send OTP to the NEW email
+            await _emailService.SendOtpAsync(newEmail, otpCode, OtpPurpose.EmailVerification);
+        }
+
+        // ─────────────────────────────────────────────
+        // FR-BO-32: Confirm Email Change with OTP
+        // ─────────────────────────────────────────────
+        public async Task ConfirmEmailChangeAsync(string userId, string otpCode, string newEmail)
+        {
+            var user = await _userManager.FindByIdAsync(userId)
+                ?? throw new NotFoundException("User not found");
+
+            // Validate OTP
+            var spec = new OtpCodeSpecification(userId, otpCode, OtpPurpose.EmailVerification);
+            var otpEntity = await _unitOfWork.Repository<OtpCode>()
+                .GetByIdWithSpecificationsAsync(spec);
+
+            if (otpEntity == null || !otpEntity.IsValid)
+                throw new BadRequestException("Invalid or expired verification code");
+
+            // Change the email
+            var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
+            var result = await _userManager.ChangeEmailAsync(user, newEmail, token);
+
+            if (!result.Succeeded)
+                throw new BadRequestException(result.Errors.First().Description);
+
+            // Update username too (since username = email in this project)
+            await _userManager.SetUserNameAsync(user, newEmail);
+
+            // Mark OTP as used
+            otpEntity.IsUsed = true;
+            otpEntity.UsedAt = DateTime.UtcNow;
+            _unitOfWork.Repository<OtpCode>().Update(otpEntity);
+            await _unitOfWork.CompleteAsync();
+        }
+
+        // Helper
+        private static string GenerateOtpCode()
+            => Random.Shared.Next(100000, 999999).ToString();
     }
 }
