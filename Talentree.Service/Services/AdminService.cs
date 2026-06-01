@@ -2,6 +2,7 @@
 
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
@@ -23,19 +24,26 @@ namespace Talentree.Service.Services
         private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
+        private readonly INotificationHelperService _notificationHelper;
+        private readonly ILogger<AdminService> _logger;
 
         public AdminService(
             IUnitOfWork unitOfWork,
             UserManager<AppUser> userManager,
             IEmailService emailService,
             IMapper mapper,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            INotificationHelperService notificationHelper,
+            ILogger<AdminService> logger
+            )
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
             _emailService = emailService;
             _mapper = mapper;
             _notificationService = notificationService;
+            _notificationHelper = notificationHelper;
+            _logger = logger;
         }
 
         public async Task<Pagination<BusinessOwnerApplicationDto>> GetPendingBusinessOwnersAsync(
@@ -103,6 +111,11 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
 
             await SendApprovalEmailAsync(profile.User);
+            // ✅ ADD NOTIFICATION
+            await _notificationHelper.NotifyBusinessOwnerApproved(profile.UserId);
+
+            _logger.LogInformation("Business owner application {ProfileId} approved by admin {AdminId}",
+                dto.ProfileId, adminUserId);
         }
 
         public async Task RejectBusinessOwnerAsync(RejectBusinessOwnerDto dto, string adminUserId)
@@ -128,7 +141,11 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<BusinessOwnerProfile>().Update(profile);
             await _unitOfWork.CompleteAsync();
+            // ✅ ADD NOTIFICATION
+            await _notificationHelper.NotifyBusinessOwnerRejected(profile.UserId, dto.RejectionReason);
 
+            _logger.LogInformation("Business owner application {ProfileId} rejected by admin {AdminId}. Reason: {Reason}",
+                dto.ProfileId, adminUserId, dto.RejectionReason);
             await SendRejectionEmailAsync(profile.User, dto.RejectionReason);
         }
 
@@ -256,6 +273,21 @@ namespace Talentree.Service.Services
 
             // 3 Assign Admin role
             await _userManager.AddToRoleAsync(user, "Admin");
+            // ✅ ADD NOTIFICATION
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = user.Id,
+                Type = NotificationType.Account,
+                Title = "Welcome to Talentree Admin Team! 👋",
+                Message = $"Your admin account has been created. You can now log in to the admin dashboard.",
+                ActionUrl = "/admin/dashboard",
+                ActionText = "Go to Dashboard",
+                Priority = NotificationPriority.High,
+                SendEmail = true,
+                RelatedEntityType = "Account"
+            });
+
+            _logger.LogInformation("New admin created: {Email}", dto.Email);
 
             // Return admin details
             return new AdminDto
@@ -300,6 +332,22 @@ namespace Talentree.Service.Services
             // Deactivate
             admin.IsActive = false;
             await _userManager.UpdateAsync(admin);
+            // ✅ ADD NOTIFICATION
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = adminUserId,
+                Type = NotificationType.Account,
+                Title = "Account Deactivated 🔒",
+                Message = "Your admin account has been deactivated. Please contact the system administrator if this was unexpected.",
+                ActionUrl = "/support",
+                ActionText = "Contact Support",
+                Priority = NotificationPriority.High,
+                SendEmail = true,
+                RelatedEntityType = "Account"
+            });
+
+            _logger.LogInformation("Admin {AdminId} deactivated", adminUserId);
+
         }
 
         public async Task ReactivateAdminAsync(string adminUserId)
@@ -316,6 +364,23 @@ namespace Talentree.Service.Services
             // Reactivate
             admin.IsActive = true;
             await _userManager.UpdateAsync(admin);
+
+            // ✅ ADD NOTIFICATION
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = adminUserId,
+                Type = NotificationType.Account,
+                Title = "Account Reactivated ✅",
+                Message = "Your admin account has been reactivated. You can now access the admin dashboard.",
+                ActionUrl = "/admin/dashboard",
+                ActionText = "Go to Dashboard",
+                Priority = NotificationPriority.High,
+                SendEmail = true,
+                RelatedEntityType = "Account"
+            });
+
+            _logger.LogInformation("Admin {AdminId} reactivated", adminUserId);
+
         }
 
 
@@ -381,6 +446,11 @@ namespace Talentree.Service.Services
                 Priority = NotificationPriority.High,
                 SendEmail = true
             });
+
+
+
+            _logger.LogInformation("Product {ProductId} approved by admin {AdminId}. Owner: {OwnerId}",
+                dto.ProductId, adminId, product.BusinessOwner.UserId);
         }
 
         /// <summary>
@@ -422,6 +492,11 @@ namespace Talentree.Service.Services
                 Priority = NotificationPriority.High,
                 SendEmail = true
             });
+
+
+
+            _logger.LogInformation("Product {ProductId} rejected by admin {AdminId}. Reason: {Reason}",
+                dto.ProductId, adminId, dto.Reason);
         }
     }
 }
