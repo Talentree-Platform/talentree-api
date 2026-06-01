@@ -1,32 +1,58 @@
-﻿
+﻿using Talentree.Core.Enums;
+
 namespace Talentree.Service.DTOs.Notification
 {
+    /// <summary>
+    /// Response DTO for notification preferences
+    /// Shows user's notification settings
+    /// </summary>
     public class NotificationPreferenceDto
     {
-        // In-app notifications
-        public bool EnableSystemNotifications { get; set; }
-        public bool EnableOrderNotifications { get; set; }
-        public bool EnableFinancialNotifications { get; set; }
-        public bool EnableSupportNotifications { get; set; }
-        public bool EnableProductNotifications { get; set; }
+        public int Id { get; set; }
+        public string UserId { get; set; } = null!;
 
-        // Email notifications
-        public bool EmailSystemNotifications { get; set; }
-        public bool EmailOrderNotifications { get; set; }
-        public bool EmailFinancialNotifications { get; set; }
-        public bool EmailSupportNotifications { get; set; }
-        public bool EmailProductNotifications { get; set; }
+        // ═══════════════════════════════════════════════════════════
+        // NOTIFICATION TYPE PREFERENCES
+        // ═══════════════════════════════════════════════════════════
 
-        // Real-time
-        public bool EnableRealTimeNotifications { get; set; }
+        public bool ReceiveAccountNotifications { get; set; } = true;
+        public bool ReceiveOrderNotifications { get; set; } = true;
+        public bool ReceiveProductNotifications { get; set; } = true;
+        public bool ReceiveSupportNotifications { get; set; } = true;
+        public bool ReceivePaymentNotifications { get; set; } = true;
+        public bool ReceiveReviewNotifications { get; set; } = true;
+        public bool ReceiveProductionNotifications { get; set; } = true;
+        public bool ReceivePayoutNotifications { get; set; } = true;
+        public bool ReceiveComplaintNotifications { get; set; } = true;
+        public bool ReceiveAutoBlockNotifications { get; set; } = true;
 
-        // Quiet hours
-        public bool EnableQuietHours { get; set; }
-        public TimeSpan? QuietHoursStart { get; set; }
-        public TimeSpan? QuietHoursEnd { get; set; }
+        // ═══════════════════════════════════════════════════════════
+        // DELIVERY METHOD PREFERENCES
+        // ═══════════════════════════════════════════════════════════
 
-        // Sound
-        public string NotificationSound { get; set; } = "default";
-        public bool EnableSound { get; set; }
+        public bool ReceiveInApp { get; set; } = true;
+        public bool ReceiveEmail { get; set; } = true;
+        public bool ReceivePush { get; set; } = false;
+
+        // ═══════════════════════════════════════════════════════════
+        // FILTERING
+        // ═══════════════════════════════════════════════════════════
+
+        public NotificationPriority MinimumPriority { get; set; } = NotificationPriority.Low;
+
+        // ═══════════════════════════════════════════════════════════
+        // QUIET HOURS
+        // ═══════════════════════════════════════════════════════════
+
+        public bool EnableQuietHours { get; set; } = false;
+        public TimeOnly? QuietHoursStart { get; set; }
+        public TimeOnly? QuietHoursEnd { get; set; }
+
+        // ═══════════════════════════════════════════════════════════
+        // TIMESTAMPS
+        // ═══════════════════════════════════════════════════════════
+
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
     }
 }

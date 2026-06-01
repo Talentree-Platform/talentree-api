@@ -1,134 +1,109 @@
-﻿
+﻿using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 
 namespace Talentree.Core.Entities
 {
     /// <summary>
-    /// Represents a notification sent to a user
-    /// Supports in-app, email, and real-time delivery via SignalR
+    /// In-app notification entity
+    /// Stores all notifications for users
+    /// Supports filtering, marking as read, and deletion
     /// </summary>
-    public class Notification : AuditableEntity
+    public class Notification : BaseEntity
     {
         // ═══════════════════════════════════════════════════════════
-        // RECIPIENT
+        // OWNERSHIP
         // ═══════════════════════════════════════════════════════════
 
         /// <summary>
-        /// User ID who receives this notification
-        /// FK to AspNetUsers.Id
+        /// User who receives this notification
         /// </summary>
         public string UserId { get; set; } = null!;
 
         /// <summary>
-        /// Navigation property to user
+        /// Navigation property to AppUser
         /// </summary>
-        public AppUser User { get; set; } = null!;
+        public AppUser? User { get; set; }
 
         // ═══════════════════════════════════════════════════════════
-        // CONTENT
+        // NOTIFICATION CONTENT
         // ═══════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Notification type (System, Order, Financial, Support, Product)
+        /// Type of notification (Order, Product, Support, etc)
         /// </summary>
         public NotificationType Type { get; set; }
 
         /// <summary>
-        /// Short notification title
-        /// Example: "New Order Received", "Product Approved"
+        /// Notification title (shown in list)
+        /// Max 255 chars - should be short and descriptive
+        /// Example: "Order Confirmed", "Product Approved"
         /// </summary>
         public string Title { get; set; } = null!;
 
         /// <summary>
-        /// Full notification message
-        /// Example: "You received a new order #12345 for EGP 500.00"
+        /// Detailed message content
+        /// Can be long and include multiple lines
+        /// Shown in detail view and in email
         /// </summary>
         public string Message { get; set; } = null!;
 
         /// <summary>
-        /// Optional action URL (where to navigate when clicked)
-        /// Example: "/orders/12345", "/products/456"
+        /// URL to navigate to (e.g., "/orders/123", "/support/tickets/456")
+        /// Frontend uses this for direct navigation
         /// </summary>
         public string? ActionUrl { get; set; }
 
         /// <summary>
-        /// Optional action button text
-        /// Example: "View Order", "Review Product", "Respond"
+        /// Button text for the action
+        /// If null, frontend uses default "View" or similar
         /// </summary>
         public string? ActionText { get; set; }
 
         // ═══════════════════════════════════════════════════════════
-        // METADATA
+        // RELATED ENTITY TRACKING
         // ═══════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Related entity type (for reference)
-        /// Example: "Order", "Product", "SupportTicket"
+        /// Entity type this notification is about
+        /// Examples: "Order", "Product", "SupportTicket", "ProductionRequest"
+        /// Used for grouping related notifications
         /// </summary>
         public string? RelatedEntityType { get; set; }
 
         /// <summary>
-        /// Related entity ID (for reference)
-        /// Example: Order ID, Product ID, etc.
+        /// ID of the related entity
+        /// Combined with RelatedEntityType to identify the resource
+        /// Example: RelatedEntityType="Order", RelatedEntityId=123
         /// </summary>
         public int? RelatedEntityId { get; set; }
 
+        // ═══════════════════════════════════════════════════════════
+        // PRIORITY & STATUS
+        // ═══════════════════════════════════════════════════════════
+
         /// <summary>
-        /// Additional data in JSON format
-        /// Example: { "orderId": 123, "amount": 500.00, "customerName": "Ahmed" }
+        /// Priority level (Low, Normal, High, Urgent)
+        /// Affects notification styling and user filtering
         /// </summary>
-        public string? Data { get; set; }
-
-        // ═══════════════════════════════════════════════════════════
-        // STATUS & PRIORITY
-        // ═══════════════════════════════════════════════════════════
+        public NotificationPriority Priority { get; set; } = NotificationPriority.Normal;
 
         /// <summary>
-        /// Has user read this notification?
+        /// Whether user has read this notification
         /// </summary>
         public bool IsRead { get; set; } = false;
 
         /// <summary>
-        /// When notification was read
+        /// When user marked this as read (null if unread)
         /// </summary>
         public DateTime? ReadAt { get; set; }
 
-        /// <summary>
-        /// Priority level (Low, Normal, High, Critical)
-        /// Critical bypasses quiet hours
-        /// </summary>
-        public NotificationPriority Priority { get; set; } = NotificationPriority.Normal;
-
         // ═══════════════════════════════════════════════════════════
-        // DELIVERY TRACKING
+        // TIMESTAMPS
         // ═══════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Was email notification sent?
+        /// When notification was created
         /// </summary>
-        public bool EmailSent { get; set; } = false;
-
-        /// <summary>
-        /// When email was sent
-        /// </summary>
-        public DateTime? EmailSentAt { get; set; }
-
-        /// <summary>
-        /// Was real-time notification sent via SignalR?
-        /// </summary>
-        public bool RealTimeSent { get; set; } = false;
-
-        /// <summary>
-        /// When real-time notification was sent
-        /// </summary>
-        public DateTime? RealTimeSentAt { get; set; }
-
-        /// <summary>
-        /// Optional expiration date (auto-delete after)
-        /// Example: Delete system notifications after 30 days
-        /// </summary>
-        public DateTime? ExpiresAt { get; set; }
-
-      
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

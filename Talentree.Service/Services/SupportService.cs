@@ -510,15 +510,15 @@ namespace Talentree.Service.Services
             var adminIds = await GetAllAdminIdsAsync();
             if (!adminIds.Any()) return;
 
-            await _notificationService.SendBulkNotificationAsync(
-                adminIds,
-                NotificationType.Support,
-                "New Support Ticket",
-                $"New {ticket.Category} ticket #{ticket.TicketNumber}: {ticket.Subject}",
-                $"/admin/support/tickets/{ticket.Id}",
-                "View Ticket",
-                NotificationPriority.Normal
-            );
+            //await _notificationService.SendBulkNotificationAsync(
+            //    adminIds,
+            //    NotificationType.Support,
+            //    "New Support Ticket",
+            //    $"New {ticket.Category} ticket #{ticket.TicketNumber}: {ticket.Subject}",
+            //    $"/admin/support/tickets/{ticket.Id}",
+            //    "View Ticket",
+            //    NotificationPriority.Normal
+            //);
         }
 
         private async Task NotifyAdminsNewMessageAsync(SupportTicket ticket, TicketMessage message)
@@ -526,15 +526,15 @@ namespace Talentree.Service.Services
             var adminIds = await GetAllAdminIdsAsync();
             if (!adminIds.Any()) return;
 
-            await _notificationService.SendBulkNotificationAsync(
-                adminIds,
-                NotificationType.Support,
-                "New Ticket Reply",
-                $"Business owner replied to ticket #{ticket.TicketNumber}",
-                $"/admin/support/tickets/{ticket.Id}",
-                "View Ticket",
-                NotificationPriority.Normal
-            );
+            //await _notificationService.SendBulkNotificationAsync(
+            //    adminIds,
+            //    NotificationType.Support,
+            //    "New Ticket Reply",
+            //    $"Business owner replied to ticket #{ticket.TicketNumber}",
+            //    $"/admin/support/tickets/{ticket.Id}",
+            //    "View Ticket",
+            //    NotificationPriority.Normal
+            //);
         }
 
         private async Task NotifyBusinessOwnerStatusChangeAsync(

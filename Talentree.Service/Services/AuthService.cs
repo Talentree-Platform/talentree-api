@@ -4,6 +4,7 @@ using Guidy.Core.Specifications;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
@@ -25,6 +26,8 @@ namespace Talentree.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly IAIService _aiService;
+        private readonly INotificationHelperService _notificationHelper;
+        private readonly ILogger<AuthService> _logger;
         public AuthService(
             UserManager<AppUser> userManager,
             //RoleManager<IdentityRole> roleManager,
@@ -33,7 +36,9 @@ namespace Talentree.Service.Services
             IMapper mapper,
             IUnitOfWork unitOfWork,
             IConfiguration configuration,
-             IAIService aiService)
+             IAIService aiService,
+                INotificationHelperService notificationHelper,
+        ILogger<AuthService> logger)
         {
             _userManager = userManager;
             //_roleManager = roleManager;
@@ -43,6 +48,8 @@ namespace Talentree.Service.Services
             _unitOfWork = unitOfWork;
             _configuration = configuration;
             _aiService = aiService;
+            _notificationHelper = notificationHelper;
+            _logger = logger;
         }
         public async Task<string> RegisterAsync(RegisterDto registerDto)
         {
@@ -78,6 +85,8 @@ namespace Talentree.Service.Services
 
 
             await _emailService.SendOtpAsync(user.Email!, otpCode , OtpPurpose.EmailVerification );
+            // add notification for new registration
+            await _notificationHelper.NotifyUserRegistered(user.Id);
 
             return "Registration successful. Please check your email for the verification code.";
         }
@@ -294,6 +303,11 @@ namespace Talentree.Service.Services
             await SaveRefreshTokenAsync(user.Id.ToString(), refreshToken);
 
 
+            // ✅ ADD NOTIFICATION
+            await _notificationHelper.NotifyEmailVerified(user.Id);
+
+            _logger.LogInformation("User {UserId} verified email", user.Id);
+
             var userInfo = _mapper.Map<UserInfoDto>(user);
             userInfo.Roles = roles.ToList();
 
@@ -381,6 +395,10 @@ namespace Talentree.Service.Services
             }
 
             await _unitOfWork.CompleteAsync();
+            // ✅ ADD NOTIFICATION
+            await _notificationHelper.NotifyPasswordResetSuccess(user.Id);
+
+            _logger.LogInformation("User {UserId} reset password", user.Id);
         }
 
         // ═══════════════════════════════════════════════════════════

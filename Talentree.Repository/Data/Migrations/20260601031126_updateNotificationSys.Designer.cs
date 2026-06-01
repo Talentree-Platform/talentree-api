@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Talentree.Repository.Data;
 
@@ -11,9 +12,11 @@ using Talentree.Repository.Data;
 namespace Talentree.Repository.Data.Migrations
 {
     [DbContext(typeof(TalentreeDbContext))]
-    partial class TalentreeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260601031126_updateNotificationSys")]
+    partial class updateNotificationSys
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -471,7 +474,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("BoProductionRequests", (string)null);
+                    b.ToTable("BoProductionRequests");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.BoProductionRequestItem", b =>
@@ -518,7 +521,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("PreferredRawMaterialId");
 
-                    b.ToTable("BoProductionRequestItems", (string)null);
+                    b.ToTable("BoProductionRequestItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.BoProductionRequestStatusHistory", b =>
@@ -562,7 +565,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("BoProductionRequestId");
 
-                    b.ToTable("BoProductionRequestStatusHistories", (string)null);
+                    b.ToTable("BoProductionRequestStatusHistories");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Category", b =>
@@ -818,7 +821,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CreatedBy", "CreatedAt")
                         .HasDatabaseName("IX_CustomerCart_CreatedBy_CreatedAt");
 
-                    b.ToTable("CustomerCarts", (string)null);
+                    b.ToTable("CustomerCarts");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerCartItem", b =>
@@ -848,7 +851,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CartId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("CustomerCartItems", (string)null);
+                    b.ToTable("CustomerCartItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerOrder", b =>
@@ -959,7 +962,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CreatedBy", "CreatedAt")
                         .HasDatabaseName("IX_CustomerOrder_CreatedBy_CreatedAt");
 
-                    b.ToTable("CustomerOrders", (string)null);
+                    b.ToTable("CustomerOrders");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerOrderItem", b =>
@@ -1003,7 +1006,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("CustomerOrderItems", (string)null);
+                    b.ToTable("CustomerOrderItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerWishlist", b =>
@@ -1046,7 +1049,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CreatedBy", "CreatedAt")
                         .HasDatabaseName("IX_CustomerWishlist_CreatedBy_CreatedAt");
 
-                    b.ToTable("CustomerWishlists", (string)null);
+                    b.ToTable("CustomerWishlists");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerWishlistItem", b =>
@@ -1075,7 +1078,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("WishlistId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("CustomerWishlistItems", (string)null);
+                    b.ToTable("CustomerWishlistItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.FAQ", b =>
@@ -1762,7 +1765,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CreatedBy", "CreatedAt")
                         .HasDatabaseName("IX_MaterialBasket_CreatedBy_CreatedAt");
 
-                    b.ToTable("MaterialBaskets", (string)null);
+                    b.ToTable("MaterialBaskets");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.MaterialBasketItem", b =>
@@ -1800,7 +1803,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("RawMaterialId");
 
-                    b.ToTable("MaterialBasketItems", (string)null);
+                    b.ToTable("MaterialBasketItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.MaterialOrder", b =>
@@ -1871,7 +1874,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("BusinessOwnerId");
 
-                    b.ToTable("MaterialOrders", (string)null);
+                    b.ToTable("MaterialOrders");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.MaterialOrderItem", b =>
@@ -1912,7 +1915,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("RawMaterialId");
 
-                    b.ToTable("MaterialOrderItems", (string)null);
+                    b.ToTable("MaterialOrderItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Notification", b =>
@@ -2138,7 +2141,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("OrderStatusHistories", (string)null);
+                    b.ToTable("OrderStatusHistories");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.PayoutRequest", b =>
@@ -2215,7 +2218,7 @@ namespace Talentree.Repository.Data.Migrations
                         .IsUnique()
                         .HasFilter("[Status] = 'Pending'");
 
-                    b.ToTable("PayoutRequests", (string)null);
+                    b.ToTable("PayoutRequests");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Product", b =>
@@ -3044,7 +3047,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("BusinessOwnerId", "CreatedAt");
 
-                    b.ToTable("Transactions", (string)null);
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.UserActionLog", b =>
