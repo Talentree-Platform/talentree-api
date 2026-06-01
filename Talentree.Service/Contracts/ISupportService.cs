@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Enums;
+using Talentree.Core.Enums;
 using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Support;
@@ -23,6 +23,8 @@ namespace Talentree.Service.Contracts
         Task UpdateTicketStatusAsync(UpdateTicketStatusDto dto, string adminId);
         Task AssignTicketAsync(AssignTicketDto dto, string assignedBy);
         Task UpdateTicketPriorityAsync(int ticketId, TicketPriority priority, string adminId);
+        Task<TicketDto> GetTicketByIdForAdminAsync(int ticketId);
+        Task<TicketMessageDto> AddAdminMessageAsync(AddTicketMessageDto dto, string adminId);
 
         // FAQ
         Task<List<FAQDto>> GetFAQsAsync(string? category = null);
