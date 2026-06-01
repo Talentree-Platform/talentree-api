@@ -22,6 +22,7 @@ namespace Talentree.Service.Services
         private readonly IImageService _imageService;
         private readonly IEncryptionService _encryptionService;
         private readonly IAIService _aiService;
+        private readonly ITokenService _tokenService;
 
         private readonly INotificationService _notificationService;  
         private readonly ILogger<AccountSettingsService> _logger;
@@ -32,7 +33,8 @@ namespace Talentree.Service.Services
             IEncryptionService encryptionService,
             IAIService aiService,
             INotificationService notificationService,  
-            ILogger<AccountSettingsService> logger)    
+            ILogger<AccountSettingsService> logger,
+            ITokenService tokenService)    
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
@@ -41,6 +43,7 @@ namespace Talentree.Service.Services
             _aiService = aiService;
             _notificationService = notificationService;  
             _logger = logger;
+            _tokenService = tokenService;
         }
 
         // ─────────────────────────────────────────────
@@ -340,38 +343,21 @@ namespace Talentree.Service.Services
             var allTokensSpec = new ActiveRefreshTokensForUserSpecification(userId);
             var tokens = await _unitOfWork.Repository<RefreshToken>()
                 .GetAllWithSpecificationsAsync(allTokensSpec);
-            int revokedCount = 0;
-            var tokenService = null as ITokenService; // injected differently — see note below
-            var currentHash = ""; // we need to keep current token active
+
+            // Hash the current token to compare against stored hashes
+            var currentHash = _tokenService.HashToken(currentRefreshToken);
 
             foreach (var token in tokens)
             {
-                // Revoke all tokens except the current one
-                // (you can hash current token and compare)
-                token.RevokedAt = DateTime.UtcNow;
-                _unitOfWork.Repository<RefreshToken>().Update(token);
-                revokedCount++;         
-            }
-            if (revokedCount > 0)
-            {
-                await _unitOfWork.CompleteAsync();
-
-                // ✅ SEND NOTIFICATION
-                await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                // Keep the current session active — revoke everything else
+                if (token.TokenHash != currentHash)
                 {
-                    UserId = userId,
-                    Type = NotificationType.Account,
-                    Title = "Sessions Revoked 🔒",
-                    Message = $"All other sessions ({revokedCount}) have been revoked. Only this device is active.",
-                    ActionUrl = "/settings/security",
-                    ActionText = "View Active Sessions",
-                    Priority = NotificationPriority.High,
-                    SendEmail = true,
-                    RelatedEntityType = "Account"
-                });
-
-                _logger.LogInformation("User {UserId} revoked {Count} other sessions", userId, revokedCount);
+                    token.RevokedAt = DateTime.UtcNow;
+                    _unitOfWork.Repository<RefreshToken>().Update(token);
+                }
             }
+
+            await _unitOfWork.CompleteAsync();
         }
 
         // ─────────────────────────────────────────────
