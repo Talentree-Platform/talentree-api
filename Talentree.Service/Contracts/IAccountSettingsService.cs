@@ -22,5 +22,8 @@ namespace Talentree.Service.Contracts
         // FR-BO-35: Preferences
         Task<PreferencesDto> GetPreferencesAsync(string userId);
         Task<PreferencesDto> UpdatePreferencesAsync(string userId, UpdatePreferencesDto dto);
+
+        Task RequestEmailChangeAsync(string userId, string newEmail);
+        Task ConfirmEmailChangeAsync(string userId, string otpCode, string newEmail);
     }
 }
