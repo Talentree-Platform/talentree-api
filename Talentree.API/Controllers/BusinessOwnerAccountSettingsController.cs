@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Talentree.API.Models;
@@ -41,6 +41,24 @@ namespace Talentree.API.Controllers
             var result = await _accountSettingsService.UpdateProfileAsync(
                 GetUserId(), dto, dto.ProfilePhoto, dto.BusinessLogo);
             return Ok(ApiResponse<ProfileDto>.SuccessResponse(result, "Profile updated successfully"));
+        }
+
+        // POST: api/business-owner-settings/profile/request-email-change
+        [HttpPost("profile/request-email-change")]
+        public async Task<ActionResult<ApiResponse<object>>> RequestEmailChange(
+            [FromBody] RequestEmailChangeDto dto)
+        {
+            await _accountSettingsService.RequestEmailChangeAsync(GetUserId(), dto.NewEmail);
+            return Ok(ApiResponse<object>.SuccessResponse(message: "Email change OTP sent successfully"));
+        }
+
+        // POST: api/business-owner-settings/profile/confirm-email-change
+        [HttpPost("profile/confirm-email-change")]
+        public async Task<ActionResult<ApiResponse<object>>> ConfirmEmailChange(
+            [FromBody] ConfirmEmailChangeDto dto)
+        {
+            await _accountSettingsService.ConfirmEmailChangeAsync(GetUserId(), dto.OtpCode, dto.NewEmail);
+            return Ok(ApiResponse<object>.SuccessResponse(message: "Email changed successfully"));
         }
 
         // ═══════════════════════════════════════════
