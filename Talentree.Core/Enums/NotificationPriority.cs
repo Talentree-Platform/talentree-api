@@ -1,31 +1,11 @@
 ﻿
 namespace Talentree.Core.Enums
 {
-    /// <summary>
-    /// Priority level of notification
-    /// Determines urgency and delivery behavior
-    /// </summary>
     public enum NotificationPriority
     {
-        /// <summary>
-        /// Low priority - can be ignored or delayed
-        /// </summary>
-        Low = 1,
-
-        /// <summary>
-        /// Normal priority - standard notification
-        /// </summary>
-        Normal = 2,
-
-        /// <summary>
-        /// High priority - should be seen soon
-        /// </summary>
-        High = 3,
-
-        /// <summary>
-        /// Critical - must be seen immediately
-        /// Bypasses quiet hours and user preferences
-        /// </summary>
-        Critical = 4
+        Low = 0,        // Nice to have (system updates, info)
+        Normal = 1,     // Standard notifications (orders, products)
+        High = 2,       // Important (payments, account actions)
+        Urgent = 3      // Critical (bans, auto-blocks, urgent issues)
     }
 }

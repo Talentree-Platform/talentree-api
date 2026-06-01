@@ -1,97 +1,94 @@
-﻿
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
-using Talentree.Repository.Data.Config.Base;
+using Talentree.Core.Enums;
 
 namespace Talentree.Repository.Data.Config
 {
-  
-    public class NotificationPreferenceConfiguration : AuditableEntityConfiguration<NotificationPreference>
+    public class NotificationPreferenceConfig : IEntityTypeConfiguration<NotificationPreference>
     {
-        public override void Configure(EntityTypeBuilder<NotificationPreference> builder)
+        public void Configure(EntityTypeBuilder<NotificationPreference> builder)
         {
-            // Apply base configuration (audit only, no soft delete)
-            base.Configure(builder);
+            builder.HasKey(np => np.Id);
 
-            // ═══════════════════════════════════════════════════════════
-            // TABLE
-            // ═══════════════════════════════════════════════════════════
-
-            builder.ToTable("NotificationPreferences");
-
-            // ═══════════════════════════════════════════════════════════
-            // PROPERTIES
-            // ═══════════════════════════════════════════════════════════
-
-            builder.Property(np => np.UserId)
-                .IsRequired()
-                .HasMaxLength(450);
-
-            // In-app preferences (default: true)
-            builder.Property(np => np.EnableSystemNotifications)
-                .HasDefaultValue(true);
-
-            builder.Property(np => np.EnableOrderNotifications)
-                .HasDefaultValue(true);
-
-            builder.Property(np => np.EnableFinancialNotifications)
-                .HasDefaultValue(true);
-
-            builder.Property(np => np.EnableSupportNotifications)
-                .HasDefaultValue(true);
-
-            builder.Property(np => np.EnableProductNotifications)
-                .HasDefaultValue(true);
-
-            // Email preferences
-            builder.Property(np => np.EmailSystemNotifications)
-                .HasDefaultValue(false);
-
-            builder.Property(np => np.EmailOrderNotifications)
-                .HasDefaultValue(true);
-
-            builder.Property(np => np.EmailFinancialNotifications)
-                .HasDefaultValue(true);
-
-            builder.Property(np => np.EmailSupportNotifications)
-                .HasDefaultValue(true);
-
-            builder.Property(np => np.EmailProductNotifications)
-                .HasDefaultValue(true);
-
-            // Real-time
-            builder.Property(np => np.EnableRealTimeNotifications)
-                .HasDefaultValue(true);
-
-            // Quiet hours
-            builder.Property(np => np.EnableQuietHours)
-                .HasDefaultValue(false);
-
-            // Sound
-            builder.Property(np => np.NotificationSound)
-                .HasMaxLength(50)
-                .HasDefaultValue("default");
-
-            builder.Property(np => np.EnableSound)
-                .HasDefaultValue(true);
-
-            // ═══════════════════════════════════════════════════════════
-            // RELATIONSHIPS
-            // ═══════════════════════════════════════════════════════════
-
+            // User relationship (One-to-One)
             builder.HasOne(np => np.User)
-                .WithOne() // One-to-one
+                .WithOne()
                 .HasForeignKey<NotificationPreference>(np => np.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ═══════════════════════════════════════════════════════════
-            // INDEXES
-            // ═══════════════════════════════════════════════════════════
+            // Table name
+            builder.ToTable("NotificationPreferences");
 
+            // Timestamps
+            builder.Property(np => np.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()")
+                .ValueGeneratedOnAdd();
+
+            builder.Property(np => np.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()")
+                .ValueGeneratedOnAddOrUpdate();
+
+            // ✅ ═══════════════════════════════════════════════════════════
+            // EXPLICIT DATABASE DEFAULTS - IMPORTANT!
+            // ✅ ═══════════════════════════════════════════════════════════
+
+            // All notification types should default to TRUE
+            builder.Property(np => np.ReceiveAccountNotifications)
+                .HasDefaultValue(true);
+
+            builder.Property(np => np.ReceiveOrderNotifications)
+                .HasDefaultValue(true);
+
+            builder.Property(np => np.ReceiveProductNotifications)
+                .HasDefaultValue(true);
+
+            builder.Property(np => np.ReceiveSupportNotifications)
+                .HasDefaultValue(true);
+
+            builder.Property(np => np.ReceivePaymentNotifications)
+                .HasDefaultValue(true);
+
+            builder.Property(np => np.ReceiveReviewNotifications)
+                .HasDefaultValue(true);
+
+            builder.Property(np => np.ReceiveProductionNotifications)
+                .HasDefaultValue(true);
+
+            builder.Property(np => np.ReceivePayoutNotifications)
+                .HasDefaultValue(true);
+
+            builder.Property(np => np.ReceiveComplaintNotifications)
+                .HasDefaultValue(true);
+
+            builder.Property(np => np.ReceiveAutoBlockNotifications)
+                .HasDefaultValue(true);
+
+            // Channel preferences default to TRUE
+            builder.Property(np => np.ReceiveInApp)
+                .HasDefaultValue(true);
+
+            builder.Property(np => np.ReceiveEmail)
+                .HasDefaultValue(true);
+
+            // Push is FALSE by default
+            builder.Property(np => np.ReceivePush)
+                .HasDefaultValue(false);
+
+            // Priority settings
+            builder.Property(np => np.MinimumPriority)
+                .HasDefaultValue(NotificationPriority.Low);
+
+            builder.Property(np => np.EnableQuietHours)
+                .HasDefaultValue(false);
+
+            // Indexes
             builder.HasIndex(np => np.UserId)
-                .IsUnique() // One preference per user
-                .HasDatabaseName("IX_NotificationPreferences_UserId");
+                .IsUnique()
+                .HasDatabaseName("IX_NotificationPreference_UserId_Unique");
+
+            // Index for filtering by user and preference
+            builder.HasIndex(np => new { np.UserId, np.CreatedAt });
         }
     }
 }

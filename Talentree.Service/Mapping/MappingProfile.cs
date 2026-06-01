@@ -364,33 +364,36 @@ namespace Talentree.Service.Mapping
 
 
 
-
             // ═══════════════════════════════════════════════════════════
             // NOTIFICATION MAPPINGS
             // ═══════════════════════════════════════════════════════════
 
+            // ✅ Notification -> NotificationDto
             CreateMap<Notification, NotificationDto>()
+                // Map Type enum to human-readable text
                 .ForMember(dest => dest.TypeText,
                     opt => opt.MapFrom(src => src.Type.ToString()))
+                // Map Priority enum to human-readable text
                 .ForMember(dest => dest.PriorityText,
                     opt => opt.MapFrom(src => src.Priority.ToString()))
+                // Calculate time ago (e.g., "5 minutes ago")
                 .ForMember(dest => dest.TimeAgo,
-                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
+                    opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)))
+                .ReverseMap();
 
+            // ✅ CreateNotificationDto -> Notification
             CreateMap<CreateNotificationDto, Notification>()
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.User, opt => opt.Ignore());
+                .ForMember(dest => dest.IsRead, opt => opt.MapFrom(_ => false))
+                .ForMember(dest => dest.ReadAt, opt => opt.MapFrom(_ => (DateTime?)null))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
 
-            // ═══════════════════════════════════════════════════════════
-            // NOTIFICATION PREFERENCE MAPPINGS
-            // ═══════════════════════════════════════════════════════════
+            // ✅ NotificationPreference -> NotificationPreferenceDto
+            CreateMap<NotificationPreference, NotificationPreferenceDto>()
+                .ReverseMap();
 
-            CreateMap<NotificationPreference, NotificationPreferenceDto>();
-
+            // ✅ UpdateNotificationPreferenceDto -> NotificationPreference
             CreateMap<UpdateNotificationPreferenceDto, NotificationPreference>()
-                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-
+                .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
 
 
             CreateMap<Product, PendingProductDto>()

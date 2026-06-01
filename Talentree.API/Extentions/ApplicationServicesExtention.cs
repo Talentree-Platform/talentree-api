@@ -51,6 +51,7 @@ namespace Talentree.API.Extentions
             // Notification and Hub Services
             services.AddScoped<IHubService, HubService>();
             services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<INotificationHelperService, NotificationHelperService>();
 
             // Account Settings and Encryption Services
             services.AddScoped<IAccountSettingsService, AccountSettingsService>();

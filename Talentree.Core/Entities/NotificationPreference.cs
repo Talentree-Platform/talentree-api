@@ -1,133 +1,146 @@
-﻿
+﻿using Talentree.Core.Entities.Identity;
+using Talentree.Core.Enums;
+
 namespace Talentree.Core.Entities
 {
     /// <summary>
-    /// User's notification preferences
-    /// Controls which notifications to receive and how
-    /// One record per user
+    /// User's notification settings/preferences
+    /// Controls which notifications they receive and how
+    /// Each user has exactly one preference record
     /// </summary>
-    public class NotificationPreference : AuditableEntity
+    public class NotificationPreference : BaseEntity
     {
         // ═══════════════════════════════════════════════════════════
-        // USER REFERENCE
+        // OWNER
         // ═══════════════════════════════════════════════════════════
 
         /// <summary>
-        /// User ID (FK to AspNetUsers)
-        /// One preference record per user
+        /// User who owns these preferences
+        /// One-to-one relationship
         /// </summary>
         public string UserId { get; set; } = null!;
 
         /// <summary>
-        /// Navigation to user
+        /// Navigation property to AppUser
         /// </summary>
-        public AppUser User { get; set; } = null!;
+        public AppUser? User { get; set; }
 
         // ═══════════════════════════════════════════════════════════
-        // IN-APP NOTIFICATION PREFERENCES (by type)
-        // ═══════════════════════════════════════════════════════════
-
-        /// <summary>
-        /// Enable system notifications in-app?
-        /// </summary>
-        public bool EnableSystemNotifications { get; set; } = true;
-
-        /// <summary>
-        /// Enable order notifications in-app?
-        /// </summary>
-        public bool EnableOrderNotifications { get; set; } = true;
-
-        /// <summary>
-        /// Enable financial notifications in-app?
-        /// </summary>
-        public bool EnableFinancialNotifications { get; set; } = true;
-
-        /// <summary>
-        /// Enable support notifications in-app?
-        /// </summary>
-        public bool EnableSupportNotifications { get; set; } = true;
-
-        /// <summary>
-        /// Enable product notifications in-app?
-        /// </summary>
-        public bool EnableProductNotifications { get; set; } = true;
-
-        // ═══════════════════════════════════════════════════════════
-        // EMAIL NOTIFICATION PREFERENCES (by type)
+        // NOTIFICATION TYPE PREFERENCES
         // ═══════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Send system notifications via email?
+        /// Receive account-related notifications (suspend, ban, approve, etc)
         /// </summary>
-        public bool EmailSystemNotifications { get; set; } = false;
+        public bool ReceiveAccountNotifications { get; set; } = true;
 
         /// <summary>
-        /// Send order notifications via email?
+        /// Receive order-related notifications (placed, confirmed, delivered)
         /// </summary>
-        public bool EmailOrderNotifications { get; set; } = true;
+        public bool ReceiveOrderNotifications { get; set; } = true;
 
         /// <summary>
-        /// Send financial notifications via email?
+        /// Receive product-related notifications (created, approved, rejected)
         /// </summary>
-        public bool EmailFinancialNotifications { get; set; } = true;
+        public bool ReceiveProductNotifications { get; set; } = true;
 
         /// <summary>
-        /// Send support notifications via email?
+        /// Receive support ticket notifications
         /// </summary>
-        public bool EmailSupportNotifications { get; set; } = true;
+        public bool ReceiveSupportNotifications { get; set; } = true;
 
         /// <summary>
-        /// Send product notifications via email?
+        /// Receive payment notifications (success, failure)
         /// </summary>
-        public bool EmailProductNotifications { get; set; } = true;
+        public bool ReceivePaymentNotifications { get; set; } = true;
+
+        /// <summary>
+        /// Receive review notifications (new review, response to review)
+        /// </summary>
+        public bool ReceiveReviewNotifications { get; set; } = true;
+
+        /// <summary>
+        /// Receive production request notifications
+        /// </summary>
+        public bool ReceiveProductionNotifications { get; set; } = true;
+
+        /// <summary>
+        /// Receive payout notifications
+        /// </summary>
+        public bool ReceivePayoutNotifications { get; set; } = true;
+
+        /// <summary>
+        /// Receive complaint notifications
+        /// </summary>
+        public bool ReceiveComplaintNotifications { get; set; } = true;
+
+        /// <summary>
+        /// Receive auto-block notifications (critical)
+        /// </summary>
+        public bool ReceiveAutoBlockNotifications { get; set; } = true;
 
         // ═══════════════════════════════════════════════════════════
-        // REAL-TIME (PUSH) PREFERENCES
+        // DELIVERY METHOD PREFERENCES
         // ═══════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Enable real-time push notifications?
-        /// Controls SignalR delivery
+        /// Receive in-app notifications (dashboard/notification center)
         /// </summary>
-        public bool EnableRealTimeNotifications { get; set; } = true;
+        public bool ReceiveInApp { get; set; } = true;
+
+        /// <summary>
+        /// Receive email notifications
+        /// </summary>
+        public bool ReceiveEmail { get; set; } = true;
+
+        /// <summary>
+        /// Receive push notifications (future feature)
+        /// </summary>
+        public bool ReceivePush { get; set; } = false;
 
         // ═══════════════════════════════════════════════════════════
-        // QUIET HOURS
+        // FILTERING OPTIONS
         // ═══════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Enable quiet hours feature?
-        /// During quiet hours, non-critical notifications are suppressed
+        /// Minimum priority level to receive
+        /// Example: if set to "High", only High and Urgent notifications sent
+        /// </summary>
+        public NotificationPriority MinimumPriority { get; set; } = NotificationPriority.Low;
+
+        // ═══════════════════════════════════════════════════════════
+        // QUIET HOURS (NO EMAIL NOTIFICATIONS DURING THIS TIME)
+        // ═══════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Whether quiet hours are enabled
         /// </summary>
         public bool EnableQuietHours { get; set; } = false;
 
         /// <summary>
-        /// Quiet hours start time (24-hour format)
-        /// Example: 22:00 (10 PM)
+        /// Start time for quiet hours (e.g., "22:00")
+        /// Emails not sent between this time and QuietHoursEnd
         /// </summary>
-        public TimeSpan? QuietHoursStart { get; set; }
+        public TimeOnly? QuietHoursStart { get; set; }
 
         /// <summary>
-        /// Quiet hours end time (24-hour format)
-        /// Example: 08:00 (8 AM)
+        /// End time for quiet hours (e.g., "08:00")
+        /// Can span midnight (e.g., 22:00 to 08:00)
         /// </summary>
-        public TimeSpan? QuietHoursEnd { get; set; }
+        public TimeOnly? QuietHoursEnd { get; set; }
 
         // ═══════════════════════════════════════════════════════════
-        // SOUND & UI PREFERENCES
+        // TIMESTAMPS
         // ═══════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Play notification sound?
-        /// (Frontend uses this)
+        /// When preferences were created
         /// </summary>
-        public bool EnableSound { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// Notification sound identifier
-        /// Example: "default", "chime", "bell"
-        /// Frontend plays corresponding sound file
+        /// Last time preferences were modified
         /// </summary>
-        public string NotificationSound { get; set; } = "default";
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }

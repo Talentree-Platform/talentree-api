@@ -1,110 +1,103 @@
-﻿
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
-using Talentree.Repository.Data.Config.Base;
 
 namespace Talentree.Repository.Data.Config
 {
-    
-    public class NotificationConfiguration : AuditableEntityConfiguration<Notification>
+    /// <summary>
+    /// Configuration for Notification entity
+    /// Defines table structure, relationships, and indexes
+    /// </summary>
+    public class NotificationConfig : IEntityTypeConfiguration<Notification>
     {
-        public override void Configure(EntityTypeBuilder<Notification> builder)
+        public void Configure(EntityTypeBuilder<Notification> builder)
         {
-            // Apply base configuration (audit + soft delete)
-            base.Configure(builder);
-
             // ═══════════════════════════════════════════════════════════
-            // TABLE
+            // PRIMARY KEY
             // ═══════════════════════════════════════════════════════════
-
-            builder.ToTable("Notifications");
+            builder.HasKey(n => n.Id);
 
             // ═══════════════════════════════════════════════════════════
             // PROPERTIES
             // ═══════════════════════════════════════════════════════════
 
-            // User
             builder.Property(n => n.UserId)
                 .IsRequired()
                 .HasMaxLength(450);
 
-            // Content
+            builder.Property(n => n.Type)
+                .IsRequired()
+                .HasConversion<int>();
+
             builder.Property(n => n.Title)
                 .IsRequired()
                 .HasMaxLength(255);
 
             builder.Property(n => n.Message)
                 .IsRequired()
-                .HasMaxLength(2000);
+                .HasColumnType("nvarchar(max)");
 
             builder.Property(n => n.ActionUrl)
                 .HasMaxLength(500);
 
             builder.Property(n => n.ActionText)
-                .HasMaxLength(50);
+                .HasMaxLength(100);
 
-            // Metadata
             builder.Property(n => n.RelatedEntityType)
-                .HasMaxLength(50);
-
-            builder.Property(n => n.Data)
-                .HasColumnType("nvarchar(max)"); // JSON data
-
-            // Type & Priority (stored as int)
-            builder.Property(n => n.Type)
-                .HasConversion<int>()
-                .IsRequired();
+                .HasMaxLength(100);
 
             builder.Property(n => n.Priority)
+                .IsRequired()
                 .HasConversion<int>()
                 .HasDefaultValue(NotificationPriority.Normal);
 
-            // Status
             builder.Property(n => n.IsRead)
-                .HasDefaultValue(false)
-                .IsRequired();
+                .IsRequired()
+                .HasDefaultValue(false);
 
-            builder.Property(n => n.EmailSent)
-                .HasDefaultValue(false)
-                .IsRequired();
-
-            builder.Property(n => n.RealTimeSent)
-                .HasDefaultValue(false)
-                .IsRequired();
+            builder.Property(n => n.CreatedAt)
+                .IsRequired()
+                .HasDefaultValueSql("GETUTCDATE()");
 
             // ═══════════════════════════════════════════════════════════
             // RELATIONSHIPS
             // ═══════════════════════════════════════════════════════════
 
             builder.HasOne(n => n.User)
-                .WithMany() // User doesn't need navigation to notifications
+                .WithMany()
                 .HasForeignKey(n => n.UserId)
-                .OnDelete(DeleteBehavior.Cascade); // Delete notifications when user deleted
+                .OnDelete(DeleteBehavior.Cascade);
 
             // ═══════════════════════════════════════════════════════════
-            // INDEXES (Critical for Performance)
+            // INDEXES (for performance)
             // ═══════════════════════════════════════════════════════════
 
-            // Most common query: Get user's unread notifications
-            builder.HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt })
-                .HasDatabaseName("IX_Notifications_UserId_IsRead_CreatedAt")
-                .IncludeProperties(n => new { n.Type, n.Title }); // Covering index
+            // Search notifications by user
+            builder.HasIndex(n => n.UserId)
+                .HasDatabaseName("IX_Notification_UserId");
 
-            // Filter by type
-            builder.HasIndex(n => new { n.UserId, n.Type })
-                .HasDatabaseName("IX_Notifications_UserId_Type");
+            // Find unread notifications quickly
+            builder.HasIndex(n => new { n.UserId, n.IsRead })
+                .HasDatabaseName("IX_Notification_UserId_IsRead");
 
-            // Clean up expired notifications
-            builder.HasIndex(n => n.ExpiresAt)
-                .HasDatabaseName("IX_Notifications_ExpiresAt")
-                .HasFilter("[ExpiresAt] IS NOT NULL");
+            // Sort by creation date
+            builder.HasIndex(n => n.CreatedAt)
+                .HasDatabaseName("IX_Notification_CreatedAt");
 
-            // Related entity lookup
+            // Combined search
+            builder.HasIndex(n => new { n.UserId, n.CreatedAt })
+                .HasDatabaseName("IX_Notification_UserId_CreatedAt");
+
+            // Find related entity notifications
             builder.HasIndex(n => new { n.RelatedEntityType, n.RelatedEntityId })
-                .HasDatabaseName("IX_Notifications_RelatedEntity")
-                .HasFilter("[RelatedEntityType] IS NOT NULL");
+                .HasDatabaseName("IX_Notification_RelatedEntity");
+
+            // ═══════════════════════════════════════════════════════════
+            // TABLE NAME
+            // ═══════════════════════════════════════════════════════════
+
+            builder.ToTable("Notifications");
         }
     }
 }

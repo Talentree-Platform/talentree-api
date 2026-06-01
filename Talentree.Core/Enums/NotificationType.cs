@@ -2,13 +2,16 @@
 {
     public enum NotificationType
     {
-        System = 1,
-        Order = 2,
-        Product = 3,
-        Support = 4,
-        Payment = 5,
-        Review = 6,
-        Account = 7 ,
-        Financial = 8,
+        System = 0,                 // System announcements, maintenance
+        Account = 1,                // Account actions (suspend, ban, approve, etc)
+        Order = 2,                  // Order placement, confirmation, delivery
+        Product = 3,                // Product approval, rejection, review
+        Support = 4,                // Support ticket updates
+        Payment = 5,                // Payment success/failure
+        Review = 6,                 // Customer review responses
+        ProductionRequest = 7,      // Production workflow
+        Payout = 8,                 // Payout updates
+        Complaint = 9,              // Complaint resolution
+        AutoBlock = 10              // Automatic blocking notifications
     }
 }
