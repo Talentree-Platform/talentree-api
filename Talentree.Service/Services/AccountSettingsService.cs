@@ -349,6 +349,7 @@ namespace Talentree.Service.Services
 
             // Hash the current token to compare against stored hashes
             var currentHash = _tokenService.HashToken(currentRefreshToken);
+            int revokedCount = 0;
 
             foreach (var token in tokens)
             {
@@ -360,7 +361,31 @@ namespace Talentree.Service.Services
                 }
             }
 
-            await _unitOfWork.CompleteAsync();
+            if (revokedCount > 0)
+            {
+                await _unitOfWork.CompleteAsync();
+
+                // ✅ SEND NOTIFICATION
+                await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                {
+                    UserId = userId,
+                    Type = NotificationType.Account,
+                    Title = "Sessions Revoked 🔒",
+                    Message = $"All other sessions ({revokedCount}) have been revoked. Only this device is active.",
+                    ActionUrl = "/settings/security",
+                    ActionText = "View Active Sessions",
+                    Priority = NotificationPriority.High,
+                    SendEmail = true,
+                    RelatedEntityType = "Account"
+                });
+
+                _logger.LogInformation("User {UserId} revoked {Count} other sessions", userId, revokedCount);
+            }
+            else
+            {
+                _logger.LogInformation("User {UserId} has no other active sessions to revoke", userId);
+            }
+
         }
 
         // ─────────────────────────────────────────────
@@ -447,6 +472,23 @@ namespace Talentree.Service.Services
 
             // Send OTP to the NEW email
             await _emailService.SendOtpAsync(newEmail, otpCode, OtpPurpose.EmailVerification);
+
+            // ✅ SEND NOTIFICATION - In-app only (email notification is the OTP email itself)
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = userId,
+                Type = NotificationType.Account,
+                Title = "Email Change Requested 📧",
+                Message = $"A verification code has been sent to {newEmail}. Please confirm within 5 minutes.",
+                ActionUrl = "/settings/verify-email",
+                ActionText = "Verify Email",
+                Priority = NotificationPriority.High,
+                SendEmail = false,  // Email already sent via OTP
+                RelatedEntityType = "Account"
+            });
+
+            _logger.LogInformation("Email change requested for user {UserId} to {NewEmail}", userId, newEmail);
+
         }
 
         // ─────────────────────────────────────────────
@@ -480,6 +522,20 @@ namespace Talentree.Service.Services
             otpEntity.UsedAt = DateTime.UtcNow;
             _unitOfWork.Repository<OtpCode>().Update(otpEntity);
             await _unitOfWork.CompleteAsync();
+
+            // ✅ SEND NOTIFICATION
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = userId,
+                Type = NotificationType.Account,
+                Title = "Email Changed Successfully ✅",
+                Message = $"Your email has been changed to {newEmail}. You can now log in with the new email.",
+                ActionUrl = "/settings/profile",
+                ActionText = "View Profile",
+                Priority = NotificationPriority.High,
+                SendEmail = true,
+                RelatedEntityType = "Account"
+            });
         }
 
         // Helper
