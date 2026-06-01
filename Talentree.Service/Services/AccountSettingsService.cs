@@ -2,13 +2,16 @@
 using Guidy.Core.Specifications;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities.Identity;
+using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.AccountSettingsSpecifications;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.AccountSettings;
+using Talentree.Service.DTOs.Notification;
 
 namespace Talentree.Service.Services
 {
@@ -19,18 +22,25 @@ namespace Talentree.Service.Services
         private readonly IImageService _imageService;
         private readonly IEncryptionService _encryptionService;
         private readonly IAIService _aiService;
+
+        private readonly INotificationService _notificationService;  
+        private readonly ILogger<AccountSettingsService> _logger;
         public AccountSettingsService(
             IUnitOfWork unitOfWork,
             UserManager<AppUser> userManager,
             IImageService imageService,
             IEncryptionService encryptionService,
-            IAIService aiService)
+            IAIService aiService,
+            INotificationService notificationService,  
+            ILogger<AccountSettingsService> logger)    
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
             _imageService = imageService;
             _encryptionService = encryptionService;
             _aiService = aiService;
+            _notificationService = notificationService;  
+            _logger = logger;
         }
 
         // ─────────────────────────────────────────────
@@ -202,6 +212,7 @@ namespace Talentree.Service.Services
                 .GetByIdWithSpecificationsAsync(spec);
 
             var encrypted = _encryptionService.Encrypt(dto.AccountNumber);
+            bool isNewPaymentInfo = existing == null;
 
             if (existing == null)
             {
@@ -228,6 +239,45 @@ namespace Talentree.Service.Services
             }
 
             await _unitOfWork.CompleteAsync();
+
+            // ✅ SEND NOTIFICATION
+            if (isNewPaymentInfo)
+            {
+                await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                {
+                    UserId = userId,
+                    Type = NotificationType.Account,
+                    Title = "Payment Information Added ✅",
+                    Message = $"Your bank account ({dto.BankName}) has been added successfully.",
+                    ActionUrl = "/settings/payment",
+                    ActionText = "View Payment Info",
+                    Priority = NotificationPriority.Normal,
+                    SendEmail = false,
+                    RelatedEntityType = "PaymentInfo"
+                });
+
+                _logger.LogInformation("New payment info added for user {UserId}", userId);
+            }
+            else
+            {
+                await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                {
+                    UserId = userId,
+                    Type = NotificationType.Account,
+                    Title = "Payment Information Updated ✅",
+                    Message = $"Your bank account ({dto.BankName}) has been updated successfully.",
+                    ActionUrl = "/settings/payment",
+                    ActionText = "View Payment Info",
+                    Priority = NotificationPriority.Normal,
+                    SendEmail = false,
+                    RelatedEntityType = "PaymentInfo"
+                });
+
+                _logger.LogInformation("Payment info updated for user {UserId}", userId);
+            }
+
+
+
         }
 
         // ─────────────────────────────────────────────
@@ -246,8 +296,22 @@ namespace Talentree.Service.Services
 
             if (!result.Succeeded)
                 throw new BadRequestException(result.Errors.First().Description);
-        }
+            // ✅ SEND NOTIFICATION
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = userId,
+                Type = NotificationType.Account,
+                Title = "Password Changed ✅",
+                Message = "Your password has been changed successfully. If you didn't make this change, please contact support immediately.",
+                ActionUrl = "/settings/security",
+                ActionText = "View Security Settings",
+                Priority = NotificationPriority.High,
+                SendEmail = true,
+                RelatedEntityType = "Account"
+            });
 
+            _logger.LogInformation("User {UserId} changed password successfully", userId);
+        }
         // ─────────────────────────────────────────────
         // FR-BO-34: Get Login History
         // ─────────────────────────────────────────────
@@ -276,7 +340,7 @@ namespace Talentree.Service.Services
             var allTokensSpec = new ActiveRefreshTokensForUserSpecification(userId);
             var tokens = await _unitOfWork.Repository<RefreshToken>()
                 .GetAllWithSpecificationsAsync(allTokensSpec);
-
+            int revokedCount = 0;
             var tokenService = null as ITokenService; // injected differently — see note below
             var currentHash = ""; // we need to keep current token active
 
@@ -286,9 +350,28 @@ namespace Talentree.Service.Services
                 // (you can hash current token and compare)
                 token.RevokedAt = DateTime.UtcNow;
                 _unitOfWork.Repository<RefreshToken>().Update(token);
+                revokedCount++;         
             }
+            if (revokedCount > 0)
+            {
+                await _unitOfWork.CompleteAsync();
 
-            await _unitOfWork.CompleteAsync();
+                // ✅ SEND NOTIFICATION
+                await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                {
+                    UserId = userId,
+                    Type = NotificationType.Account,
+                    Title = "Sessions Revoked 🔒",
+                    Message = $"All other sessions ({revokedCount}) have been revoked. Only this device is active.",
+                    ActionUrl = "/settings/security",
+                    ActionText = "View Active Sessions",
+                    Priority = NotificationPriority.High,
+                    SendEmail = true,
+                    RelatedEntityType = "Account"
+                });
+
+                _logger.LogInformation("User {UserId} revoked {Count} other sessions", userId, revokedCount);
+            }
         }
 
         // ─────────────────────────────────────────────

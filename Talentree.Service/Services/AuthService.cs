@@ -458,6 +458,9 @@ namespace Talentree.Service.Services
 
                 // Assign Customer role
                 await _userManager.AddToRoleAsync(user, "Customer");
+                // ✅ SEND NOTIFICATION FOR NEW USER
+                await _notificationHelper.NotifyUserRegistered(user.Id);
+
             }
 
             // Get user roles
@@ -528,6 +531,9 @@ namespace Talentree.Service.Services
 
                 // Assign Customer role
                 await _userManager.AddToRoleAsync(user, "Customer");
+                // ✅ SEND NOTIFICATION FOR NEW USER
+                await _notificationHelper.NotifyUserRegistered(user.Id);
+
             }
 
             // Get user roles
@@ -664,8 +670,8 @@ namespace Talentree.Service.Services
             await SaveOtpCodeAsync(user.Id, otpCode, OtpPurpose.EmailVerification);
             await _emailService.SendOtpAsync(user.Email!, otpCode, OtpPurpose.EmailVerification);
 
-            // 8️⃣ Notify admin (TODO)
-            // await _emailService.NotifyAdminNewBusinessOwnerAsync(businessProfile);
+            // ✅ SEND NOTIFICATION
+            await _notificationHelper.NotifyUserRegistered(user.Id);
 
             return "Business owner registration successful. Please check your email for verification code.";
         }
