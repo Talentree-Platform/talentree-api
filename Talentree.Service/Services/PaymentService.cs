@@ -1,13 +1,15 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Stripe;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
 using Talentree.Core.Specifications.BoProductionRequests;
 using Talentree.Core.Specifications.MaterialOrders;
-using Talentree.Core.Specifications.Transactions;
 using Talentree.Core.Specifications.OrderSpecifications;
+using Talentree.Core.Specifications.Transactions;
 using Talentree.Service.Contracts;
+using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.Payment;
 
 namespace Talentree.Service.Services
@@ -22,15 +24,24 @@ namespace Talentree.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly PaymentIntentService _stripeIntentService;
         private readonly IConfiguration _configuration;
+        private readonly INotificationService _notificationService;  
+        private readonly ILogger<PaymentService> _logger;
+        private readonly INotificationHelperService _notificationHelper;
 
         public PaymentService(
             IUnitOfWork unitOfWork,
             PaymentIntentService stripeIntentService,
-            IConfiguration configuration)
+            IConfiguration configuration, 
+            INotificationService notificationService,
+            ILogger<PaymentService> logger,
+            INotificationHelperService notificationHelper )
         {
             _unitOfWork = unitOfWork;
             _stripeIntentService = stripeIntentService;
             _configuration = configuration;
+            _notificationService = notificationService;
+            _logger = logger;
+            _notificationHelper = notificationHelper;
         }
 
         // ── BO endpoints ───────────────────────────────────────
@@ -213,6 +224,40 @@ namespace Talentree.Service.Services
                     intentId: intent.Id);
 
                 // TODO: send BO notification — order payment confirmed
+                if (order is not null)
+                {
+                    order.PaymentStatus = PaymentStatus.Paid;
+
+                    await CreateTransactionAsync(
+                        boId: order.BusinessOwnerId,
+                        type: TransactionType.MaterialPurchase,
+                        amount: -order.TotalAmount,
+                        description: $"Raw material order #{order.Id}",
+                        referenceId: order.Id,
+                        referenceType: "MaterialOrder",
+                        intentId: intent.Id);
+
+                    // ✅ ADD NOTIFICATION
+                    await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                    {
+                        UserId = order.BusinessOwnerId,
+                        Type = NotificationType.Payment,
+                        Title = "Payment Successful ✅",
+                        Message = $"Your material order #{order.Id} payment confirmed. Total: {order.TotalAmount} EGP.",
+                        ActionUrl = $"/material-orders/{order.Id}",
+                        ActionText = "View Order",
+                        Priority = NotificationPriority.High,
+                        SendEmail = true,
+                        RelatedEntityType = "MaterialOrder",
+                        RelatedEntityId = order.Id
+                    });
+
+                    _logger.LogInformation("MaterialOrder {OrderId} payment succeeded via Stripe. Amount: {Amount}",
+                        order.Id, order.TotalAmount);
+
+                    await _unitOfWork.CompleteAsync();
+                    return;
+                }
                 return;
             }
 
@@ -243,6 +288,56 @@ namespace Talentree.Service.Services
                     intentId: intent.Id);
 
                 // TODO: notify BO (confirmed) + Admin (ready to start production)
+                if (request is not null)
+                {
+                    request.PaymentStatus = PaymentStatus.Paid;
+                    request.Status = BoProductionRequestStatus.Confirmed;
+                    request.StatusHistory.Add(new BoProductionRequestStatusHistory
+                    {
+                        Status = BoProductionRequestStatus.Confirmed,
+                        ChangedByUserId = "stripe-webhook",
+                        Notes = $"Quote confirmed — payment received via Stripe (Intent: {intent.Id}).",
+                        CreatedAt = DateTime.UtcNow
+                    });
+
+                    await CreateTransactionAsync(
+                        boId: request.BusinessOwnerId,
+                        type: TransactionType.ProductionRequest,
+                        amount: -request.QuotedPrice!.Value,
+                        description: $"Production request #{request.Id} — {request.Title}",
+                        referenceId: request.Id,
+                        referenceType: "ProductionRequest",
+                        intentId: intent.Id);
+
+                    // ✅ ADD NOTIFICATION TO BUSINESS OWNER
+                    await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                    {
+                        UserId = request.BusinessOwnerId,
+                        Type = NotificationType.Payment,
+                        Title = "Production Request Confirmed ✅",
+                        Message = $"Your production request #{request.Id} payment confirmed. Status: Confirmed. We'll start production shortly.",
+                        ActionUrl = $"/production-requests/{request.Id}",
+                        ActionText = "View Request",
+                        Priority = NotificationPriority.High,
+                        SendEmail = true,
+                        RelatedEntityType = "ProductionRequest",
+                        RelatedEntityId = request.Id
+                    });
+
+                    // ✅ NOTIFY ADMIN
+                    await _notificationHelper.NotifyAllAdmins(
+                        "Production Request Payment Received",
+                        $"Production request #{request.Id} payment confirmed. Ready to start production.",
+                        NotificationType.Payment,
+                        $"/admin/production-requests/{request.Id}"
+                    );
+
+                    _logger.LogInformation("ProductionRequest {RequestId} payment succeeded via Stripe. Amount: {Amount}",
+                        request.Id, request.QuotedPrice.Value);
+
+                    await _unitOfWork.CompleteAsync();
+                    return;
+                }
                 return;
             }
 
@@ -284,6 +379,75 @@ namespace Talentree.Service.Services
                 }
 
                 await _unitOfWork.CompleteAsync();
+
+
+                if (customerOrder is not null)
+                {
+                    customerOrder.PaymentStatus = PaymentStatus.Paid;
+                    customerOrder.Status = CustomerOrderStatus.Processing;
+                    customerOrder.StatusHistory.Add(new OrderStatusHistory
+                    {
+                        Status = CustomerOrderStatus.Processing,
+                        Notes = $"Payment received via Stripe (Intent: {intent.Id}). Order is now being processed.",
+                        ChangedBy = "stripe-webhook",
+                        ChangedAt = DateTime.UtcNow
+                    });
+
+                
+
+                    foreach (var group in itemsGroupedBySeller)
+                    {
+                        var sellerUserId = group.Key;
+                        var sellerTotal = group.Sum(i => i.UnitPrice * i.Quantity);
+
+                        await CreateTransactionAsync(
+                            boId: sellerUserId,
+                            type: TransactionType.Sale,
+                            amount: sellerTotal,
+                            description: $"Product sale from Customer Order #{customerOrder.Id}",
+                            referenceId: customerOrder.Id,
+                            referenceType: "CustomerOrder",
+                            intentId: intent.Id);
+                    }
+
+                    // ✅ NOTIFY CUSTOMER
+                    await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                    {
+                        UserId = customerOrder.CustomerId,
+                        Type = NotificationType.Payment,
+                        Title = "Payment Successful ✅",
+                        Message = $"Your order #{customerOrder.Id} payment confirmed. Total: {customerOrder.TotalAmount} EGP. We're preparing to ship.",
+                        ActionUrl = $"/orders/{customerOrder.Id}",
+                        ActionText = "Track Order",
+                        Priority = NotificationPriority.High,
+                        SendEmail = true,
+                        RelatedEntityType = "Order",
+                        RelatedEntityId = customerOrder.Id
+                    });
+
+                    // ✅ NOTIFY SELLERS
+                    foreach (var group in itemsGroupedBySeller)
+                    {
+                        await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                        {
+                            UserId = group.Key,
+                            Type = NotificationType.Order,
+                            Title = "Payment Received 💰",
+                            Message = $"Payment received for your products in order #{customerOrder.Id}. Amount: {group.Sum(i => i.UnitPrice * i.Quantity)} EGP.",
+                            ActionUrl = $"/seller/orders/{customerOrder.Id}",
+                            ActionText = "View Order",
+                            Priority = NotificationPriority.High,
+                            SendEmail = true,
+                            RelatedEntityType = "Order",
+                            RelatedEntityId = customerOrder.Id
+                        });
+                    }
+
+                    _logger.LogInformation("CustomerOrder {OrderId} payment succeeded via Stripe. Amount: {Amount}",
+                        customerOrder.Id, customerOrder.TotalAmount);
+
+                    await _unitOfWork.CompleteAsync();
+                }
             }
         }
 
@@ -292,6 +456,8 @@ namespace Talentree.Service.Services
         /// - Marks entity as Failed
         /// - Clears the PaymentIntentId so the BO can retry with a fresh intent
         /// </summary>
+     
+
         private async Task HandleFailedAsync(PaymentIntent intent)
         {
             var orderSpec = new MaterialOrderByPaymentIntentSpecification(intent.Id);
@@ -301,7 +467,25 @@ namespace Talentree.Service.Services
             if (order is not null)
             {
                 order.PaymentStatus = PaymentStatus.Failed;
-                order.StripePaymentIntentId = null; // allow retry
+                order.StripePaymentIntentId = null;
+
+                // ✅ ADD NOTIFICATION
+                await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                {
+                    UserId = order.BusinessOwnerId,
+                    Type = NotificationType.Payment,
+                    Title = "Payment Failed ❌",
+                    Message = $"Payment for material order #{order.Id} failed. Please try again.",
+                    ActionUrl = $"/material-orders/{order.Id}",
+                    ActionText = "Retry Payment",
+                    Priority = NotificationPriority.High,
+                    SendEmail = true,
+                    RelatedEntityType = "MaterialOrder",
+                    RelatedEntityId = order.Id
+                });
+
+                _logger.LogWarning("MaterialOrder {OrderId} payment failed via Stripe", order.Id);
+
                 await _unitOfWork.CompleteAsync();
                 return;
             }
@@ -313,7 +497,25 @@ namespace Talentree.Service.Services
             if (request is not null)
             {
                 request.PaymentStatus = PaymentStatus.Failed;
-                request.StripePaymentIntentId = null; // allow retry
+                request.StripePaymentIntentId = null;
+
+                // ✅ ADD NOTIFICATION
+                await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                {
+                    UserId = request.BusinessOwnerId,
+                    Type = NotificationType.Payment,
+                    Title = "Payment Failed ❌",
+                    Message = $"Payment for production request #{request.Id} failed. Please try again.",
+                    ActionUrl = $"/production-requests/{request.Id}",
+                    ActionText = "Retry Payment",
+                    Priority = NotificationPriority.High,
+                    SendEmail = true,
+                    RelatedEntityType = "ProductionRequest",
+                    RelatedEntityId = request.Id
+                });
+
+                _logger.LogWarning("ProductionRequest {RequestId} payment failed via Stripe", request.Id);
+
                 await _unitOfWork.CompleteAsync();
                 return;
             }
@@ -325,7 +527,25 @@ namespace Talentree.Service.Services
             if (customerOrder is not null)
             {
                 customerOrder.PaymentStatus = PaymentStatus.Failed;
-                customerOrder.StripePaymentIntentId = null; // allow retry
+                customerOrder.StripePaymentIntentId = null;
+
+                // ✅ ADD NOTIFICATION
+                await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                {
+                    UserId = customerOrder.CustomerId,
+                    Type = NotificationType.Payment,
+                    Title = "Payment Failed ❌",
+                    Message = $"Payment for order #{customerOrder.Id} failed. Please try again.",
+                    ActionUrl = $"/orders/{customerOrder.Id}",
+                    ActionText = "Retry Payment",
+                    Priority = NotificationPriority.High,
+                    SendEmail = true,
+                    RelatedEntityType = "Order",
+                    RelatedEntityId = customerOrder.Id
+                });
+
+                _logger.LogWarning("CustomerOrder {OrderId} payment failed via Stripe", customerOrder.Id);
+
                 await _unitOfWork.CompleteAsync();
             }
         }
