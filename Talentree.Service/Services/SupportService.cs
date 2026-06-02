@@ -36,12 +36,7 @@ namespace Talentree.Service.Services
             IEmailService emailService,
             IFileService fileService, IAIService aiService,
             INotificationHelperService notificationHelper,
-            ILogger<SupportService> logger
-            )
-
-            
-            IFileService fileService,
-            IAIService aiService,
+            ILogger<SupportService> logger,
             UserManager<AppUser> userManager)
         {
             _unitOfWork = unitOfWork;
