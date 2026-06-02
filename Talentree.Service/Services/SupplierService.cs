@@ -1,11 +1,14 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using Talentree.Core;
+using Talentree.Core.Entities;
+using Talentree.Core.Enums;
+using Talentree.Core.Repository.Contract;
+using Talentree.Core.Specifications.Supplier;
+using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Admin.Supplier;
 using Talentree.Service.DTOs.Common;
-using Talentree.Core.Entities;
-using Talentree.Core.Repository.Contract;
-using Talentree.Service.Contracts;
-using Talentree.Core.Specifications.Supplier;
+using Talentree.Service.DTOs.Notification;
 
 namespace Talentree.Service.Services
 {
@@ -17,11 +20,13 @@ namespace Talentree.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-
-        public SupplierService(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly ILogger<SupplierService> _logger;
+        public SupplierService(IUnitOfWork unitOfWork, IMapper mapper,
+                        ILogger<SupplierService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _logger = logger;
         }
 
         /// <inheritdoc/>
@@ -62,6 +67,9 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<Supplier>().Add(supplier);
             await _unitOfWork.CompleteAsync();
+            // ✅ ADD LOGGING
+            _logger.LogInformation("Supplier {SupplierName} created with ID {SupplierId}",
+                supplier.Name, supplier.Id);
 
             return _mapper.Map<SupplierDto>(supplier);
         }
@@ -85,6 +93,7 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<Supplier>().Update(supplier);
             await _unitOfWork.CompleteAsync();
+
 
             return _mapper.Map<SupplierDto>(supplier);
         }
