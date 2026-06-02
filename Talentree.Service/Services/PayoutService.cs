@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
@@ -6,6 +7,7 @@ using Talentree.Core.Specifications.PayoutRequests;
 using Talentree.Core.Specifications.Transactions;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Common;
+using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.Payout;
 
 namespace Talentree.Service.Services
@@ -28,11 +30,17 @@ namespace Talentree.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly INotificationService _notificationService; 
+        private readonly ILogger<PayoutService> _logger;
 
-        public PayoutService(IUnitOfWork unitOfWork, IMapper mapper)
+        public PayoutService(IUnitOfWork unitOfWork, IMapper mapper,
+            INotificationService notificationService,  
+            ILogger<PayoutService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _notificationService = notificationService;  
+            _logger = logger;
         }
 
         // ── BO actions ─────────────────────────────────────────
@@ -128,6 +136,24 @@ namespace Talentree.Service.Services
 
             await _unitOfWork.CompleteAsync();
             // TODO: notify BO — payout request approved, processing started
+            // ✅ ADD NOTIFICATION
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = request.BusinessOwnerId,
+                Type = NotificationType.Payout,
+                Title = "Payout Request Approved ✅",
+                Message = $"Your payout request of {request.Amount} {request.Currency} has been approved. Processing will be completed soon.",
+                ActionUrl = $"/payouts/{request.Id}",
+                ActionText = "View Details",
+                Priority = NotificationPriority.High,
+                SendEmail = true,
+                RelatedEntityType = "PayoutRequest",
+                RelatedEntityId = request.Id
+            });
+
+            _logger.LogInformation("Payout request {RequestId} approved by admin {AdminId}. Amount: {Amount}",
+                requestId, adminId, request.Amount);
+
             return _mapper.Map<PayoutRequestDto>(request);
         }
 
@@ -148,6 +174,25 @@ namespace Talentree.Service.Services
 
             await _unitOfWork.CompleteAsync();
             // TODO: notify BO — payout request rejected with reason
+
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = request.BusinessOwnerId,
+                Type = NotificationType.Payout,
+                Title = "Payout Request Rejected ❌",
+                Message = $"Your payout request of {request.Amount} {request.Currency} has been rejected. Reason: {dto.Reason}",
+                ActionUrl = $"/payouts/{request.Id}",
+                ActionText = "View Details",
+                Priority = NotificationPriority.Normal,
+                SendEmail = true,
+                RelatedEntityType = "PayoutRequest",
+                RelatedEntityId = request.Id
+            });
+
+            _logger.LogInformation("Payout request {RequestId} rejected by admin {AdminId}. Reason: {Reason}",
+                requestId, adminId, dto.Reason);
+
+
             return _mapper.Map<PayoutRequestDto>(request);
         }
 
@@ -185,6 +230,25 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
 
             // TODO: notify BO — payout completed, funds transferred
+
+            // ✅ ADD NOTIFICATION
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = request.BusinessOwnerId,
+                Type = NotificationType.Payout,
+                Title = "Payout Completed ✅",
+                Message = $"Your payout of {request.Amount} {request.Currency} has been transferred to your bank account ({request.BankName}). It may take 1-2 business days to appear.",
+                ActionUrl = $"/payouts/{request.Id}",
+                ActionText = "View Details",
+                Priority = NotificationPriority.High,
+                SendEmail = true,
+                RelatedEntityType = "PayoutRequest",
+                RelatedEntityId = request.Id
+            });
+
+            _logger.LogInformation("Payout request {RequestId} completed by admin {AdminId}. Amount transferred: {Amount}",
+                requestId, adminId, request.Amount);
+
             return _mapper.Map<PayoutRequestDto>(request);
         }
 
