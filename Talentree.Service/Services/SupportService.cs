@@ -1,6 +1,8 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Identity;
+
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
@@ -23,6 +25,8 @@ namespace Talentree.Service.Services
         private readonly IEmailService _emailService;
         private readonly IFileService _fileService;
         private readonly IAIService _aiService;
+        private readonly ILogger<SupportService> _logger;
+        private readonly INotificationHelperService _notificationHelper;
         private readonly UserManager<AppUser> _userManager;
 
         public SupportService(
@@ -30,6 +34,12 @@ namespace Talentree.Service.Services
             IMapper mapper,
             INotificationService notificationService,
             IEmailService emailService,
+            IFileService fileService, IAIService aiService,
+            INotificationHelperService notificationHelper,
+            ILogger<SupportService> logger
+            )
+
+            
             IFileService fileService,
             IAIService aiService,
             UserManager<AppUser> userManager)
@@ -40,6 +50,8 @@ namespace Talentree.Service.Services
             _emailService = emailService;
             _fileService = fileService;
             _aiService = aiService;
+            _notificationHelper = notificationHelper;
+             _logger = logger;
             _userManager = userManager;
         }
 
@@ -110,8 +122,33 @@ namespace Talentree.Service.Services
                 await _unitOfWork.CompleteAsync();
             }
 
-            // Notify admins
-            await NotifyAdminsNewTicketAsync(ticket);
+          
+
+
+            // Notify admins using helper
+            await _notificationHelper.NotifyAllAdmins(
+                title: "New Support Ticket",
+                message: $"New {ticket.Category} ticket #{ticket.TicketNumber}: {ticket.Subject}",
+                type: NotificationType.Support,
+                actionUrl: $"/admin/support/tickets/{ticket.Id}"
+            );
+
+            // notify business owner
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = userId,
+                Type = NotificationType.Support,
+                Title = "Ticket Created ✅",
+                Message = $"Your support ticket #{ticket.TicketNumber} has been created. Our team will respond shortly.",
+                ActionUrl = $"/support/tickets/{ticket.Id}",
+                ActionText = "View Ticket",
+                Priority = NotificationPriority.Normal,
+                SendEmail = true,
+                RelatedEntityType = "SupportTicket",
+                RelatedEntityId = ticket.Id
+            });
+
+            _logger.LogInformation("Support ticket {TicketNumber} created by user {UserId}", ticket.TicketNumber, userId);
 
             // Get ticket with all data
             var spec = new TicketByIdSpecification(ticket.Id);
@@ -238,8 +275,16 @@ namespace Talentree.Service.Services
                 await _unitOfWork.CompleteAsync();
             }
 
-            // Notify admins
-            await NotifyAdminsNewMessageAsync(ticket, message);
+
+            // Notify admins using helper
+            await _notificationHelper.NotifyAllAdmins(
+                title: "New Ticket Reply",
+                message: $"Business owner replied to ticket #{ticket.TicketNumber}",
+                type: NotificationType.Support,
+                actionUrl: $"/admin/support/tickets/{ticket.Id}"
+            );
+
+            _logger.LogInformation("New message added to ticket {TicketNumber}", ticket.TicketNumber);
 
             // Get message with data
             var messageSpec = new TicketMessageByIdSpecification(message.Id);
@@ -271,6 +316,23 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<SupportTicket>().Update(ticket);
             await _unitOfWork.CompleteAsync();
+
+            // ✅ ADD NOTIFICATION
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = userId,
+                Type = NotificationType.Support,
+                Title = "Ticket Closed ✅",
+                Message = $"Your support ticket #{ticket.TicketNumber} has been closed.",
+                ActionUrl = $"/support/tickets/{ticket.Id}",
+                ActionText = "View Ticket",
+                Priority = NotificationPriority.Normal,
+                SendEmail = false,
+                RelatedEntityType = "SupportTicket",
+                RelatedEntityId = ticket.Id
+            });
+
+            _logger.LogInformation("Ticket {TicketNumber} closed by user {UserId}", ticket.TicketNumber, userId);
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -351,6 +413,10 @@ namespace Talentree.Service.Services
 
             // Notify business owner
             await NotifyBusinessOwnerStatusChangeAsync(ticket, oldStatus, dto.Status);
+
+            _logger.LogInformation(
+                "Ticket {TicketNumber} status updated from {OldStatus} to {NewStatus} by admin {AdminId}",
+                ticket.TicketNumber, oldStatus, dto.Status, adminId);
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -384,6 +450,11 @@ namespace Talentree.Service.Services
                 Priority = NotificationPriority.Normal,
                 SendEmail = false
             });
+
+
+            _logger.LogInformation(
+                "Ticket {TicketNumber} assigned to admin {AdminId}",
+                ticket.TicketNumber, dto.AdminId);
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -621,37 +692,7 @@ namespace Talentree.Service.Services
             return $"TKT-{year}-{(count + 1):D5}";
         }
 
-        private async Task NotifyAdminsNewTicketAsync(SupportTicket ticket)
-        {
-            var adminIds = await GetAllAdminIdsAsync();
-            if (!adminIds.Any()) return;
-
-            //await _notificationService.SendBulkNotificationAsync(
-            //    adminIds,
-            //    NotificationType.Support,
-            //    "New Support Ticket",
-            //    $"New {ticket.Category} ticket #{ticket.TicketNumber}: {ticket.Subject}",
-            //    $"/admin/support/tickets/{ticket.Id}",
-            //    "View Ticket",
-            //    NotificationPriority.Normal
-            //);
-        }
-
-        private async Task NotifyAdminsNewMessageAsync(SupportTicket ticket, TicketMessage message)
-        {
-            var adminIds = await GetAllAdminIdsAsync();
-            if (!adminIds.Any()) return;
-
-            //await _notificationService.SendBulkNotificationAsync(
-            //    adminIds,
-            //    NotificationType.Support,
-            //    "New Ticket Reply",
-            //    $"Business owner replied to ticket #{ticket.TicketNumber}",
-            //    $"/admin/support/tickets/{ticket.Id}",
-            //    "View Ticket",
-            //    NotificationPriority.Normal
-            //);
-        }
+     
 
         private async Task NotifyBusinessOwnerStatusChangeAsync(
             SupportTicket ticket,
@@ -682,6 +723,7 @@ namespace Talentree.Service.Services
             }
         }
 
+       
         private async Task<List<string>> GetAllAdminIdsAsync()
         {
             var admins = await _userManager.GetUsersInRoleAsync("Admin");

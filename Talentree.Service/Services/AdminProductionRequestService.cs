@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
@@ -18,11 +19,15 @@ namespace Talentree.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly INotificationHelperService _notificationHelper; 
+        private readonly ILogger<AdminProductionRequestService> _logger;
 
-        public AdminProductionRequestService(IUnitOfWork unitOfWork, IMapper mapper)
+        public AdminProductionRequestService(IUnitOfWork unitOfWork, IMapper mapper, INotificationHelperService notificationHelper, ILogger<AdminProductionRequestService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _notificationHelper = notificationHelper;
+            _logger = logger;
         }
 
         /// <inheritdoc/>
@@ -58,8 +63,13 @@ namespace Talentree.Service.Services
             var request = await LoadRequestAsync(requestId);
             AssertStatus(request, BoProductionRequestStatus.Submitted);
 
-            return await ApplyTransitionAsync(request, BoProductionRequestStatus.UnderReview,
-                adminId, "Request taken under review by Talentree.");
+            var result = await ApplyTransitionAsync(request, BoProductionRequestStatus.UnderReview,
+                 adminId, "Request taken under review by Talentree.");
+
+            await _notificationHelper.NotifyProductionRequestCreated(requestId, request.BusinessOwnerId);
+            _logger.LogInformation("Production request {RequestId} marked as under review", requestId);
+
+            return result;
         }
 
         /// <inheritdoc/>
@@ -72,9 +82,14 @@ namespace Talentree.Service.Services
             request.QuotedPrice = dto.QuotedPrice;
             request.EstimatedCompletionDate = dto.EstimatedCompletionDate;
             request.AdminNotes = dto.AdminNotes;
+            var result = await ApplyTransitionAsync(request, BoProductionRequestStatus.Quoted, adminId,
+                 $"Quote sent: {dto.QuotedPrice:C}. Estimated completion: {dto.EstimatedCompletionDate:d}.");
 
-            return await ApplyTransitionAsync(request, BoProductionRequestStatus.Quoted, adminId,
-                $"Quote sent: {dto.QuotedPrice:C}. Estimated completion: {dto.EstimatedCompletionDate:d}.");
+            // ✅ ADD NOTIFICATION
+            await _notificationHelper.NotifyProductionQuoteSent(requestId, request.BusinessOwnerId, dto.QuotedPrice);
+            _logger.LogInformation("Quote sent for production request {RequestId}: {Price}", requestId, dto.QuotedPrice);
+
+            return result;
         }
 
         /// <inheritdoc/>
@@ -82,9 +97,14 @@ namespace Talentree.Service.Services
         {
             var request = await LoadRequestAsync(requestId);
             AssertStatus(request, BoProductionRequestStatus.Confirmed);
-
-            return await ApplyTransitionAsync(request, BoProductionRequestStatus.InProduction,
+            var result = await ApplyTransitionAsync(request, BoProductionRequestStatus.InProduction,
                 adminId, "Production started by Talentree.");
+
+            // ✅ ADD NOTIFICATION
+            await _notificationHelper.NotifyProductionStarted(requestId, request.BusinessOwnerId);
+            _logger.LogInformation("Production started for request {RequestId}", requestId);
+
+            return result;
         }
 
         /// <inheritdoc/>
@@ -98,8 +118,14 @@ namespace Talentree.Service.Services
             if (!string.IsNullOrWhiteSpace(dto.AdminNotes))
                 request.AdminNotes = dto.AdminNotes;
 
-            return await ApplyTransitionAsync(request, BoProductionRequestStatus.Completed,
-                adminId, "Production completed. Goods are ready for the business owner.");
+            var result = await ApplyTransitionAsync(request, BoProductionRequestStatus.Completed,
+                 adminId, "Production completed. Goods are ready for the business owner.");
+
+            // ✅ ADD NOTIFICATION
+            await _notificationHelper.NotifyProductionCompleted(requestId, request.BusinessOwnerId);
+            _logger.LogInformation("Production completed for request {RequestId}", requestId);
+
+            return result;
         }
 
         /// <inheritdoc/>
@@ -119,8 +145,15 @@ namespace Talentree.Service.Services
 
             request.AdminNotes = dto.Reason;
 
-            return await ApplyTransitionAsync(request, BoProductionRequestStatus.Rejected,
+
+            var result = await ApplyTransitionAsync(request, BoProductionRequestStatus.Rejected,
                 adminId, $"Request rejected: {dto.Reason}");
+
+            // ✅ ADD NOTIFICATION
+            await _notificationHelper.NotifyProductionRejected(requestId, request.BusinessOwnerId, dto.Reason);
+            _logger.LogInformation("Production request {RequestId} rejected: {Reason}", requestId, dto.Reason);
+
+            return result;
         }
 
         // ── Private helpers ───────────────────────────────────────

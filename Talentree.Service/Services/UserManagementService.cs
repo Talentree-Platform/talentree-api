@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
@@ -24,17 +25,23 @@ namespace Talentree.Service.Services
         private readonly IMapper _mapper;
         private readonly UserManager<AppUser> _userManager;
         private readonly INotificationService _notificationService;
+        private readonly INotificationHelperService _notificationHelper; 
+        private readonly ILogger<UserManagementService> _logger;
 
         public UserManagementService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             UserManager<AppUser> userManager,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            INotificationHelperService notificationHelper,
+            ILogger<UserManagementService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userManager = userManager;
             _notificationService = notificationService;
+            _notificationHelper = notificationHelper;
+            _logger = logger;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -147,6 +154,11 @@ namespace Talentree.Service.Services
                 Priority = NotificationPriority.High,
                 SendEmail = true
             });
+
+
+            _logger.LogInformation(
+                "Business owner {UserId} suspended by admin {AdminId}. Reason: {Reason}",
+                dto.UserId, adminId, dto.Reason);
         }
 
         public async Task UnsuspendBusinessOwnerAsync(string userId, string adminId)
@@ -184,6 +196,10 @@ namespace Talentree.Service.Services
                 Priority = NotificationPriority.High,
                 SendEmail = true
             });
+
+            _logger.LogInformation(
+                "Business owner {UserId} unsuspended by admin {AdminId}",
+                userId, adminId);
         }
 
         public async Task BanBusinessOwnerAsync(BanUserDto dto, string adminId)
@@ -255,6 +271,10 @@ namespace Talentree.Service.Services
                 Priority = NotificationPriority.High,
                 SendEmail = true
             });
+
+            _logger.LogInformation(
+                "Business owner {UserId} blocked by admin {AdminId}. Reason: {Reason}",
+                dto.UserId, adminId, dto.Reason);
         }
 
         public async Task UnblockBusinessOwnerAsync(string userId, string adminId)
@@ -612,8 +632,12 @@ namespace Talentree.Service.Services
                     _unitOfWork.Repository<AutoBlockLog>().Add(autoBlockLog);
                     await _unitOfWork.CompleteAsync();
 
-                    // Notify admin
-                    await NotifyAdminsOfAutoBlockAsync(userId, "3 confirmed complaints");
+                 
+                    // ✅ NOTIFY ADMINS 
+                    await _notificationHelper.NotifyAutoBlockApplied(userId);
+
+                    _logger.LogWarning("Auto-block applied to user {UserId}. Reason: 3 confirmed complaints",
+                        userId);
                 }
             }
 
@@ -647,6 +671,28 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<AutoBlockLog>().Update(log);
             await _unitOfWork.CompleteAsync();
+            // ✅ NOTIFY USER ABOUT REVIEW DECISION
+            var (title, message) = dto.Decision.ToLower() switch
+            {
+                "maintain" => ("Auto-Block Maintained 🔒", "Your account auto-block has been reviewed and maintained by our admin team."),
+                "warn" => ("Warning Issued ⚠️", "Your account auto-block has been lifted, but you've been issued a warning. Avoid similar violations."),
+                "unblock" => ("Account Unblocked ✅", "Your account auto-block has been reviewed and lifted. You can now access your account."),
+                _ => ("Auto-Block Reviewed", $"Your auto-block has been reviewed. Decision: {dto.Decision}")
+            };
+
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = log.UserId,
+                Type = NotificationType.AutoBlock,
+                Title = title,
+                Message = message,
+                ActionUrl = dto.Decision.ToLower() == "unblock" ? "/dashboard" : "/support/tickets",
+                ActionText = dto.Decision.ToLower() == "unblock" ? "Go to Dashboard" : "Contact Support",
+                Priority = dto.Decision.ToLower() == "unblock" ? NotificationPriority.Normal : NotificationPriority.High,
+                SendEmail = true,
+                RelatedEntityType = "AutoBlockLog",
+                RelatedEntityId = log.Id
+            });
 
             // Apply decision
             switch (dto.Decision.ToLower())
@@ -796,24 +842,7 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
         }
 
-        private async Task NotifyAdminsOfAutoBlockAsync(string userId, string reason)
-        {
-            // TODO: Get all admin IDs from AspNetUserRoles
-            var adminIds = new List<string>();
-
-            foreach (var adminId in adminIds)
-            {
-                await _notificationService.CreateNotificationAsync(new CreateNotificationDto
-                {
-                    UserId = adminId,
-                    Type = NotificationType.System,
-                    Title = "Auto-Block Applied",
-                    Message = $"User {userId} has been auto-blocked. Reason: {reason}. Please review.",
-                    ActionUrl = $"/admin/users/auto-blocks",
-                    Priority = NotificationPriority.High,
-                    SendEmail = false
-                });
-            }
-        }
+   
+    
     }
 }

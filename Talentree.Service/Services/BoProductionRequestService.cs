@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
@@ -6,6 +7,7 @@ using Talentree.Core.Specifications.BoProductionRequests;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.BoProductionRequest;
 using Talentree.Service.DTOs.Common;
+using Talentree.Service.DTOs.Notification;
 
 namespace Talentree.Service.Services
 {
@@ -17,7 +19,9 @@ namespace Talentree.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-
+        private readonly INotificationHelperService _notificationHelper;
+        private readonly INotificationService _notificationService;
+        private readonly ILogger<BoProductionRequestService> _logger;
         /// <summary>
         /// Statuses from which the BO is allowed to cancel their own request.
         /// Once Talentree has started production the BO can no longer cancel.
@@ -28,10 +32,18 @@ namespace Talentree.Service.Services
             BoProductionRequestStatus.Quoted
         ];
 
-        public BoProductionRequestService(IUnitOfWork unitOfWork, IMapper mapper)
+        public BoProductionRequestService(IUnitOfWork unitOfWork, IMapper mapper,
+            INotificationHelperService notificationHelper , ILogger<BoProductionRequestService> logger,
+            INotificationService notificationService
+
+            )
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _notificationHelper = notificationHelper;
+            _logger = logger;
+            _notificationService = notificationService;
+
         }
 
         /// <inheritdoc/>
@@ -74,7 +86,16 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<BoProductionRequest>().Add(request);
             await _unitOfWork.CompleteAsync();
 
-            return await LoadBoDetailAsync(request.Id, businessOwnerId);
+            var result = await LoadBoDetailAsync(request.Id, businessOwnerId);
+
+            // ✅ ADD NOTIFICATION
+            await _notificationHelper.NotifyProductionRequestCreated(request.Id, businessOwnerId);
+
+            _logger.LogInformation("Production request {RequestId} submitted by business owner {BoId}",
+                request.Id, businessOwnerId);
+
+            return result;
+
         }
 
         /// <inheritdoc/>
@@ -118,7 +139,39 @@ namespace Talentree.Service.Services
             });
 
             await _unitOfWork.CompleteAsync();
-            return await LoadBoDetailAsync(requestId, businessOwnerId);
+
+            
+            var result = await LoadBoDetailAsync(requestId, businessOwnerId);
+
+            // ✅ ADD NOTIFICATION
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = businessOwnerId,
+                Type = NotificationType.ProductionRequest,
+                Title = "Production Request Cancelled ❌",
+                Message = $"Your production request #{request.Id} has been cancelled.",
+                ActionUrl = $"/production-requests/{request.Id}",
+                ActionText = "View Request",
+                Priority = NotificationPriority.Normal,
+                SendEmail = true,
+                RelatedEntityType = "ProductionRequest",
+                RelatedEntityId = request.Id
+            });
+
+            // ✅ ADD NOTIFICATION
+            await _notificationHelper.NotifyAllAdmins(
+                "Production Request Cancelled",
+                $"Business owner cancelled production request #{request.Id}",
+                NotificationType.ProductionRequest,
+                $"/admin/production-requests/{request.Id}"
+            );
+
+            _logger.LogInformation("Production request {RequestId} cancelled by business owner {BoId}",
+                requestId, businessOwnerId);
+
+            return result;
+
+
         }
 
         

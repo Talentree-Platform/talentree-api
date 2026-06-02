@@ -1,4 +1,5 @@
-using AutoMapper;
+﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +13,7 @@ using Talentree.Core.Specifications.OrderSpecifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Customer;
+using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.Payment;
 
 namespace Talentree.Service.Services
@@ -21,12 +23,19 @@ namespace Talentree.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IPaymentService _paymentService;
+        private readonly INotificationHelperService _notificationHelper;  
+        private readonly ILogger<CustomerOrderService> _logger;
+        private readonly INotificationService _notificationService;
 
-        public CustomerOrderService(IUnitOfWork unitOfWork, IMapper mapper, IPaymentService paymentService)
+        public CustomerOrderService(IUnitOfWork unitOfWork, IMapper mapper, IPaymentService paymentService,
+            INotificationHelperService notificationHelper, ILogger<CustomerOrderService> logger, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _paymentService = paymentService;
+            _notificationHelper = notificationHelper;
+            _notificationService = notificationService;
+            _logger = logger;
         }
 
         public async Task<CustomerOrderDetailDto> PlaceOrderAsync(CheckoutDeliveryDto delivery, PaymentMethod method, string customerId)
@@ -120,7 +129,54 @@ namespace Talentree.Service.Services
             // 7. Commit changes
             await _unitOfWork.CompleteAsync();
 
-            return _mapper.Map<CustomerOrderDetailDto>(order);
+            var result = _mapper.Map<CustomerOrderDetailDto>(order);
+
+            // ✅ ADD NOTIFICATION TO CUSTOMER
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = customerId,
+                Type = NotificationType.Order,
+                Title = "Order Placed Successfully ✅",
+                Message = $"Your order #{order.Id} has been placed. Total: {order.TotalAmount} EGP.",
+                ActionUrl = $"/orders/{order.Id}",
+                ActionText = "View Order",
+                Priority = NotificationPriority.High,
+                SendEmail = true,
+                RelatedEntityType = "Order",
+                RelatedEntityId = order.Id
+            });
+
+            // ✅ NOTIFY SELLERS 
+            var sellerIds = order.Items
+                .Select(i => i.Product?.BusinessOwner?.UserId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
+
+            foreach (var sellerId in sellerIds)
+            {
+                if (sellerId != null)
+                {
+                    await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                    {
+                        UserId = sellerId,
+                        Type = NotificationType.Order,
+                        Title = "New Order Received 📦",
+                        Message = $"You have a new order #{order.Id} with {order.Items.Count} item(s).",
+                        ActionUrl = $"/seller/orders/{order.Id}",
+                        ActionText = "View Order Details",
+                        Priority = NotificationPriority.High,
+                        SendEmail = true,
+                        RelatedEntityType = "Order",
+                        RelatedEntityId = order.Id
+                    });
+                }
+            }
+
+            _logger.LogInformation("Order {OrderId} placed by customer {CustomerId}. Total: {Total} EGP. Payment Method: {Method}",
+                order.Id, customerId, order.TotalAmount, order.PaymentMethod);
+
+            return result;
         }
 
         public async Task<OrderPaymentDto> CreatePaymentIntentAsync(int orderId, string customerId)
@@ -209,6 +265,53 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<CustomerOrder>().Update(order);
             await _unitOfWork.CompleteAsync();
+            //var result = _mapper.Map<CustomerOrderDetailDto>(order);
+
+            // ✅ ADD NOTIFICATION TO CUSTOMER
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = customerId,
+                Type = NotificationType.Order,
+                Title = "Order Cancelled ❌",
+                Message = $"Your order #{order.Id} has been cancelled. Amount will be refunded shortly.",
+                ActionUrl = $"/orders/{order.Id}",
+                ActionText = "View Order",
+                Priority = NotificationPriority.Normal,
+                SendEmail = true,
+                RelatedEntityType = "Order",
+                RelatedEntityId = order.Id
+            });
+
+            // ✅ NOTIFY SELLERS
+            var sellerIds = order.Items
+                .Select(i => i.Product?.BusinessOwner?.UserId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
+
+            foreach (var sellerId in sellerIds)
+            {
+                if (sellerId != null)
+                {
+                    await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                    {
+                        UserId = sellerId,
+                        Type = NotificationType.Order,
+                        Title = "Order Cancelled",
+                        Message = $"Order #{order.Id} has been cancelled by the customer.",
+                        ActionUrl = $"/seller/orders/{order.Id}",
+                        ActionText = "View Order",
+                        Priority = NotificationPriority.Normal,
+                        SendEmail = true,
+                        RelatedEntityType = "Order",
+                        RelatedEntityId = order.Id
+                    });
+                }
+            }
+
+            _logger.LogInformation("Order {OrderId} cancelled by customer {CustomerId}", order.Id, customerId);
+
+            
         }
 
         public async Task<byte[]> GenerateInvoiceAsync(int orderId, string customerId)

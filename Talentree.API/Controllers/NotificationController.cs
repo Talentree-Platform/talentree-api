@@ -30,52 +30,8 @@ namespace Talentree.API.Controllers
         }
 
         // ═══════════════════════════════════════════════════════════
-        // GET NOTIFICATIONS
+        // SPECIFIC ROUTES FIRST (to avoid conflicts)
         // ═══════════════════════════════════════════════════════════
-
-        /// <summary>
-        /// Get paginated notifications for current user
-        /// Supports filtering by type and read status
-        /// </summary>
-        /// <param name="pageIndex">Page number (1-based, default 1)</param>
-        /// <param name="pageSize">Items per page (default 20, max 100)</param>
-        /// <param name="type">Optional: filter by notification type</param>
-        /// <param name="isRead">Optional: filter by read status (true/false)</param>
-        /// <returns>Paginated list of notifications</returns>
-        [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<Pagination<NotificationDto>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<ApiResponse<Pagination<NotificationDto>>>> GetMyNotifications(
-            [FromQuery] int pageIndex = 1,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] NotificationType? type = null,
-            [FromQuery] bool? isRead = null)
-        {
-            try
-            {
-                var userId = GetCurrentUserId();
-                _logger.LogInformation(
-                    "User {UserId} requested notifications: page {PageIndex}, size {PageSize}, type {Type}, isRead {IsRead}",
-                    userId, pageIndex, pageSize, type, isRead);
-
-                var result = await _notificationService.GetMyNotificationsAsync(
-                    userId,
-                    pageIndex,
-                    pageSize,
-                    type,
-                    isRead);
-
-                return Ok(ApiResponse<Pagination<NotificationDto>>.SuccessResponse(
-                    data: result,
-                    message: $"Retrieved {result.Data.Count} notifications"
-                ));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting notifications");
-                throw;
-            }
-        }
 
         /// <summary>
         /// Get count of unread notifications
@@ -101,69 +57,6 @@ namespace Talentree.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting unread count");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Get single notification by ID
-        /// Verifies ownership before returning
-        /// </summary>
-        /// <param name="id">Notification ID</param>
-        /// <returns>Notification details</returns>
-        [HttpGet("{id}")]
-        [ProducesResponseType(typeof(ApiResponse<NotificationDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ApiResponse<NotificationDto>>> GetNotificationById(int id)
-        {
-            try
-            {
-                var userId = GetCurrentUserId();
-                _logger.LogInformation("User {UserId} requested notification {NotificationId}", userId, id);
-
-                var notification = await _notificationService.GetNotificationByIdAsync(id, userId);
-
-                return Ok(ApiResponse<NotificationDto>.SuccessResponse(
-                    data: notification,
-                    message: "Notification retrieved successfully"
-                ));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting notification {NotificationId}", id);
-                throw;
-            }
-        }
-
-        // ═══════════════════════════════════════════════════════════
-        // MARK AS READ
-        // ═══════════════════════════════════════════════════════════
-
-        /// <summary>
-        /// Mark single notification as read
-        /// </summary>
-        /// <param name="id">Notification ID</param>
-        /// <returns>Success message</returns>
-        [HttpPut("{id}/mark-as-read")]
-        [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ApiResponse<string>>> MarkAsRead(int id)
-        {
-            try
-            {
-                var userId = GetCurrentUserId();
-                _logger.LogInformation("User {UserId} marked notification {NotificationId} as read", userId, id);
-
-                await _notificationService.MarkAsReadAsync(id, userId);
-
-                return Ok(ApiResponse<string>.SuccessResponse(
-                    data: "Notification marked as read",
-                    message: "Success"
-                ));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error marking notification as read");
                 throw;
             }
         }
@@ -196,39 +89,6 @@ namespace Talentree.API.Controllers
             }
         }
 
-        // ═══════════════════════════════════════════════════════════
-        // DELETE NOTIFICATIONS
-        // ═══════════════════════════════════════════════════════════
-
-        /// <summary>
-        /// Delete single notification
-        /// </summary>
-        /// <param name="id">Notification ID</param>
-        /// <returns>Success message</returns>
-        [HttpDelete("{id}")]
-        [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ApiResponse<string>>> DeleteNotification(int id)
-        {
-            try
-            {
-                var userId = GetCurrentUserId();
-                _logger.LogInformation("User {UserId} deleted notification {NotificationId}", userId, id);
-
-                await _notificationService.DeleteNotificationAsync(id, userId);
-
-                return Ok(ApiResponse<string>.SuccessResponse(
-                    data: "Notification deleted",
-                    message: "Success"
-                ));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting notification");
-                throw;
-            }
-        }
-
         /// <summary>
         /// Clear all read notifications (cleanup)
         /// Removes all read notifications from user's list
@@ -256,10 +116,6 @@ namespace Talentree.API.Controllers
                 throw;
             }
         }
-
-        // ═══════════════════════════════════════════════════════════
-        // PREFERENCES
-        // ═══════════════════════════════════════════════════════════
 
         /// <summary>
         /// Get current user's notification preferences
@@ -316,6 +172,142 @@ namespace Talentree.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating preferences");
+                throw;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // GENERIC ROUTES (with {id})
+        // ═══════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Get paginated notifications for current user
+        /// Supports filtering by type and read status
+        /// </summary>
+        /// <param name="pageIndex">Page number (1-based, default 1)</param>
+        /// <param name="pageSize">Items per page (default 20, max 100)</param>
+        /// <param name="type">Optional: filter by notification type</param>
+        /// <param name="isRead">Optional: filter by read status (true/false)</param>
+        /// <returns>Paginated list of notifications</returns>
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<Pagination<NotificationDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<ApiResponse<Pagination<NotificationDto>>>> GetMyNotifications(
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] NotificationType? type = null,
+            [FromQuery] bool? isRead = null)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                _logger.LogInformation(
+                    "User {UserId} requested notifications: page {PageIndex}, size {PageSize}, type {Type}, isRead {IsRead}",
+                    userId, pageIndex, pageSize, type, isRead);
+
+                var result = await _notificationService.GetMyNotificationsAsync(
+                    userId,
+                    pageIndex,
+                    pageSize,
+                    type,
+                    isRead);
+
+                return Ok(ApiResponse<Pagination<NotificationDto>>.SuccessResponse(
+                    data: result,
+                    message: $"Retrieved {result.Data.Count} notifications"
+                ));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting notifications");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Get single notification by ID
+        /// Verifies ownership before returning
+        /// </summary>
+        /// <param name="id">Notification ID</param>
+        /// <returns>Notification details</returns>
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(ApiResponse<NotificationDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ApiResponse<NotificationDto>>> GetNotificationById(int id)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                _logger.LogInformation("User {UserId} requested notification {NotificationId}", userId, id);
+
+                var notification = await _notificationService.GetNotificationByIdAsync(id, userId);
+
+                return Ok(ApiResponse<NotificationDto>.SuccessResponse(
+                    data: notification,
+                    message: "Notification retrieved successfully"
+                ));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting notification {NotificationId}", id);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Mark single notification as read
+        /// </summary>
+        /// <param name="id">Notification ID</param>
+        /// <returns>Success message</returns>
+        [HttpPut("{id}/mark-as-read")]
+        [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ApiResponse<string>>> MarkAsRead(int id)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                _logger.LogInformation("User {UserId} marked notification {NotificationId} as read", userId, id);
+
+                await _notificationService.MarkAsReadAsync(id, userId);
+
+                return Ok(ApiResponse<string>.SuccessResponse(
+                    data: "Notification marked as read",
+                    message: "Success"
+                ));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking notification as read");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Delete single notification
+        /// </summary>
+        /// <param name="id">Notification ID</param>
+        /// <returns>Success message</returns>
+        [HttpDelete("{id}")]
+        [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ApiResponse<string>>> DeleteNotification(int id)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                _logger.LogInformation("User {UserId} deleted notification {NotificationId}", userId, id);
+
+                await _notificationService.DeleteNotificationAsync(id, userId);
+
+                return Ok(ApiResponse<string>.SuccessResponse(
+                    data: "Notification deleted",
+                    message: "Success"
+                ));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting notification");
                 throw;
             }
         }

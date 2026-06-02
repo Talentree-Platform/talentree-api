@@ -12,6 +12,7 @@
         ProductionRequest = 7,      // Production workflow
         Payout = 8,                 // Payout updates
         Complaint = 9,              // Complaint resolution
-        AutoBlock = 10              // Automatic blocking notifications
+        AutoBlock = 10   ,           // Automatic blocking notifications
+            MaterialOrder = 11        // Material order updates
     }
 }

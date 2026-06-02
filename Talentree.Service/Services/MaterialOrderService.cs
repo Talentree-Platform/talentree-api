@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
@@ -7,6 +8,7 @@ using Talentree.Core.Specifications.MaterialOrders;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.MaterialOrder;
+using Talentree.Service.DTOs.Notification;
 
 namespace Talentree.Service.Services
 {
@@ -19,11 +21,19 @@ namespace Talentree.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly INotificationHelperService _notificationHelper;
+        private readonly ILogger<MaterialOrderService> _logger;
+        private readonly INotificationService _notificationService;
 
-        public MaterialOrderService(IUnitOfWork unitOfWork, IMapper mapper)
+        public MaterialOrderService(IUnitOfWork unitOfWork, IMapper mapper,
+            INotificationHelperService notificationHelper, ILogger<MaterialOrderService> logger,
+            INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _notificationHelper = notificationHelper;
+            _logger = logger;
+            _notificationService = notificationService;
         }
 
         /// <inheritdoc/>
@@ -93,7 +103,60 @@ namespace Talentree.Service.Services
             var created = await _unitOfWork.Repository<MaterialOrder>()
                 .GetByIdWithSpecificationsAsync(detailSpec);
 
-            return _mapper.Map<MaterialOrderDto>(created);
+            // بدل:
+            // return _mapper.Map<MaterialOrderDto>(created);
+
+            // اكتب:
+            var result = _mapper.Map<MaterialOrderDto>(created);
+
+            // ✅ ADD NOTIFICATION TO BUSINESS OWNER
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = businessOwnerId,
+                Type = NotificationType.MaterialOrder,
+                Title = "Material Order Placed ✅",
+                Message = $"Your material order #{order.Id} has been placed. Total: {order.TotalAmount} EGP.",
+                ActionUrl = $"/material-orders/{order.Id}",
+                ActionText = "View Order",
+                Priority = NotificationPriority.High,
+                SendEmail = true,
+                RelatedEntityType = "MaterialOrder",
+                RelatedEntityId = order.Id
+            });
+
+            // ✅ NOTIFY SUPPLIERS (لكل مورّد في الطلب)
+            var supplierIds = order.Items
+                .Select(i => i.RawMaterial?.SupplierId)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+
+            foreach (var supplierId in supplierIds)
+            {
+                var supplier = await _unitOfWork.Repository<Supplier>().GetByIdAsync(supplierId);
+                if (supplier?.Id != null)
+                {
+                    await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+                    {
+                        UserId = supplier.Id.ToString(),
+                        Type = NotificationType.MaterialOrder,
+                        Title = "New Material Order Received 📦",
+                        Message = $"New material order #{order.Id} for {order.Items.Count} item(s).",
+                        ActionUrl = $"/supplier/material-orders/{order.Id}",
+                        ActionText = "View Order Details",
+                        Priority = NotificationPriority.High,
+                        SendEmail = true,
+                        RelatedEntityType = "MaterialOrder",
+                        RelatedEntityId = order.Id
+                    });
+                }
+            }
+
+            _logger.LogInformation("Material order {OrderId} placed by business owner {BoId}. Total: {Total} EGP. Items: {ItemCount}",
+                order.Id, businessOwnerId, order.TotalAmount, order.Items.Count);
+
+            return result;
         }
 
         /// <inheritdoc/>
