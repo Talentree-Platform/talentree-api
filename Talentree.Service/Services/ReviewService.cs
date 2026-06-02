@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,12 +12,12 @@ using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
-using Talentree.Core.Specifications.ReviewSpecifications;
 using Talentree.Core.Specifications.ProductSpecifications;
+using Talentree.Core.Specifications.ReviewSpecifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Common;
-using Talentree.Service.DTOs.Reviews;
 using Talentree.Service.DTOs.Customer;
+using Talentree.Service.DTOs.Reviews;
 
 namespace Talentree.Service.Services
 {
@@ -28,13 +29,15 @@ namespace Talentree.Service.Services
         private readonly INotificationService _notificationService;
         private readonly UserManager<AppUser> _userManager;
         private readonly IAIService _aiService;
+        private readonly ILogger<ReviewService> _logger;
         public ReviewService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IImageService imageService,
             INotificationService notificationService,
             UserManager<AppUser> userManager,
-            IAIService aiService)
+            IAIService aiService,
+            ILogger<ReviewService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -42,6 +45,7 @@ namespace Talentree.Service.Services
             _notificationService = notificationService;
             _userManager = userManager;
             _aiService = aiService;
+            _logger = logger;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -146,8 +150,27 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<ProductReview>().Update(review);
             await _unitOfWork.CompleteAsync();
-            
+
             _ = Task.Run(() => _aiService.PredictSentimentAsync(review.Id));
+            // ✅ ADD NOTIFICATION TO CUSTOMER
+            await _notificationService.CreateNotificationAsync(new DTOs.Notification.CreateNotificationDto
+            {
+                UserId = review.CustomerUserId,
+                Type = NotificationType.Review,
+                Title = "Business Owner Replied ✅",
+                Message = $"The seller of '{review.Product?.Name}' has replied to your review.",
+                ActionUrl = $"/products/{review.ProductId}",
+                ActionText = "View Response",
+                Priority = NotificationPriority.Normal,
+                SendEmail = true,
+                RelatedEntityType = "ProductReview",
+                RelatedEntityId = review.Id
+            });
+
+            _logger.LogInformation("Response added to review {ReviewId} by owner {OwnerId}",
+                reviewId, businessOwnerUserId);
+
+
             return MapToDto(review);
         }
 
@@ -176,6 +199,25 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<ProductReview>().Update(review);
             await _unitOfWork.CompleteAsync();
+
+
+            // ✅ ADD NOTIFICATION (optional - let customer know response was updated)
+            await _notificationService.CreateNotificationAsync(new DTOs.Notification.CreateNotificationDto
+            {
+                UserId = review.CustomerUserId,
+                Type = NotificationType.Review,
+                Title = "Response Updated 📝",
+                Message = $"The seller has updated their response to your review.",
+                ActionUrl = $"/products/{review.ProductId}",
+                ActionText = "View Updated Response",
+                Priority = NotificationPriority.Low,
+                SendEmail = false,  // Don't email for minor updates
+                RelatedEntityType = "ProductReview",
+                RelatedEntityId = review.Id
+            });
+
+            _logger.LogInformation("Response edited for review {ReviewId} by owner {OwnerId}",
+                reviewId, businessOwnerUserId);
 
             return MapToDto(review);
         }
@@ -409,18 +451,41 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
 
             // 7. Send notification to Business Owner via INotificationService
+       
             if (product.BusinessOwner != null)
             {
                 await _notificationService.CreateNotificationAsync(new DTOs.Notification.CreateNotificationDto
                 {
                     UserId = product.BusinessOwner.UserId,
-                    Title = "New Product Review",
-                    Message = $"A customer has reviewed your product '{product.Name}' with a rating of {dto.Rating}/5 stars.",
-                    Type = NotificationType.System,
-                    Priority = NotificationPriority.Normal
+                    Type = NotificationType.Review,
+                    Title = $"New {dto.Rating}★ Review 📝",
+                    Message = $"A customer reviewed '{product.Name}': \"{dto.ReviewTitle}\"",
+                    ActionUrl = $"/dashboard/reviews?productId={product.Id}",
+                    ActionText = "View & Reply",
+                    Priority = dto.Rating <= 2 ? NotificationPriority.High : NotificationPriority.Normal,
+                    SendEmail = true,
+                    RelatedEntityType = "ProductReview",
+                    RelatedEntityId = review.Id
                 });
             }
 
+            // ✅ ADD NOTIFICATION TO CUSTOMER
+            await _notificationService.CreateNotificationAsync(new DTOs.Notification.CreateNotificationDto
+            {
+                UserId = customerUserId,
+                Type = NotificationType.Review,
+                Title = "Review Posted ✅",
+                Message = $"Your review for '{product.Name}' has been posted successfully.",
+                ActionUrl = $"/products/{dto.ProductId}",
+                ActionText = "View Your Review",
+                Priority = NotificationPriority.Normal,
+                SendEmail = false,
+                RelatedEntityType = "ProductReview",
+                RelatedEntityId = review.Id
+            });
+
+            _logger.LogInformation("Review created by customer {CustomerId} for product {ProductId} with rating {Rating}",
+                customerUserId, dto.ProductId, dto.Rating);
             // Return created review mapped to DTO
             var spec = new ProductReviewsSpecification(dto.ProductId, new CustomerReviewFilterParams { PageSize = 1000 });
             var refreshedReviews = await _unitOfWork.Repository<ProductReview>()
