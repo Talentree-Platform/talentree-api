@@ -1,8 +1,11 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Identity;
+
 using Talentree.Core;
 using Talentree.Core.Entities;
+using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.SupportSpecifications;
@@ -24,6 +27,7 @@ namespace Talentree.Service.Services
         private readonly IAIService _aiService;
         private readonly ILogger<SupportService> _logger;
         private readonly INotificationHelperService _notificationHelper;
+        private readonly UserManager<AppUser> _userManager;
 
         public SupportService(
             IUnitOfWork unitOfWork,
@@ -36,6 +40,9 @@ namespace Talentree.Service.Services
             )
 
             
+            IFileService fileService,
+            IAIService aiService,
+            UserManager<AppUser> userManager)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -45,6 +52,7 @@ namespace Talentree.Service.Services
             _aiService = aiService;
             _notificationHelper = notificationHelper;
              _logger = logger;
+            _userManager = userManager;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -469,6 +477,116 @@ namespace Talentree.Service.Services
         }
 
         // ═══════════════════════════════════════════════════════════
+        // ADMIN: GET TICKET DETAILS
+        // ═══════════════════════════════════════════════════════════
+        public async Task<TicketDto> GetTicketByIdForAdminAsync(int ticketId)
+        {
+            var spec = new TicketByIdSpecification(ticketId);
+            var ticket = await _unitOfWork.Repository<SupportTicket>()
+                .GetByIdWithSpecificationsAsync(spec);
+
+            if (ticket == null)
+                throw new NotFoundException("Ticket not found");
+
+            return _mapper.Map<TicketDto>(ticket);
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // ADMIN: ADD MESSAGE/REPLY
+        // ═══════════════════════════════════════════════════════════
+        public async Task<TicketMessageDto> AddAdminMessageAsync(AddTicketMessageDto dto, string adminId)
+        {
+            var spec = new TicketByIdSpecification(dto.TicketId);
+            var ticket = await _unitOfWork.Repository<SupportTicket>()
+                .GetByIdWithSpecificationsAsync(spec);
+
+            if (ticket == null)
+                throw new NotFoundException("Ticket not found");
+
+            if (ticket.Status == TicketStatus.Closed)
+                throw new BadRequestException("Cannot add message to closed ticket");
+
+            // Validate attachments
+            if (dto.Attachments != null && dto.Attachments.Count > 0)
+            {
+                if (dto.Attachments.Count > 3)
+                    throw new BadRequestException("Maximum 3 attachments allowed per message");
+
+                foreach (var file in dto.Attachments)
+                {
+                    if (file.Length > 10 * 1024 * 1024)
+                        throw new BadRequestException($"File {file.FileName} exceeds 10MB limit");
+                }
+            }
+
+            // Create message
+            var message = new TicketMessage
+            {
+                TicketId = dto.TicketId,
+                SenderId = adminId,
+                Content = dto.Content,
+                IsAdminMessage = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _unitOfWork.Repository<TicketMessage>().Add(message);
+            await _unitOfWork.CompleteAsync();
+
+            // Upload attachments
+            if (dto.Attachments != null && dto.Attachments.Count > 0)
+            {
+                foreach (var file in dto.Attachments)
+                {
+                    var fileUrl = await _fileService.UploadFileAsync(file, "support-tickets");
+
+                    var attachment = new TicketAttachment
+                    {
+                        TicketId = dto.TicketId,
+                        MessageId = message.Id,
+                        FileName = file.FileName,
+                        FileUrl = fileUrl,
+                        FileSizeBytes = file.Length,
+                        ContentType = file.ContentType,
+                        UploadedBy = adminId,
+                        UploadedAt = DateTime.UtcNow
+                    };
+
+                    _unitOfWork.Repository<TicketAttachment>().Add(attachment);
+                }
+
+                await _unitOfWork.CompleteAsync();
+            }
+
+            // Set ticket status to InProgress if open or awaiting reply
+            if (ticket.Status == TicketStatus.Open || ticket.Status == TicketStatus.AwaitingReply)
+            {
+                ticket.Status = TicketStatus.InProgress;
+                _unitOfWork.Repository<SupportTicket>().Update(ticket);
+                await _unitOfWork.CompleteAsync();
+            }
+
+            // Notify business owner of admin reply
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = ticket.BusinessOwnerUserId,
+                Type = NotificationType.Support,
+                Title = "New Reply from Support",
+                Message = $"Support admin replied to ticket #{ticket.TicketNumber}",
+                ActionUrl = $"/support/tickets/{ticket.Id}",
+                ActionText = "View Reply",
+                Priority = NotificationPriority.High,
+                SendEmail = true
+            });
+
+            // Get message with data
+            var messageSpec = new TicketMessageByIdSpecification(message.Id);
+            var createdMessage = await _unitOfWork.Repository<TicketMessage>()
+                .GetByIdWithSpecificationsAsync(messageSpec);
+
+            return _mapper.Map<TicketMessageDto>(createdMessage!);
+        }
+
+        // ═══════════════════════════════════════════════════════════
         // FAQ
         // ═══════════════════════════════════════════════════════════
 
@@ -606,5 +724,10 @@ namespace Talentree.Service.Services
         }
 
        
+        private async Task<List<string>> GetAllAdminIdsAsync()
+        {
+            var admins = await _userManager.GetUsersInRoleAsync("Admin");
+            return admins.Select(u => u.Id).ToList();
+        }
     }
 }

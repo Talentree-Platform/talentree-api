@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talentree.API.Models;
 using Talentree.Core.Enums;
@@ -97,6 +97,40 @@ namespace Talentree.API.Controllers
 
             return Ok(ApiResponse<object>.SuccessResponse(
                 message: "Ticket priority updated successfully"
+            ));
+        }
+
+        /// <summary>
+        /// Get ticket details by ID (admin view)
+        /// </summary>
+        [HttpGet("tickets/{id}")]
+        [ProducesResponseType(typeof(ApiResponse<TicketDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ApiResponse<TicketDto>>> GetTicketById(int id)
+        {
+            var ticket = await _supportService.GetTicketByIdForAdminAsync(id);
+
+            return Ok(ApiResponse<TicketDto>.SuccessResponse(
+                data: ticket,
+                message: "Ticket details and messages retrieved successfully"
+            ));
+        }
+
+        /// <summary>
+        /// Add message/reply to ticket (admin reply)
+        /// </summary>
+        [HttpPost("tickets/messages")]
+        [ProducesResponseType(typeof(ApiResponse<TicketMessageDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ApiResponse<TicketMessageDto>>> AddAdminReply([FromForm] AddTicketMessageDto dto)
+        {
+            var adminId = GetCurrentUserId();
+            var message = await _supportService.AddAdminMessageAsync(dto, adminId);
+
+            return Ok(ApiResponse<TicketMessageDto>.SuccessResponse(
+                data: message,
+                message: "Reply sent successfully. Notification sent to business owner."
             ));
         }
     }
