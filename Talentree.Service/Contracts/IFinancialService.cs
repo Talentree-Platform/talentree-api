@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Enums;
+using Talentree.Core.Enums;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Transaction;
 
@@ -22,5 +22,12 @@ namespace Talentree.Service.Contracts
         /// </summary>
         Task<Pagination<TransactionDto>> GetTransactionHistoryAsync(
             string boId, TransactionType? type, int pageIndex, int pageSize);
+
+        // Admin-facing
+        Task<Pagination<Talentree.Service.DTOs.Admin.Transactions.AdminTransactionDto>> GetAdminTransactionsAsync(
+            Talentree.Service.DTOs.Admin.Transactions.AdminTransactionFilterDto filter);
+
+        Task<Talentree.Service.DTOs.Admin.Financial.AdminFinancialReportDto> GetAdminFinancialReportAsync(
+            DateTime? from, DateTime? to);
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace Talentree.Core.Enums
+namespace Talentree.Core.Enums
 {
     public enum NotificationType
     {
@@ -13,6 +13,7 @@
         Payout = 8,                 // Payout updates
         Complaint = 9,              // Complaint resolution
         AutoBlock = 10   ,           // Automatic blocking notifications
-            MaterialOrder = 11        // Material order updates
+        MaterialOrder = 11,       // Material order updates
+        Refund = 12                 // Refund status updates
     }
 }
