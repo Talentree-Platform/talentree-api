@@ -4,25 +4,27 @@ using AutoMapper;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
+using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Admin;
+using Talentree.Service.DTOs.Admin.Orders;
 using Talentree.Service.DTOs.Admin.Product;
 using Talentree.Service.DTOs.Admin.RawMaterial;
 using Talentree.Service.DTOs.Admin.Supplier;
+using Talentree.Service.DTOs.Admin.Transactions;
 using Talentree.Service.DTOs.Auth;
 using Talentree.Service.DTOs.Basket;
 using Talentree.Service.DTOs.BoProductionRequest;
+using Talentree.Service.DTOs.Customer;
 using Talentree.Service.DTOs.MaterialOrder;
 using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.Payout;
 using Talentree.Service.DTOs.Products;
 using Talentree.Service.DTOs.RawMaterial;
+using Talentree.Service.DTOs.Refund;
 using Talentree.Service.DTOs.Support;
 using Talentree.Service.DTOs.Transaction;
+using Talentree.Service.DTOs.UserInteraction;
 using Talentree.Service.DTOs.UserManagement;
-using Talentree.Service.DTOs.Customer;
-using Talentree.Service.DTOs.Admin.Orders;
-using Talentree.Service.DTOs.Admin.Transactions;
-using Talentree.Service.DTOs.Refund;
 
 namespace Talentree.Service.Mapping
 {
@@ -812,6 +814,13 @@ namespace Talentree.Service.Mapping
             CreateMap<Transaction, AdminTransactionDto>()
                 .ForMember(d => d.BusinessOwnerName, o => o.MapFrom(s => s.BusinessOwnerId)) // Set to ID for now, service can fill name later
                 .ForMember(d => d.BusinessOwnerEmail, o => o.Ignore());
+
+            //  UserInteraction → UserInteractionDto
+            CreateMap<UserInteraction, UserInteractionDto>()
+                .ForMember(d => d.UserType, o => o.MapFrom(s => s.UserType.ToString().ToLower()))
+                .ForMember(d => d.ItemType, o => o.MapFrom(s => s.ItemType.ToString().ToLower()))
+                .ForMember(d => d.ActionType, o => o.MapFrom(s => s.ActionType.ToString().ToLower()));
+
         }
 
 

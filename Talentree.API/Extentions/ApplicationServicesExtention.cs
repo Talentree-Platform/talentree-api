@@ -21,7 +21,10 @@ namespace Talentree.API.Extentions
 
             // Auth Service
             services.AddScoped<IAuthService, AuthService>();
+            
 
+            // User Interaction Service
+            services.AddScoped<IUserInteractionService, UserInteractionService>();
             //services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ITokenService, Talentree.Service.Services.TokenService>();
 
