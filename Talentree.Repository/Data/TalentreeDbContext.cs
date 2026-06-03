@@ -37,6 +37,7 @@ namespace Talentree.Repository.Data
         public DbSet<BusinessOwnerProfile> BusinessOwnerProfiles { get; set; }
         public DbSet<RawMaterial> RawMaterials { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<SupplierReview> SupplierReviews { get; set; }
         public DbSet<MaterialBasket> MaterialBaskets { get; set; }
         public DbSet<MaterialBasketItem> MaterialBasketItems { get; set; }
 

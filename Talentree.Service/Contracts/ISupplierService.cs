@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -51,5 +51,20 @@ namespace Talentree.Service.Contracts
         /// </summary>
         /// <param name="id">Supplier ID to delete</param>
         Task DeleteSupplierAsync(int id);
+
+        /// <summary>
+        /// Gets performance metrics for all suppliers
+        /// </summary>
+        Task<Pagination<SupplierPerformanceDto>> GetSupplierPerformanceAsync(int pageIndex, int pageSize, string? sortBy);
+
+        /// <summary>
+        /// Adds a review to a supplier from a business owner
+        /// </summary>
+        Task<Talentree.Service.DTOs.Supplier.SupplierReviewDto> AddSupplierReviewAsync(int supplierId, string boId, Talentree.Service.DTOs.Supplier.CreateSupplierReviewDto dto);
+
+        /// <summary>
+        /// Gets paginated reviews for a specific supplier
+        /// </summary>
+        Task<Pagination<Talentree.Service.DTOs.Supplier.SupplierReviewDto>> GetSupplierReviewsAsync(int supplierId, int pageIndex, int pageSize);
     }
 }

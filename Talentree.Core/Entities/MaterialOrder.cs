@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Enums;
+using Talentree.Core.Enums;
 
 namespace Talentree.Core.Entities
 {
@@ -48,6 +48,9 @@ namespace Talentree.Core.Entities
         // ── Status ────────────────────────────────────────────────
         /// <summary>Current fulfilment status of the order.</summary>
         public MaterialOrderStatus Status { get; set; } = MaterialOrderStatus.Pending;
+
+        /// <summary>Timestamp when the order was marked as Delivered.</summary>
+        public DateTime? DeliveredAt { get; set; }
 
         // ── Navigation ────────────────────────────────────────────
         /// <summary>The individual raw-material lines that make up this order.</summary>

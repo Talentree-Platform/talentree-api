@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Entities;
+using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
 
 namespace Talentree.Core.Specifications.RawMaterial
@@ -23,6 +23,7 @@ namespace Talentree.Core.Specifications.RawMaterial
                 (string.IsNullOrWhiteSpace(search) || m.Name.Contains(search) || m.Description.Contains(search)))
         {
             AddInclude(m => m.Supplier);
+            AddInclude("Supplier.SupplierReviews");
             AddOrderBy(m => m.Name);
             ApplyPagination(pageIndex, pageSize);
         }
@@ -37,6 +38,7 @@ namespace Talentree.Core.Specifications.RawMaterial
             : base(m => m.Id == id && m.IsAvailable)
         {
             AddInclude(m => m.Supplier);
+            AddInclude("Supplier.SupplierReviews");
         }
     }
 

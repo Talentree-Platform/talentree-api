@@ -1,4 +1,4 @@
-﻿
+
 namespace Talentree.Service.DTOs.RawMaterial
 {
     /// <summary>
@@ -17,6 +17,9 @@ namespace Talentree.Service.DTOs.RawMaterial
         public bool IsAvailable { get; set; }
         public string Category { get; set; } = null!;
         public string? PictureUrl { get; set; }
+        public int SupplierId { get; set; }
         public string SupplierName { get; set; } = null!;
+        public double SupplierAverageRating { get; set; }
+        public int SupplierTotalReviews { get; set; }
     }
 }

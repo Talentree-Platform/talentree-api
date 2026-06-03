@@ -1,4 +1,4 @@
-﻿namespace Talentree.Core.Enums
+namespace Talentree.Core.Enums
 {
     public enum TicketCategory
     {
@@ -7,6 +7,7 @@
         Payment = 3,
         Product = 4,
         Order = 5,
-        Other = 6
+        Other = 6,
+        Supplier = 7
     }
 }

@@ -268,7 +268,17 @@ namespace Talentree.Service.Mapping
             // RawMaterial → RawMaterialDto (BO-facing store)
             CreateMap<RawMaterial, RawMaterialDto>()
                 .ForMember(dest => dest.SupplierName,
-                    opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.Name : string.Empty));
+                    opt => opt.MapFrom(src => src.Supplier != null ? src.Supplier.Name : string.Empty))
+                .ForMember(dest => dest.SupplierId,
+                    opt => opt.MapFrom(src => src.SupplierId))
+                .ForMember(dest => dest.SupplierAverageRating,
+                    opt => opt.MapFrom(src => src.Supplier != null && src.Supplier.SupplierReviews != null && src.Supplier.SupplierReviews.Any()
+                        ? src.Supplier.SupplierReviews.Average(r => r.Rating)
+                        : 0))
+                .ForMember(dest => dest.SupplierTotalReviews,
+                    opt => opt.MapFrom(src => src.Supplier != null && src.Supplier.SupplierReviews != null
+                        ? src.Supplier.SupplierReviews.Count
+                        : 0));
 
             // RawMaterial → AdminRawMaterialDto (admin panel)
             CreateMap<RawMaterial, AdminRawMaterialDto>()
