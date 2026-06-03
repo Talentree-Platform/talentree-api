@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Entities.Identity;
+using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 
 namespace Talentree.Core.Entities
@@ -22,6 +22,9 @@ namespace Talentree.Core.Entities
 
         public string? AssignedToAdminId { get; set; }
         public DateTime? AssignedAt { get; set; }
+
+        public int? RelatedSupplierId { get; set; }
+        public Supplier? RelatedSupplier { get; set; }
 
         public DateTime? ResolvedAt { get; set; }
         public string? ResolvedBy { get; set; }

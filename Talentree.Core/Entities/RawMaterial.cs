@@ -1,4 +1,4 @@
-﻿// Talentree.Core/Entities/RawMaterial.cs
+// Talentree.Core/Entities/RawMaterial.cs
 
 namespace Talentree.Core.Entities
 {
@@ -61,6 +61,11 @@ namespace Talentree.Core.Entities
         /// Navigation property to Supplier
         /// </summary>
         public Supplier Supplier { get; set; } = null!;
+
+        /// <summary>
+        /// Material order items containing this raw material
+        /// </summary>
+        public ICollection<MaterialOrderItem> MaterialOrderItems { get; set; } = new List<MaterialOrderItem>();
 
         // From ISoftDelete:
         public bool IsDeleted { get; set; }

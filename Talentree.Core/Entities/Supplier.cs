@@ -1,4 +1,4 @@
-﻿// Talentree.Core/Entities/Supplier.cs
+// Talentree.Core/Entities/Supplier.cs
 
 namespace Talentree.Core.Entities
 {
@@ -63,6 +63,16 @@ namespace Talentree.Core.Entities
         /// Raw materials provided by this supplier
         /// </summary>
         public ICollection<RawMaterial> RawMaterials { get; set; } = new List<RawMaterial>();
+        
+        /// <summary>
+        /// Reviews left by Business Owners for this supplier
+        /// </summary>
+        public ICollection<SupplierReview> SupplierReviews { get; set; } = new List<SupplierReview>();
+
+        /// <summary>
+        /// Support tickets related to this supplier (complaints/issues)
+        /// </summary>
+        public ICollection<SupportTicket> SupportTickets { get; set; } = new List<SupportTicket>();
 
 
         // From ISoftDelete:

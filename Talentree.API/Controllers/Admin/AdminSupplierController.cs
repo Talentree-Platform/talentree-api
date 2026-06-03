@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Talentree.API.Models;
@@ -117,6 +117,16 @@ namespace Talentree.API.Controllers.Admin
             return Ok(ApiResponse<object>.SuccessResponse(
                 message: "Supplier deleted successfully."
             ));
+        }
+
+        [HttpGet("performance")]
+        public async Task<IActionResult> GetPerformance(
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = null)
+        {
+            var performance = await _supplierService.GetSupplierPerformanceAsync(pageIndex, pageSize, sortBy);
+            return Ok(ApiResponse<object>.SuccessResponse(data: performance));
         }
     }
 }
