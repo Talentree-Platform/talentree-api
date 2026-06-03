@@ -1,10 +1,12 @@
-using AutoMapper;
+﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Talentree.Core;
 using Talentree.Core.Entities;
+using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.CartSpecifications;
 using Talentree.Service.Contracts;
@@ -16,11 +18,17 @@ namespace Talentree.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IUserInteractionService _userInteractionService;
+        private readonly ILogger<CartService> _logger;
 
-        public CartService(IUnitOfWork unitOfWork, IMapper mapper)
+        public CartService(IUnitOfWork unitOfWork, IMapper mapper,
+            IUserInteractionService userInteractionService,
+            ILogger<CartService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _userInteractionService = userInteractionService;
+            _logger = logger;
         }
 
         private async Task<CustomerCart> GetOrCreateCartEntityAsync(string customerId)
@@ -73,7 +81,7 @@ namespace Talentree.Service.Services
                 var newQty = existingItem.Quantity + dto.Quantity;
                 if (product.StockQuantity < newQty)
                     throw new BadRequestException($"Cannot add {dto.Quantity} more item(s). Total in cart ({newQty}) exceeds stock ({product.StockQuantity})");
-                
+
                 existingItem.Quantity = newQty;
                 _unitOfWork.Repository<CustomerCartItem>().Update(existingItem);
             }
@@ -91,12 +99,46 @@ namespace Talentree.Service.Services
 
             await _unitOfWork.CompleteAsync();
 
+            // ✅ SAVE product data BEFORE Task.Run (before DbContext dispose)
+            var productData = new
+            {
+                product.Id,
+                product.Price,
+                CategoryName = product.Category?.Name ?? "Uncategorized"
+            };
+
             // Refresh the cart from db with specs
             var spec = new CartByCustomerSpecification(customerId);
-            var refreshedCarts = await _unitOfWork.Repository<CustomerCart>().GetAllWithSpecificationsAsync(spec);
+            var refreshedCarts = await _unitOfWork.Repository<CustomerCart>()
+                .GetAllWithSpecificationsAsync(spec);
+
+            // ✅ Log click interaction (fire-and-forget)
+            if (!string.IsNullOrEmpty(customerId))
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _userInteractionService.LogInteractionAsync(
+                            userId: customerId,
+                            userType: UserInteractionType.Customer,
+                            itemId: productData.Id,
+                            itemType: UserInteractionItemType.Product,
+                            actionType: UserInteractionActionType.Click,
+                            category: productData.CategoryName,  // ✅ use saved data
+                            quantity: dto.Quantity,
+                            price: productData.Price  // ✅ use saved data
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error logging interaction in AddToCart");
+                    }
+                });
+            }
+
             return MapToCartDto(refreshedCarts.First());
         }
-
         public async Task<CartDto> UpdateCartItemAsync(int productId, UpdateCartItemDto dto, string customerId)
         {
             if (dto.Quantity <= 0)

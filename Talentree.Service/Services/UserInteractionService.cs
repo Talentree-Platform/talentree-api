@@ -1,5 +1,6 @@
 ﻿
 using AutoMapper;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
@@ -19,23 +20,26 @@ namespace Talentree.Service.Services
     public class UserInteractionService : IUserInteractionService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IServiceProvider _serviceProvider; 
         private readonly IMapper _mapper;
         private readonly ILogger<UserInteractionService> _logger;
 
         public UserInteractionService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
-            ILogger<UserInteractionService> logger)
+            ILogger<UserInteractionService> logger, IServiceProvider serviceProvider)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
+            _serviceProvider = serviceProvider;
         }
 
         /// <summary>
         /// Log user interaction (asynchronously)
         /// Called from other services when user performs action
         /// </summary>
+
         public async Task LogInteractionAsync(
             string userId,
             UserInteractionType userType,
@@ -46,35 +50,42 @@ namespace Talentree.Service.Services
             int quantity = 1,
             decimal price = 0)
         {
+            // ✅ Don't use Task.Run for async operations - just await directly
             try
             {
-                // Create interaction record
-                var interaction = new UserInteraction
+                // ✅ Create NEW async scope (separate from request)
+                await using (var scope = _serviceProvider.CreateAsyncScope())
                 {
-                    UserId = userId,
-                    UserType = userType,
-                    ItemId = itemId,
-                    ItemType = itemType,
-                    ActionType = actionType,
-                    Category = category,
-                    Quantity = quantity,
-                    Price = price,
-                    InteractionTimestamp = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow
-                };
+                    var unitOfWork = scope.ServiceProvider
+                        .GetRequiredService<IUnitOfWork>();
 
-                // Add to database
-                _unitOfWork.Repository<UserInteraction>().Add(interaction);
-                await _unitOfWork.CompleteAsync();
+                    var interaction = new UserInteraction
+                    {
+                        UserId = userId,
+                        UserType = userType,
+                        ItemId = itemId,
+                        ItemType = itemType,
+                        ActionType = actionType,
+                        Category = category,
+                        Quantity = quantity,
+                        Price = price,
+                        InteractionTimestamp = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                _logger.LogInformation(
-                    "User {UserId} ({UserType}) performed {ActionType} on {ItemType} {ItemId}",
-                    userId, userType, actionType, itemType, itemId);
+                    unitOfWork.Repository<UserInteraction>().Add(interaction);
+                    await unitOfWork.CompleteAsync();
+
+                    _logger.LogInformation(
+                        "Logged interaction for user {UserId} on {ItemType} {ItemId}",
+                        userId, itemType, itemId);
+                }
+                // ✅ DisposeAsync() called automatically here (await using)
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error logging interaction for user {UserId}", userId);
-                // Don't throw - let the main operation continue
+                // Don't throw - let main operation continue
             }
         }
 

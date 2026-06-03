@@ -24,23 +24,26 @@ namespace Talentree.Service.Services
         private readonly INotificationHelperService _notificationHelper;
         private readonly ILogger<MaterialOrderService> _logger;
         private readonly INotificationService _notificationService;
+        private readonly IUserInteractionService _userInteractionService;
 
         public MaterialOrderService(IUnitOfWork unitOfWork, IMapper mapper,
             INotificationHelperService notificationHelper, ILogger<MaterialOrderService> logger,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IUserInteractionService userInteractionService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationHelper = notificationHelper;
             _logger = logger;
             _notificationService = notificationService;
+            _userInteractionService = userInteractionService;
         }
 
         /// <inheritdoc/>
         public async Task<MaterialOrderDto> CheckoutAsync(
-            string businessOwnerId, MaterialCheckoutDto dto)
+      string businessOwnerId, MaterialCheckoutDto dto)
         {
-            // 1 — Load basket with all items and their raw material data
+            // 1 — Load basket
             var basketSpec = new MaterialBasketWithItemsSpec(businessOwnerId);
             var basket = await _unitOfWork.Repository<MaterialBasket>()
                 .GetByIdWithSpecificationsAsync(basketSpec);
@@ -48,8 +51,7 @@ namespace Talentree.Service.Services
             if (basket is null || !basket.Items.Any())
                 throw new InvalidOperationException("Your basket is empty.");
 
-            // 2 — Re-validate stock at checkout time
-            //     (another BO may have purchased stock since items were added)
+            // 2 — Re-validate stock
             foreach (var item in basket.Items)
             {
                 var material = item.RawMaterial
@@ -66,7 +68,36 @@ namespace Talentree.Service.Services
                         $"Please update your basket quantity.");
             }
 
-            // 3 — Build the order with prices locked at this moment
+            // ✅ SAVE material data BEFORE CompleteAsync()
+            var purchaseData = new List<dynamic>();
+            var previousOrdersMap = new Dictionary<int, bool>();  // materialId -> isReorder
+
+            foreach (var item in basket.Items)
+            {
+                var material = item.RawMaterial!;
+
+                // ✅ Check reorder status BEFORE CompleteAsync
+                var previousOrdersSpec = new PreviousMaterialOrdersByOwnerAndMaterialSpecification(
+                    businessOwnerId, material.Id);
+                var previousOrderCount = await _unitOfWork.Repository<MaterialOrder>()
+                    .GetCountWithSpecificationsAsync(previousOrdersSpec);
+
+                var isReorder = previousOrderCount > 0;
+                previousOrdersMap[material.Id] = isReorder;
+
+                // ✅ Save all data needed for logging
+                purchaseData.Add(new
+                {
+                    MaterialId = material.Id,
+                    MaterialName = material.Name,
+                    CategoryName = material.Category ?? "Uncategorized",
+                    UnitPrice = material.Price,
+                    Quantity = item.Quantity,
+                    IsReorder = isReorder
+                });
+            }
+
+            // 3 — Build the order
             var order = new MaterialOrder
             {
                 BusinessOwnerId = businessOwnerId,
@@ -74,7 +105,7 @@ namespace Talentree.Service.Services
                 DeliveryCity = dto.DeliveryCity,
                 DeliveryCountry = dto.DeliveryCountry,
                 ContactPhone = dto.ContactPhone,
-                PaymentStatus = PaymentStatus.Unpaid,    
+                PaymentStatus = PaymentStatus.Unpaid,
                 Status = MaterialOrderStatus.Pending,
                 Items = basket.Items.Select(i => new MaterialOrderItem
                 {
@@ -86,7 +117,7 @@ namespace Talentree.Service.Services
 
             order.TotalAmount = order.Items.Sum(i => i.LineTotal);
 
-            // 4 — Deduct stock from each raw material
+            // 4 — Deduct stock
             foreach (var item in basket.Items)
                 item.RawMaterial!.StockQuantity -= item.Quantity;
 
@@ -94,19 +125,15 @@ namespace Talentree.Service.Services
             foreach (var item in basket.Items.ToList())
                 _unitOfWork.Repository<MaterialBasketItem>().Delete(item);
 
-            // 6 — Persist order, stock changes, and basket clear in one transaction
+            // 6 — Persist order, stock changes, and basket clear
             _unitOfWork.Repository<MaterialOrder>().Add(order);
-            await _unitOfWork.CompleteAsync();
+            await _unitOfWork.CompleteAsync();  // ✅ DbContext disposed here
 
-            // 7 — Reload the order with all includes for the response DTO
+            // 7 — Reload the order
             var detailSpec = new MaterialOrderByIdAndBoSpecification(order.Id, businessOwnerId);
             var created = await _unitOfWork.Repository<MaterialOrder>()
                 .GetByIdWithSpecificationsAsync(detailSpec);
 
-            // بدل:
-            // return _mapper.Map<MaterialOrderDto>(created);
-
-            // اكتب:
             var result = _mapper.Map<MaterialOrderDto>(created);
 
             // ✅ ADD NOTIFICATION TO BUSINESS OWNER
@@ -124,7 +151,7 @@ namespace Talentree.Service.Services
                 RelatedEntityId = order.Id
             });
 
-            // ✅ NOTIFY SUPPLIERS (لكل مورّد في الطلب)
+            // ✅ NOTIFY SUPPLIERS 
             var supplierIds = order.Items
                 .Select(i => i.RawMaterial?.SupplierId)
                 .Where(id => id.HasValue)
@@ -153,12 +180,48 @@ namespace Talentree.Service.Services
                 }
             }
 
-            _logger.LogInformation("Material order {OrderId} placed by business owner {BoId}. Total: {Total} EGP. Items: {ItemCount}",
+            _logger.LogInformation(
+                "Material order {OrderId} placed by business owner {BoId}. Total: {Total} EGP. Items: {ItemCount}",
                 order.Id, businessOwnerId, order.TotalAmount, order.Items.Count);
+
+            // ✅ Log purchase/reorder interactions (fire-and-forget)
+            if (!string.IsNullOrEmpty(businessOwnerId))
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        foreach (var itemData in purchaseData)
+                        {
+                            await _userInteractionService.LogInteractionAsync(
+                                userId: businessOwnerId,
+                                userType: UserInteractionType.Owner,
+                                itemId: itemData.MaterialId,  // ✅ safe - copied value
+                                itemType: UserInteractionItemType.RawMaterial,
+                                actionType: itemData.IsReorder
+                                    ? UserInteractionActionType.Reorder
+                                    : UserInteractionActionType.Purchase,
+                                category: itemData.CategoryName,  // ✅ safe - copied value
+                                quantity: itemData.Quantity,
+                                price: itemData.UnitPrice  // ✅ safe - copied value
+                            );
+                        }
+
+                        _logger.LogInformation(
+                            "Logged {Count} material order interactions for owner {OwnerId}",
+                            purchaseData.Count, businessOwnerId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex,
+                            "Error logging material order interactions for owner {OwnerId}",
+                            businessOwnerId);
+                    }
+                });
+            }
 
             return result;
         }
-
         /// <inheritdoc/>
         public async Task<Pagination<MaterialOrderSummaryDto>> GetOrderHistoryAsync(
             string businessOwnerId, int pageIndex, int pageSize)

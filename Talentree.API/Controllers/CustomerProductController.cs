@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Talentree.API.Models;
 using Talentree.Service.Contracts;
@@ -54,7 +55,10 @@ namespace Talentree.API.Controllers
         [ProducesResponseType(typeof(ApiResponse<CustomerProductDetailDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<CustomerProductDetailDto>>> GetProduct(int id)
         {
-            var product = await _productService.GetPublicProductByIdAsync(id);
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var product = await _productService.GetPublicProductByIdAsync(id, userId);
             return Ok(ApiResponse<CustomerProductDetailDto>.SuccessResponse(product, "Product details loaded"));
         }
 
@@ -99,6 +103,7 @@ namespace Talentree.API.Controllers
         [ProducesResponseType(typeof(ApiResponse<Pagination<CustomerProductDto>>), StatusCodes.Status200OK)]
         public async Task<ActionResult<ApiResponse<Pagination<CustomerProductDto>>>> GetBrandProducts(int id, [FromQuery] CustomerProductFilterDto filter)
         {
+
             var pagination = await _productService.GetBrandProductsAsync(id, filter);
             return Ok(ApiResponse<Pagination<CustomerProductDto>>.SuccessResponse(pagination, "Brand products loaded"));
         }

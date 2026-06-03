@@ -26,18 +26,21 @@ namespace Talentree.Service.Services
         private readonly IImageService _imageService;
         private readonly INotificationService _notificationService;
         private readonly IAIService _aiService;
+        private readonly IUserInteractionService _userInteractionService;
         public ProductService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IImageService imageService,
             INotificationService notificationService,
-            IAIService aiService)
+            IAIService aiService,
+            IUserInteractionService userInteractionService )
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _imageService = imageService;
             _notificationService = notificationService;
             _aiService = aiService;
+            _userInteractionService = userInteractionService;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -332,7 +335,7 @@ namespace Talentree.Service.Services
             return new Pagination<CustomerProductDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
         }
 
-        public async Task<CustomerProductDetailDto> GetPublicProductByIdAsync(int productId)
+        public async Task<CustomerProductDetailDto> GetPublicProductByIdAsync(int productId, string? userId = null)
         {
             var spec = new ProductByIdPublicSpecification(productId);
             var product = await _unitOfWork.Repository<Product>()
@@ -354,6 +357,24 @@ namespace Talentree.Service.Services
                 .GetAllWithSpecificationsAsync(similarSpec);
 
             dto.SimilarProducts = _mapper.Map<List<CustomerProductDto>>(similarProducts);
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                _ = Task.Run(async () =>
+                {
+                    await _userInteractionService.LogInteractionAsync(
+                        userId: userId,
+                        userType: UserInteractionType.Customer,
+                        itemId: productId,
+                        itemType: UserInteractionItemType.Product,
+                        actionType: UserInteractionActionType.View,
+                        category: product.Category.Name,
+                        quantity: 1,
+                        price: product.Price
+                    );
+                });
+            }
+
 
             return dto;
         }
