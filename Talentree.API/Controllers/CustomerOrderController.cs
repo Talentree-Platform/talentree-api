@@ -15,10 +15,12 @@ namespace Talentree.API.Controllers
     public class CustomerOrderController : BaseApiController
     {
         private readonly ICustomerOrderService _orderService;
+        private readonly IRefundService _refundService;
 
-        public CustomerOrderController(ICustomerOrderService orderService)
+        public CustomerOrderController(ICustomerOrderService orderService, IRefundService refundService)
         {
             _orderService = orderService;
+            _refundService = refundService;
         }
 
         // POST /api/customer/orders
@@ -84,6 +86,16 @@ namespace Talentree.API.Controllers
             var userId = GetCurrentUserId();
             var pdfBytes = await _orderService.GenerateInvoiceAsync(id, userId);
             return File(pdfBytes, "application/pdf", $"invoice-{id}.pdf");
+        }
+
+        // POST /api/customer/orders/{id}/items/{itemId}/refund-request
+        [HttpPost("orders/{id:int}/items/{itemId:int}/refund-request")]
+        [ProducesResponseType(typeof(ApiResponse<Talentree.Service.DTOs.Refund.RefundRequestDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<ApiResponse<Talentree.Service.DTOs.Refund.RefundRequestDto>>> SubmitRefundRequest(int id, int itemId, [FromBody] Talentree.Service.DTOs.Refund.CreateRefundRequestDto dto)
+        {
+            var userId = GetCurrentUserId();
+            var refundRequest = await _refundService.SubmitRefundRequestAsync(id, itemId, userId, dto);
+            return Ok(ApiResponse<Talentree.Service.DTOs.Refund.RefundRequestDto>.SuccessResponse(refundRequest, "Refund request submitted successfully"));
         }
     }
 }

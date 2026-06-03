@@ -12,6 +12,9 @@ namespace Talentree.API.Extentions
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddScoped<IAdminOrderService, AdminOrderService>();
+            services.AddScoped<IRefundService, Talentree.Service.Services.RefundService>();
+
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));

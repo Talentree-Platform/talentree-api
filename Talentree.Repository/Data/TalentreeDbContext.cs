@@ -85,6 +85,7 @@ namespace Talentree.Repository.Data
         public DbSet<OrderStatusHistory> OrderStatusHistories { get; set; }
         public DbSet<CustomerWishlist> CustomerWishlists { get; set; }
         public DbSet<CustomerWishlistItem> CustomerWishlistItems { get; set; }
+        public DbSet<RefundRequest> RefundRequests { get; set; }
 
         // ===============================
         // Model Configuration
@@ -98,6 +99,13 @@ namespace Talentree.Repository.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            
+            // Fix multiple cascade paths for RefundRequest
+            modelBuilder.Entity<RefundRequest>()
+                .HasOne(r => r.Order)
+                .WithMany()
+                .HasForeignKey(r => r.OrderId)
+                .OnDelete(DeleteBehavior.NoAction);
 
             // Apply all entity configurations from this assembly
             // This will find all classes implementing IEntityTypeConfiguration<T>
