@@ -26,9 +26,11 @@ namespace Talentree.Service.Services
         private readonly INotificationHelperService _notificationHelper;  
         private readonly ILogger<CustomerOrderService> _logger;
         private readonly INotificationService _notificationService;
+        private readonly IUserInteractionService _userInteractionService;
 
         public CustomerOrderService(IUnitOfWork unitOfWork, IMapper mapper, IPaymentService paymentService,
-            INotificationHelperService notificationHelper, ILogger<CustomerOrderService> logger, INotificationService notificationService)
+            INotificationHelperService notificationHelper, ILogger<CustomerOrderService> logger, INotificationService notificationService,
+            IUserInteractionService userInteractionService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -36,13 +38,18 @@ namespace Talentree.Service.Services
             _notificationHelper = notificationHelper;
             _notificationService = notificationService;
             _logger = logger;
+            _userInteractionService = userInteractionService;
         }
 
-        public async Task<CustomerOrderDetailDto> PlaceOrderAsync(CheckoutDeliveryDto delivery, PaymentMethod method, string customerId)
+        public async Task<CustomerOrderDetailDto> PlaceOrderAsync(
+        CheckoutDeliveryDto delivery,
+        PaymentMethod method,
+        string customerId)
         {
             // 1. Fetch the cart
             var cartSpec = new CartByCustomerSpecification(customerId);
-            var carts = await _unitOfWork.Repository<CustomerCart>().GetAllWithSpecificationsAsync(cartSpec);
+            var carts = await _unitOfWork.Repository<CustomerCart>()
+                .GetAllWithSpecificationsAsync(cartSpec);
             var cart = carts.FirstOrDefault();
             if (cart == null || !cart.Items.Any())
                 throw new BadRequestException("Your cart is empty.");
@@ -51,6 +58,9 @@ namespace Talentree.Service.Services
             var orderItems = new List<CustomerOrderItem>();
             decimal subtotal = 0m;
 
+            // ✅ SAVE product data BEFORE CompleteAsync()
+            var purchaseData = new List<dynamic>();
+
             foreach (var item in cart.Items)
             {
                 var product = item.Product;
@@ -58,7 +68,8 @@ namespace Talentree.Service.Services
                     throw new NotFoundException($"Product {item.ProductId} not found.");
 
                 if (product.StockQuantity < item.Quantity)
-                    throw new BadRequestException($"Insufficient stock for product '{product.Name}'. Available: {product.StockQuantity}, Requested: {item.Quantity}");
+                    throw new BadRequestException(
+                        $"Insufficient stock for product '{product.Name}'. Available: {product.StockQuantity}, Requested: {item.Quantity}");
 
                 // Snapshot price and details
                 var orderItem = new CustomerOrderItem
@@ -74,6 +85,16 @@ namespace Talentree.Service.Services
                 orderItems.Add(orderItem);
                 subtotal += product.Price * item.Quantity;
 
+                // ✅ Save product data for later logging
+                purchaseData.Add(new
+                {
+                    ProductId = product.Id,
+                    ProductName = product.Name,
+                    CategoryName = product.Category?.Name ?? "Uncategorized",
+                    UnitPrice = product.Price,
+                    Quantity = item.Quantity
+                });
+
                 // Decrement stock
                 product.StockQuantity -= item.Quantity;
                 _unitOfWork.Repository<Product>().Update(product);
@@ -84,7 +105,9 @@ namespace Talentree.Service.Services
             decimal total = subtotal + shipping;
 
             // 4. Determine status based on payment method
-            var status = method == PaymentMethod.CashOnDelivery ? CustomerOrderStatus.Processing : CustomerOrderStatus.Pending;
+            var status = method == PaymentMethod.CashOnDelivery
+                ? CustomerOrderStatus.Processing
+                : CustomerOrderStatus.Pending;
             var paymentStatus = PaymentStatus.Unpaid;
 
             // 5. Create Order
@@ -111,8 +134,8 @@ namespace Talentree.Service.Services
             order.StatusHistory.Add(new OrderStatusHistory
             {
                 Status = status,
-                Notes = method == PaymentMethod.CashOnDelivery 
-                    ? "Order placed and is being processed (Cash on Delivery)." 
+                Notes = method == PaymentMethod.CashOnDelivery
+                    ? "Order placed and is being processed (Cash on Delivery)."
                     : "Order placed. Pending credit card payment.",
                 ChangedBy = customerId,
                 ChangedAt = DateTime.UtcNow
@@ -127,7 +150,7 @@ namespace Talentree.Service.Services
             }
 
             // 7. Commit changes
-            await _unitOfWork.CompleteAsync();
+            await _unitOfWork.CompleteAsync();  // ✅ DbContext disposed here
 
             var result = _mapper.Map<CustomerOrderDetailDto>(order);
 
@@ -173,12 +196,46 @@ namespace Talentree.Service.Services
                 }
             }
 
-            _logger.LogInformation("Order {OrderId} placed by customer {CustomerId}. Total: {Total} EGP. Payment Method: {Method}",
+            _logger.LogInformation(
+                "Order {OrderId} placed by customer {CustomerId}. Total: {Total} EGP. Payment Method: {Method}",
                 order.Id, customerId, order.TotalAmount, order.PaymentMethod);
+
+            // ✅ Log purchase interaction for each product (fire-and-forget)
+            if (!string.IsNullOrEmpty(customerId))
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        foreach (var itemData in purchaseData)
+                        {
+                            await _userInteractionService.LogInteractionAsync(
+                                userId: customerId,
+                                userType: UserInteractionType.Customer,
+                                itemId: itemData.ProductId,
+                                itemType: UserInteractionItemType.Product,
+                                actionType: UserInteractionActionType.Purchase,
+                                category: itemData.CategoryName,  // ✅ استخدم saved data
+                                quantity: itemData.Quantity,
+                                price: itemData.UnitPrice  // ✅ استخدم saved data
+                            );
+                        }
+
+                        _logger.LogInformation(
+                            "Logged {Count} purchase interactions for customer {CustomerId}",
+                            purchaseData.Count, customerId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex,
+                            "Error logging purchase interactions for customer {CustomerId}",
+                            customerId);
+                    }
+                });
+            }
 
             return result;
         }
-
         public async Task<OrderPaymentDto> CreatePaymentIntentAsync(int orderId, string customerId)
         {
             var spec = new CustomerOrderByIdSpecification(orderId, customerId);

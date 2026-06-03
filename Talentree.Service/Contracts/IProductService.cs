@@ -19,7 +19,7 @@ namespace Talentree.Service.Contracts
         // Customer discovery endpoints
         Task<HomepageDto> GetHomepageDataAsync();
         Task<Pagination<CustomerProductDto>> SearchProductsAsync(CustomerProductFilterDto filter);
-        Task<CustomerProductDetailDto> GetPublicProductByIdAsync(int productId);
+        Task<CustomerProductDetailDto> GetPublicProductByIdAsync(int productId,string? userId = null);
         Task<Pagination<CustomerProductDto>> GetByCategoryAsync(int categoryId, CustomerProductFilterDto filter);
         Task<List<string>> GetAutocompleteAsync(string query);
         Task<Pagination<BrandListDto>> GetBrandsAsync(BrandFilterDto filter);
