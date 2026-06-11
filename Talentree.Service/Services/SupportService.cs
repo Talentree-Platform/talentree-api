@@ -1,8 +1,8 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Identity;
-
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
@@ -90,7 +90,17 @@ namespace Talentree.Service.Services
             };
 
             _unitOfWork.Repository<SupportTicket>().Add(ticket);
-            _ = Task.Run(() => _aiService.PredictTriageAsync(ticket.Id));
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _aiService.PredictTriageAsync(ticket.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error in background AI prediction task");
+                }
+            });
             await _unitOfWork.CompleteAsync();
 
             // Upload attachments
