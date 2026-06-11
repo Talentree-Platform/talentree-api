@@ -1,0 +1,71 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy ASP.Net Core app to Azure Web App - talentree-api
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.x"
+
+      # تم إزالة خطوة مسح الكاش لضمان سرعة الـ Build والاستفادة من الـ Cache الذكي للـ Runner
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # تحديد اسم المشروع الرئيسي أثناء الـ Build
+      - name: Build with dotnet
+        run: dotnet build Talentree.API\Talentree.API.csproj --configuration Release --no-restore
+
+      # تحديد اسم مشروع الـ API صراحةً لمنع تضارب الـ DLLs
+      - name: dotnet publish
+        run: dotnet publish Talentree.API\Talentree.API.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp" --no-build
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: .net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
+
+  deploy:
+    runs-on: windows-latest
+    needs: build
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: .net-app
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5F9E2EF3205E41DBB13738828219D03B }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_3827B7F3E0E7453EA4A6CADEE2E6476C }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_71C05E4A36414794BA8D5468FD3BD3E5 }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "talentree-api"
+          slot-name: "Production"
+          package: .

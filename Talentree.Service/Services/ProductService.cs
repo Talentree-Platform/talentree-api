@@ -16,6 +16,7 @@ using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Products;
 using Talentree.Service.DTOs.Customer;
+using Microsoft.Extensions.Logging;
 
 namespace Talentree.Service.Services
 {
@@ -27,13 +28,16 @@ namespace Talentree.Service.Services
         private readonly INotificationService _notificationService;
         private readonly IAIService _aiService;
         private readonly IUserInteractionService _userInteractionService;
+        //_logger
+        private readonly ILogger<ProductService> _logger;
         public ProductService(
+            ILogger<ProductService> logger,
             IUnitOfWork unitOfWork,
             IMapper mapper,
             IImageService imageService,
             INotificationService notificationService,
             IAIService aiService,
-            IUserInteractionService userInteractionService )
+            IUserInteractionService userInteractionService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -41,8 +45,8 @@ namespace Talentree.Service.Services
             _notificationService = notificationService;
             _aiService = aiService;
             _userInteractionService = userInteractionService;
+            _logger = logger;
         }
-
         // ═══════════════════════════════════════════════════════════
         // PRIVATE HELPER: Get approved business owner profile by userId
         // ═══════════════════════════════════════════════════════════
@@ -263,7 +267,18 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<Product>().Update(product);
             await _unitOfWork.CompleteAsync();
             // Notify AI to recompute product metrics
-            _ = Task.Run(() => _aiService.ComputeProductAsync(product.Id));
+            // ✅ AI should compute quality + demand
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _aiService.ComputeProductAsync(product.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error computing product metrics for product {ProductId}", product.Id);
+                }
+            });
             return await GetProductByIdAsync(product.Id, businessOwnerUserId);
         }
 
