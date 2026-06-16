@@ -28,7 +28,7 @@ namespace Talentree.Repository.Data.DataSeed
 {
     public static class JsonSeedLoader
     {
-        public static async Task SeedAsync(TalentreeDbContext context, string jsonSeedFolderPath)
+        public static async Task SeedAsync(TalentreeDbContext context, string jsonSeedFolderPath, bool seedInteractions = false)
         {
             if (!Directory.Exists(jsonSeedFolderPath))
             {
@@ -43,6 +43,16 @@ namespace Talentree.Repository.Data.DataSeed
 
             // ── 0b. Raw Materials
             var rawMaterialSeedResult = await RawMaterialSeeder.SeedAsync(context, jsonSeedFolderPath);
+
+            // ── 0c. User Interactions (Conditional on flag)
+            if (seedInteractions)
+            {
+                await UserInteractionSeeder.SeedAsync(context, jsonSeedFolderPath, productSeedResult.IdMap, rawMaterialSeedResult.IdMap);
+            }
+            else
+            {
+                Console.WriteLine("[JsonSeedLoader] Skipping heavy UserInteractions seed (run with --seed-interactions flag to enable).");
+            }
 
             // ── 1. Transactions ──────────────────────────────────────────
             await SeedTransactionsAsync(context, Path.Combine(jsonSeedFolderPath, "Transactions.json"));

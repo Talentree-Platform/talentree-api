@@ -1,4 +1,4 @@
-﻿using FluentValidation.AspNetCore;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -204,7 +204,14 @@ namespace Talentree.API
             // Migrate DB + Seed all data
             // (MigrateDatabaseAsync calls DbInitializer internally)
             // ===============================
-            await app.MigrateDatabaseAsync();
+            var seedInteractions = args.Contains("--seed-interactions");
+            await app.MigrateDatabaseAsync(seedInteractions);
+
+            if (seedInteractions)
+            {
+                Console.WriteLine("User interactions seeding completed successfully. Exiting application...");
+                return;
+            }
 
             // ===============================
             // Middleware pipeline
