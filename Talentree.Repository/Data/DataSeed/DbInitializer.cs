@@ -19,7 +19,8 @@ namespace Talentree.Repository.Data.DataSeed
             TalentreeDbContext context,
             RoleManager<IdentityRole> roleManager,
             UserManager<AppUser> userManager,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            bool seedInteractions = false)
         {
             var logger = loggerFactory.CreateLogger("DbInitializer");
 
@@ -78,7 +79,7 @@ namespace Talentree.Repository.Data.DataSeed
             //        Each section is idempotent — it checks Any() before inserting.
             var jsonSeedFolder = ResolveJsonSeedFolderPath();
             if (jsonSeedFolder != null)
-                await JsonSeedLoader.SeedAsync(context, jsonSeedFolder);
+                await JsonSeedLoader.SeedAsync(context, jsonSeedFolder, seedInteractions);
             else
                 logger.LogWarning("[JsonSeedLoader] jsonSeed/ folder not found — skipping bulk import.");
 
