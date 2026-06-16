@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
 
@@ -26,7 +26,7 @@ namespace Talentree.Repository.Data.Config
             builder.Ignore(i => i.LineTotal);
 
             builder.HasOne(i => i.RawMaterial)
-                .WithMany()
+                .WithMany(r => r.MaterialOrderItems)
                 .HasForeignKey(i => i.RawMaterialId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
