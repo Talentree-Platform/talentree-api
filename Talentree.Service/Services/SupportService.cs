@@ -9,6 +9,8 @@ using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.SupportSpecifications;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Common;
@@ -28,6 +30,7 @@ namespace Talentree.Service.Services
         private readonly ILogger<SupportService> _logger;
         private readonly INotificationHelperService _notificationHelper;
         private readonly UserManager<AppUser> _userManager;
+        private readonly IEventPublisher _eventPublisher;
 
         public SupportService(
             IUnitOfWork unitOfWork,
@@ -37,7 +40,8 @@ namespace Talentree.Service.Services
             IFileService fileService, IAIService aiService,
             INotificationHelperService notificationHelper,
             ILogger<SupportService> logger,
-            UserManager<AppUser> userManager)
+            UserManager<AppUser> userManager,
+            IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -48,6 +52,7 @@ namespace Talentree.Service.Services
             _notificationHelper = notificationHelper;
              _logger = logger;
             _userManager = userManager;
+            _eventPublisher = eventPublisher;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -90,18 +95,10 @@ namespace Talentree.Service.Services
             };
 
             _unitOfWork.Repository<SupportTicket>().Add(ticket);
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await _aiService.PredictTriageAsync(ticket.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error in background AI prediction task");
-                }
-            });
             await _unitOfWork.CompleteAsync();
+
+            var ticketId = ticket.Id;
+            await _eventPublisher.PublishAsync("ai.triage", new TriagePredictionMessage { TicketId = ticketId });
 
             // Upload attachments
             if (dto.Attachments != null && dto.Attachments.Count > 0)

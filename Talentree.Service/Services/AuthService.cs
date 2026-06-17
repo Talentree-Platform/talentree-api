@@ -1,9 +1,10 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Google.Apis.Auth;
 using Guidy.Core.Specifications;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities.Identity;
@@ -11,6 +12,8 @@ using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Auth;
 
@@ -28,6 +31,7 @@ namespace Talentree.Service.Services
         private readonly IAIService _aiService;
         private readonly INotificationHelperService _notificationHelper;
         private readonly ILogger<AuthService> _logger;
+        private readonly IEventPublisher _eventPublisher;
         public AuthService(
             UserManager<AppUser> userManager,
             //RoleManager<IdentityRole> roleManager,
@@ -38,7 +42,8 @@ namespace Talentree.Service.Services
             IConfiguration configuration,
              IAIService aiService,
                 INotificationHelperService notificationHelper,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        IEventPublisher eventPublisher)
         {
             _userManager = userManager;
             //_roleManager = roleManager;
@@ -50,6 +55,7 @@ namespace Talentree.Service.Services
             _aiService = aiService;
             _notificationHelper = notificationHelper;
             _logger = logger;
+            _eventPublisher = eventPublisher;
         }
         public async Task<string> RegisterAsync(RegisterDto registerDto)
         {
@@ -223,8 +229,9 @@ namespace Talentree.Service.Services
 
             // Save changes
             await _unitOfWork.CompleteAsync();
-            // Predict churn risk on every login — fire and forget
-            _ = Task.Run(() => _aiService.PredictChurnAsync(user.Id));
+            // Predict churn risk on every login (using centralized background queue)
+            var userId = user.Id;
+            await _eventPublisher.PublishAsync("ai.churn", new ChurnPredictionMessage { UserId = userId });
 
             // Map user to UserInfoDto
             var userInfo = _mapper.Map<UserInfoDto>(user);

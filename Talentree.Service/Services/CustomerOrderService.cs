@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+using AutoMapper;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,8 @@ using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.CartSpecifications;
 using Talentree.Core.Specifications.OrderSpecifications;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Customer;
@@ -27,10 +30,12 @@ namespace Talentree.Service.Services
         private readonly ILogger<CustomerOrderService> _logger;
         private readonly INotificationService _notificationService;
         private readonly IUserInteractionService _userInteractionService;
+        private readonly IEventPublisher _eventPublisher;
 
         public CustomerOrderService(IUnitOfWork unitOfWork, IMapper mapper, IPaymentService paymentService,
             INotificationHelperService notificationHelper, ILogger<CustomerOrderService> logger, INotificationService notificationService,
-            IUserInteractionService userInteractionService)
+            IUserInteractionService userInteractionService,
+            IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -39,6 +44,7 @@ namespace Talentree.Service.Services
             _notificationService = notificationService;
             _logger = logger;
             _userInteractionService = userInteractionService;
+            _eventPublisher = eventPublisher;
         }
 
         public async Task<CustomerOrderDetailDto> PlaceOrderAsync(
@@ -200,38 +206,23 @@ namespace Talentree.Service.Services
                 "Order {OrderId} placed by customer {CustomerId}. Total: {Total} EGP. Payment Method: {Method}",
                 order.Id, customerId, order.TotalAmount, order.PaymentMethod);
 
-            // ✅ Log purchase interaction for each product (fire-and-forget)
+            // ✅ Log purchase interaction for each product (using centralized background queue)
             if (!string.IsNullOrEmpty(customerId))
             {
-                _ = Task.Run(async () =>
+                foreach (var itemData in purchaseData)
                 {
-                    try
+                    await _eventPublisher.PublishAsync("interaction.log", new InteractionLogMessage
                     {
-                        foreach (var itemData in purchaseData)
-                        {
-                            await _userInteractionService.LogInteractionAsync(
-                                userId: customerId,
-                                userType: UserInteractionType.Customer,
-                                itemId: itemData.ProductId,
-                                itemType: UserInteractionItemType.Product,
-                                actionType: UserInteractionActionType.Purchase,
-                                category: itemData.CategoryName,  // ✅ استخدم saved data
-                                quantity: itemData.Quantity,
-                                price: itemData.UnitPrice  // ✅ استخدم saved data
-                            );
-                        }
-
-                        _logger.LogInformation(
-                            "Logged {Count} purchase interactions for customer {CustomerId}",
-                            purchaseData.Count, customerId);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex,
-                            "Error logging purchase interactions for customer {CustomerId}",
-                            customerId);
-                    }
-                });
+                        UserId = customerId,
+                        UserType = UserInteractionType.Customer,
+                        ItemId = itemData.ProductId,
+                        ItemType = UserInteractionItemType.Product,
+                        ActionType = UserInteractionActionType.Purchase,
+                        Category = itemData.CategoryName,
+                        Quantity = itemData.Quantity,
+                        Price = itemData.UnitPrice
+                    });
+                }
             }
 
             return result;
