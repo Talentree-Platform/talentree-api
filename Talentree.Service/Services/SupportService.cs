@@ -9,7 +9,8 @@ using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.SupportSpecifications;
-using Talentree.Service.BackgroundJobs;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Common;
@@ -29,7 +30,7 @@ namespace Talentree.Service.Services
         private readonly ILogger<SupportService> _logger;
         private readonly INotificationHelperService _notificationHelper;
         private readonly UserManager<AppUser> _userManager;
-        private readonly IBackgroundJobQueue _backgroundQueue;
+        private readonly IEventPublisher _eventPublisher;
 
         public SupportService(
             IUnitOfWork unitOfWork,
@@ -40,7 +41,7 @@ namespace Talentree.Service.Services
             INotificationHelperService notificationHelper,
             ILogger<SupportService> logger,
             UserManager<AppUser> userManager,
-            IBackgroundJobQueue backgroundQueue)
+            IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -51,7 +52,7 @@ namespace Talentree.Service.Services
             _notificationHelper = notificationHelper;
              _logger = logger;
             _userManager = userManager;
-            _backgroundQueue = backgroundQueue;
+            _eventPublisher = eventPublisher;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -97,11 +98,7 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
 
             var ticketId = ticket.Id;
-            _backgroundQueue.Enqueue(async (sp, cancellationToken) =>
-            {
-                var aiService = sp.GetRequiredService<IAIService>();
-                await aiService.PredictTriageAsync(ticketId);
-            });
+            await _eventPublisher.PublishAsync("ai.triage", new TriagePredictionMessage { TicketId = ticketId });
 
             // Upload attachments
             if (dto.Attachments != null && dto.Attachments.Count > 0)

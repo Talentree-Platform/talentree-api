@@ -11,7 +11,8 @@ using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications;
 using Talentree.Core.Specifications.AccountSettingsSpecifications;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
-using Talentree.Service.BackgroundJobs;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.AccountSettings;
 using Talentree.Service.DTOs.Notification;
@@ -30,7 +31,7 @@ namespace Talentree.Service.Services
 
         private readonly INotificationService _notificationService;  
         private readonly ILogger<AccountSettingsService> _logger;
-        private readonly IBackgroundJobQueue _backgroundQueue;
+        private readonly IEventPublisher _eventPublisher;
         public AccountSettingsService(
             IUnitOfWork unitOfWork,
             UserManager<AppUser> userManager,
@@ -41,7 +42,7 @@ namespace Talentree.Service.Services
             ILogger<AccountSettingsService> logger,
             ITokenService tokenService,
             IEmailService emailService,
-            IBackgroundJobQueue backgroundQueue)    
+            IEventPublisher eventPublisher)    
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
@@ -52,7 +53,7 @@ namespace Talentree.Service.Services
             _logger = logger;
             _tokenService = tokenService;
             _emailService = emailService;
-            _backgroundQueue = backgroundQueue;
+            _eventPublisher = eventPublisher;
         }
 
         // ─────────────────────────────────────────────
@@ -158,11 +159,7 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
 
             // Notify AI to recompute profile completeness (using centralized background queue)
-            _backgroundQueue.Enqueue(async (sp, cancellationToken) =>
-            {
-                var aiService = sp.GetRequiredService<IAIService>();
-                await aiService.ComputeProfileAsync(userId);
-            });
+            await _eventPublisher.PublishAsync("ai.profile", new ProfileComputationMessage { UserId = userId });
 
             // Email change — send OTP (handled separately via FR-BO-32 email verification flow)
             // We don't change email here directly — we send OTP first

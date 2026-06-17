@@ -11,7 +11,8 @@ using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.CartSpecifications;
 using Talentree.Core.Specifications.OrderSpecifications;
-using Talentree.Service.BackgroundJobs;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Customer;
@@ -29,12 +30,12 @@ namespace Talentree.Service.Services
         private readonly ILogger<CustomerOrderService> _logger;
         private readonly INotificationService _notificationService;
         private readonly IUserInteractionService _userInteractionService;
-        private readonly IBackgroundJobQueue _backgroundQueue;
+        private readonly IEventPublisher _eventPublisher;
 
         public CustomerOrderService(IUnitOfWork unitOfWork, IMapper mapper, IPaymentService paymentService,
             INotificationHelperService notificationHelper, ILogger<CustomerOrderService> logger, INotificationService notificationService,
             IUserInteractionService userInteractionService,
-            IBackgroundJobQueue backgroundQueue)
+            IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -43,7 +44,7 @@ namespace Talentree.Service.Services
             _notificationService = notificationService;
             _logger = logger;
             _userInteractionService = userInteractionService;
-            _backgroundQueue = backgroundQueue;
+            _eventPublisher = eventPublisher;
         }
 
         public async Task<CustomerOrderDetailDto> PlaceOrderAsync(
@@ -208,23 +209,20 @@ namespace Talentree.Service.Services
             // ✅ Log purchase interaction for each product (using centralized background queue)
             if (!string.IsNullOrEmpty(customerId))
             {
-                _backgroundQueue.Enqueue(async (sp, cancellationToken) =>
+                foreach (var itemData in purchaseData)
                 {
-                    var userInteractionService = sp.GetRequiredService<IUserInteractionService>();
-                    foreach (var itemData in purchaseData)
+                    await _eventPublisher.PublishAsync("interaction.log", new InteractionLogMessage
                     {
-                        await userInteractionService.LogInteractionAsync(
-                            userId: customerId,
-                            userType: UserInteractionType.Customer,
-                            itemId: itemData.ProductId,
-                            itemType: UserInteractionItemType.Product,
-                            actionType: UserInteractionActionType.Purchase,
-                            category: itemData.CategoryName,
-                            quantity: itemData.Quantity,
-                            price: itemData.UnitPrice
-                        );
-                    }
-                });
+                        UserId = customerId,
+                        UserType = UserInteractionType.Customer,
+                        ItemId = itemData.ProductId,
+                        ItemType = UserInteractionItemType.Product,
+                        ActionType = UserInteractionActionType.Purchase,
+                        Category = itemData.CategoryName,
+                        Quantity = itemData.Quantity,
+                        Price = itemData.UnitPrice
+                    });
+                }
             }
 
             return result;

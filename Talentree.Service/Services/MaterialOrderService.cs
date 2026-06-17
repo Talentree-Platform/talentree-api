@@ -6,7 +6,8 @@ using Talentree.Core.Entities;
 using Talentree.Core.Enums;
 using Talentree.Core.Specifications.Basket;
 using Talentree.Core.Specifications.MaterialOrders;
-using Talentree.Service.BackgroundJobs;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.MaterialOrder;
@@ -27,13 +28,13 @@ namespace Talentree.Service.Services
         private readonly ILogger<MaterialOrderService> _logger;
         private readonly INotificationService _notificationService;
         private readonly IUserInteractionService _userInteractionService;
-        private readonly IBackgroundJobQueue _backgroundQueue;
+        private readonly IEventPublisher _eventPublisher;
 
         public MaterialOrderService(IUnitOfWork unitOfWork, IMapper mapper,
             INotificationHelperService notificationHelper, ILogger<MaterialOrderService> logger,
             INotificationService notificationService,
             IUserInteractionService userInteractionService,
-            IBackgroundJobQueue backgroundQueue)
+            IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -41,7 +42,7 @@ namespace Talentree.Service.Services
             _logger = logger;
             _notificationService = notificationService;
             _userInteractionService = userInteractionService;
-            _backgroundQueue = backgroundQueue;
+            _eventPublisher = eventPublisher;
         }
 
         /// <inheritdoc/>
@@ -192,25 +193,22 @@ namespace Talentree.Service.Services
             // ✅ Log purchase/reorder interactions (using centralized background queue)
             if (!string.IsNullOrEmpty(businessOwnerId))
             {
-                _backgroundQueue.Enqueue(async (sp, cancellationToken) =>
+                foreach (var itemData in purchaseData)
                 {
-                    var userInteractionService = sp.GetRequiredService<IUserInteractionService>();
-                    foreach (var itemData in purchaseData)
+                    await _eventPublisher.PublishAsync("interaction.log", new InteractionLogMessage
                     {
-                        await userInteractionService.LogInteractionAsync(
-                            userId: businessOwnerId,
-                            userType: UserInteractionType.Owner,
-                            itemId: itemData.MaterialId,
-                            itemType: UserInteractionItemType.RawMaterial,
-                            actionType: itemData.IsReorder
-                                ? UserInteractionActionType.Reorder
-                                : UserInteractionActionType.Purchase,
-                            category: itemData.CategoryName,
-                            quantity: itemData.Quantity,
-                            price: itemData.UnitPrice
-                        );
-                    }
-                });
+                        UserId = businessOwnerId,
+                        UserType = UserInteractionType.Owner,
+                        ItemId = itemData.MaterialId,
+                        ItemType = UserInteractionItemType.RawMaterial,
+                        ActionType = itemData.IsReorder
+                            ? UserInteractionActionType.Reorder
+                            : UserInteractionActionType.Purchase,
+                        Category = itemData.CategoryName,
+                        Quantity = itemData.Quantity,
+                        Price = itemData.UnitPrice
+                    });
+                }
             }
 
             return result;

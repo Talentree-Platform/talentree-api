@@ -12,7 +12,8 @@ using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
-using Talentree.Service.BackgroundJobs;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Auth;
 
@@ -30,7 +31,7 @@ namespace Talentree.Service.Services
         private readonly IAIService _aiService;
         private readonly INotificationHelperService _notificationHelper;
         private readonly ILogger<AuthService> _logger;
-        private readonly IBackgroundJobQueue _backgroundQueue;
+        private readonly IEventPublisher _eventPublisher;
         public AuthService(
             UserManager<AppUser> userManager,
             //RoleManager<IdentityRole> roleManager,
@@ -42,7 +43,7 @@ namespace Talentree.Service.Services
              IAIService aiService,
                 INotificationHelperService notificationHelper,
         ILogger<AuthService> logger,
-        IBackgroundJobQueue backgroundQueue)
+        IEventPublisher eventPublisher)
         {
             _userManager = userManager;
             //_roleManager = roleManager;
@@ -54,7 +55,7 @@ namespace Talentree.Service.Services
             _aiService = aiService;
             _notificationHelper = notificationHelper;
             _logger = logger;
-            _backgroundQueue = backgroundQueue;
+            _eventPublisher = eventPublisher;
         }
         public async Task<string> RegisterAsync(RegisterDto registerDto)
         {
@@ -230,11 +231,7 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
             // Predict churn risk on every login (using centralized background queue)
             var userId = user.Id;
-            _backgroundQueue.Enqueue(async (sp, cancellationToken) =>
-            {
-                var aiService = sp.GetRequiredService<IAIService>();
-                await aiService.PredictChurnAsync(userId);
-            });
+            await _eventPublisher.PublishAsync("ai.churn", new ChurnPredictionMessage { UserId = userId });
 
             // Map user to UserInfoDto
             var userInfo = _mapper.Map<UserInfoDto>(user);

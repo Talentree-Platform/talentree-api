@@ -10,7 +10,8 @@ using Talentree.Core.Entities;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.CartSpecifications;
-using Talentree.Service.BackgroundJobs;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Customer;
 
@@ -22,18 +23,18 @@ namespace Talentree.Service.Services
         private readonly IMapper _mapper;
         private readonly IUserInteractionService _userInteractionService;
         private readonly ILogger<CartService> _logger;
-        private readonly IBackgroundJobQueue _backgroundQueue;
+        private readonly IEventPublisher _eventPublisher;
 
         public CartService(IUnitOfWork unitOfWork, IMapper mapper,
             IUserInteractionService userInteractionService,
             ILogger<CartService> logger,
-            IBackgroundJobQueue backgroundQueue)
+            IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userInteractionService = userInteractionService;
             _logger = logger;
-            _backgroundQueue = backgroundQueue;
+            _eventPublisher = eventPublisher;
         }
 
         private async Task<CustomerCart> GetOrCreateCartEntityAsync(string customerId)
@@ -125,19 +126,16 @@ namespace Talentree.Service.Services
                 var quantity = dto.Quantity;
                 var price = productData.Price;
 
-                _backgroundQueue.Enqueue(async (sp, cancellationToken) =>
+                await _eventPublisher.PublishAsync("interaction.log", new InteractionLogMessage
                 {
-                    var userInteractionService = sp.GetRequiredService<IUserInteractionService>();
-                    await userInteractionService.LogInteractionAsync(
-                        userId: customerId,
-                        userType: UserInteractionType.Customer,
-                        itemId: itemId,
-                        itemType: UserInteractionItemType.Product,
-                        actionType: UserInteractionActionType.Click,
-                        category: categoryName,
-                        quantity: quantity,
-                        price: price
-                    );
+                    UserId = customerId,
+                    UserType = UserInteractionType.Customer,
+                    ItemId = itemId,
+                    ItemType = UserInteractionItemType.Product,
+                    ActionType = UserInteractionActionType.Click,
+                    Category = categoryName,
+                    Quantity = quantity,
+                    Price = price
                 });
             }
 

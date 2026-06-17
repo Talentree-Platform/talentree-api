@@ -15,7 +15,8 @@ using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
 using Talentree.Core.Specifications.ProductSpecifications;
 using Talentree.Core.Specifications.ReviewSpecifications;
-using Talentree.Service.BackgroundJobs;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Customer;
@@ -32,7 +33,7 @@ namespace Talentree.Service.Services
         private readonly UserManager<AppUser> _userManager;
         private readonly IAIService _aiService;
         private readonly ILogger<ReviewService> _logger;
-        private readonly IBackgroundJobQueue _backgroundQueue;
+        private readonly IEventPublisher _eventPublisher;
         public ReviewService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
@@ -41,7 +42,7 @@ namespace Talentree.Service.Services
             UserManager<AppUser> userManager,
             IAIService aiService,
             ILogger<ReviewService> logger,
-            IBackgroundJobQueue backgroundQueue)
+            IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -50,7 +51,7 @@ namespace Talentree.Service.Services
             _userManager = userManager;
             _aiService = aiService;
             _logger = logger;
-            _backgroundQueue = backgroundQueue;
+            _eventPublisher = eventPublisher;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -156,11 +157,7 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<ProductReview>().Update(review);
             await _unitOfWork.CompleteAsync();
 
-            _backgroundQueue.Enqueue(async (sp, cancellationToken) =>
-            {
-                var aiService = sp.GetRequiredService<IAIService>();
-                await aiService.PredictSentimentAsync(reviewId);
-            });
+            await _eventPublisher.PublishAsync("ai.sentiment", new SentimentPredictionMessage { ReviewId = reviewId });
             // ✅ ADD NOTIFICATION TO CUSTOMER
             await _notificationService.CreateNotificationAsync(new DTOs.Notification.CreateNotificationDto
             {
