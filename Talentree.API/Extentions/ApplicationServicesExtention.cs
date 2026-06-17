@@ -14,6 +14,8 @@ namespace Talentree.API.Extentions
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddHttpClient();
+
             services.AddSingleton<RabbitMQConnectionManager>();
             services.AddSingleton<IEventPublisher, RabbitMQEventPublisher>();
             services.AddHostedService<RabbitMQInitializer>();
@@ -24,6 +26,9 @@ namespace Talentree.API.Extentions
             services.AddHostedService<ProductAnalyticsConsumer>();
             services.AddHostedService<ProfileCompletenessConsumer>();
             services.AddHostedService<ChurnPredictionConsumer>();
+            services.AddHostedService<CustomerRecommendationConsumer>();
+            services.AddHostedService<OwnerProcurementConsumer>();
+            services.AddHostedService<AIRetrainConsumer>();
 
             services.AddScoped<IAdminOrderService, AdminOrderService>();
             services.AddScoped<IRefundService, Talentree.Service.Services.RefundService>();
