@@ -28,7 +28,7 @@ namespace Talentree.Repository.Data.DataSeed
 {
     public static class JsonSeedLoader
     {
-        public static async Task SeedAsync(TalentreeDbContext context, string jsonSeedFolderPath)
+        public static async Task SeedAsync(TalentreeDbContext context, string jsonSeedFolderPath, bool seedInteractions = false)
         {
             if (!Directory.Exists(jsonSeedFolderPath))
             {
@@ -38,6 +38,22 @@ namespace Talentree.Repository.Data.DataSeed
 
             Console.WriteLine($"[JsonSeedLoader] Loading from: {jsonSeedFolderPath}");
 
+            // ── 0a. Products
+            var productSeedResult = await ProductSeeder.SeedAsync(context, jsonSeedFolderPath);
+
+            // ── 0b. Raw Materials
+            var rawMaterialSeedResult = await RawMaterialSeeder.SeedAsync(context, jsonSeedFolderPath);
+
+            // ── 0c. User Interactions (Conditional on flag)
+            if (seedInteractions)
+            {
+                await UserInteractionSeeder.SeedAsync(context, jsonSeedFolderPath, productSeedResult.IdMap, rawMaterialSeedResult.IdMap);
+            }
+            else
+            {
+                Console.WriteLine("[JsonSeedLoader] Skipping heavy UserInteractions seed (run with --seed-interactions flag to enable).");
+            }
+
             // ── 1. Transactions ──────────────────────────────────────────
             await SeedTransactionsAsync(context, Path.Combine(jsonSeedFolderPath, "Transactions.json"));
 
@@ -45,7 +61,7 @@ namespace Talentree.Repository.Data.DataSeed
             await SeedLoginHistoriesAsync(context, Path.Combine(jsonSeedFolderPath, "LoginHistories.json"));
 
             // ── 3. ProductReviews ────────────────────────────────────────
-            await SeedProductReviewsAsync(context, Path.Combine(jsonSeedFolderPath, "ProductReviews.json"));
+            await SeedProductReviewsAsync(context, Path.Combine(jsonSeedFolderPath, "ProductReviews.json"), productSeedResult.IdMap);
 
             // ── 4. SupportTickets (must run before TicketMessages) ───────
             var insertedTicketIds = await SeedSupportTicketsAsync(context, Path.Combine(jsonSeedFolderPath, "SupportTickets.json"));
@@ -63,7 +79,7 @@ namespace Talentree.Repository.Data.DataSeed
             await SeedBoProductionRequestsAsync(context, Path.Combine(jsonSeedFolderPath, "BoProductionRequests.json"));
 
             // ── 9. Product stats UPDATE ──────────────────────────────────
-            await UpdateProductStatsAsync(context, Path.Combine(jsonSeedFolderPath, "Products_stats_update.json"));
+            await UpdateProductStatsAsync(context, Path.Combine(jsonSeedFolderPath, "Products_stats_update.json"), productSeedResult.IdMap);
 
             Console.WriteLine("[JsonSeedLoader] ✅ All sections processed.");
         }
@@ -147,7 +163,7 @@ namespace Talentree.Repository.Data.DataSeed
         // ──────────────────────────────────────────────────────────────
         // 3. ProductReviews
         // ──────────────────────────────────────────────────────────────
-        private static async Task SeedProductReviewsAsync(TalentreeDbContext ctx, string filePath)
+        private static async Task SeedProductReviewsAsync(TalentreeDbContext ctx, string filePath, Dictionary<int, int> productIdMap)
         {
             if (!File.Exists(filePath)) { Console.WriteLine($"[JsonSeedLoader] {Path.GetFileName(filePath)} not found — skipping."); return; }
             if (await ctx.Set<ProductReview>().AnyAsync(r => r.CustomerName == "User b140"))
@@ -160,7 +176,12 @@ namespace Talentree.Repository.Data.DataSeed
 
             foreach (var el in doc.RootElement.EnumerateArray())
             {
-                var productId = el.GetProperty("ProductId").GetInt32();
+                var jsonProductId = el.GetProperty("ProductId").GetInt32();
+                if (!productIdMap.TryGetValue(jsonProductId, out var productId))
+                {
+                    productId = jsonProductId;
+                }
+
                 if (!validProductIds.Contains(productId)) continue;
 
                 var customerUserId = el.GetProperty("CustomerUserId").GetString()!;
@@ -423,7 +444,7 @@ namespace Talentree.Repository.Data.DataSeed
         // Patches ViewCount, CartAddCount, PurchaseCount, RevenueTotal,
         // AvgRating on existing Product rows identified by Id.
         // ──────────────────────────────────────────────────────────────
-        private static async Task UpdateProductStatsAsync(TalentreeDbContext ctx, string filePath)
+        private static async Task UpdateProductStatsAsync(TalentreeDbContext ctx, string filePath, Dictionary<int, int> productIdMap)
         {
             if (!File.Exists(filePath)) { Console.WriteLine($"[JsonSeedLoader] {Path.GetFileName(filePath)} not found — skipping."); return; }
 
@@ -432,8 +453,13 @@ namespace Talentree.Repository.Data.DataSeed
 
             foreach (var el in doc.RootElement.EnumerateArray())
             {
-                var id = el.GetProperty("Id").GetInt32();
-                var product = await ctx.Set<Product>().FindAsync(id);
+                var jsonProductId = el.GetProperty("Id").GetInt32();
+                if (!productIdMap.TryGetValue(jsonProductId, out var productId))
+                {
+                    productId = jsonProductId;
+                }
+
+                var product = await ctx.Set<Product>().FindAsync(productId);
                 if (product == null) continue;
 
                 if (el.TryGetProperty("ViewCount",    out var vc))  product.ViewCount    = vc.GetInt32();

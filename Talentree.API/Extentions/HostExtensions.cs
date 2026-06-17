@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // Talentree.API/Extensions/HostExtensions.cs
 // ============================================================
 using Microsoft.AspNetCore.Identity;
@@ -15,7 +15,7 @@ namespace Talentree.API.Extensions
         /// Applies pending migrations then runs all seed operations in the correct order.
         /// This is the ONLY place seeding should be triggered.
         /// </summary>
-        public static async Task<IHost> MigrateDatabaseAsync(this IHost host)
+        public static async Task<IHost> MigrateDatabaseAsync(this IHost host, bool seedInteractions = false)
         {
             using var scope = host.Services.CreateScope();
             var services = scope.ServiceProvider;
@@ -35,7 +35,7 @@ namespace Talentree.API.Extensions
 
                 // 2 — Run all seed operations via the single DbInitializer
                 logger.LogInformation("Starting data seeding...");
-                await DbInitializer.SeedAllAsync(dbContext, roleManager, userManager, loggerFactory);
+                await DbInitializer.SeedAllAsync(dbContext, roleManager, userManager, loggerFactory, seedInteractions);
                 logger.LogInformation("Data seeding completed successfully.");
             }
             catch (Exception ex)
