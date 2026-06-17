@@ -1,5 +1,6 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
@@ -24,19 +25,22 @@ namespace Talentree.Service.Services
         private readonly UserManager<AppUser> _userManager;
         private readonly IMapper _mapper;
         private readonly ILogger<NotificationService> _logger;
+        private readonly IServiceScopeFactory _scopeFactory;
 
         public NotificationService(
             IUnitOfWork unitOfWork,
             IEmailService emailService,
             UserManager<AppUser> userManager,
             IMapper mapper,
-            ILogger<NotificationService> logger)
+            ILogger<NotificationService> logger,
+            IServiceScopeFactory scopeFactory)
         {
             _unitOfWork = unitOfWork;
             _emailService = emailService;
             _userManager = userManager;
             _mapper = mapper;
             _logger = logger;
+            _scopeFactory = scopeFactory;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -565,41 +569,74 @@ namespace Talentree.Service.Services
 
         private async Task SendNotificationEmailAsync(string userId, CreateNotificationDto dto)
         {
-            try
+            // Run email processing in a background thread with its own DI scope to prevent DbContext thread collision
+            _ = Task.Run(async () =>
             {
-                var preference = await GetMyPreferencesAsync(userId);
-
-                // ✅ Check if user has enabled email notifications
-                if (!preference.ReceiveEmail)
+                try
                 {
-                    _logger.LogInformation("Email notification skipped for user {UserId} - disabled", userId);
-                    return;
-                }
+                    using var scope = _scopeFactory.CreateScope();
+                    var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+                    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+                    var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
-                // ✅ Check quiet hours
-                if (preference.EnableQuietHours && IsInQuietHours(preference))
+                    // 1. Get user preferences
+                    var spec = new GetNotificationPreferenceByUserIdSpecification(userId);
+                    var preferenceEntity = await unitOfWork.Repository<NotificationPreference>()
+                        .GetByIdWithSpecificationsAsync(spec);
+
+                    // Create default preferences if not exists
+                    if (preferenceEntity == null)
+                    {
+                        preferenceEntity = new NotificationPreference
+                        {
+                            UserId = userId,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+
+                        unitOfWork.Repository<NotificationPreference>().Add(preferenceEntity);
+                        await unitOfWork.CompleteAsync();
+
+                        _logger.LogInformation("Default preferences created for user {UserId} in background scope", userId);
+                    }
+
+                    var preference = _mapper.Map<NotificationPreferenceDto>(preferenceEntity);
+
+                    // ✅ Check if user has enabled email notifications
+                    if (!preference.ReceiveEmail)
+                    {
+                        _logger.LogInformation("Email notification skipped for user {UserId} - disabled", userId);
+                        return;
+                    }
+
+                    // ✅ Check quiet hours
+                    if (preference.EnableQuietHours && IsInQuietHours(preference))
+                    {
+                        _logger.LogInformation("Email notification deferred for user {UserId} - quiet hours", userId);
+                        return;
+                    }
+
+                    // 2. Get user details
+                    var user = await userManager.FindByIdAsync(userId);
+                    if (user?.Email == null)
+                    {
+                        _logger.LogWarning("Cannot send email - user {UserId} has no email", userId);
+                        return;
+                    }
+
+                    // 3. Send the email
+                    var emailBody = GenerateEmailTemplate(dto, user.DisplayName);
+                    await emailService.SendEmailAsync(user.Email, dto.Title, emailBody, isHtml: true);
+
+                    _logger.LogInformation("Notification email sent to {Email}", user.Email);
+                }
+                catch (Exception ex)
                 {
-                    _logger.LogInformation("Email notification deferred for user {UserId} - quiet hours", userId);
-                    return;
+                    _logger.LogError(ex, "Error sending notification email in background scope for user {UserId}", userId);
                 }
+            });
 
-                var user = await _userManager.FindByIdAsync(userId);
-                if (user?.Email == null)
-                {
-                    _logger.LogWarning("Cannot send email - user {UserId} has no email", userId);
-                    return;
-                }
-
-                var emailBody = GenerateEmailTemplate(dto, user.DisplayName);
-                await _emailService.SendEmailAsync(user.Email, dto.Title, emailBody, isHtml: true);
-
-                _logger.LogInformation("Notification email sent to {Email}", user.Email);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending notification email to user {UserId}", userId);
-                // Don't rethrow - email is non-critical
-            }
+            await Task.CompletedTask;
         }
 
         private bool IsInQuietHours(NotificationPreferenceDto preference)
