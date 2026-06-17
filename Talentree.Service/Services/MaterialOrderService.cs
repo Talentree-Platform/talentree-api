@@ -1,10 +1,12 @@
-﻿using AutoMapper;
+using AutoMapper;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
 using Talentree.Core.Specifications.Basket;
 using Talentree.Core.Specifications.MaterialOrders;
+using Talentree.Service.BackgroundJobs;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.MaterialOrder;
@@ -25,11 +27,13 @@ namespace Talentree.Service.Services
         private readonly ILogger<MaterialOrderService> _logger;
         private readonly INotificationService _notificationService;
         private readonly IUserInteractionService _userInteractionService;
+        private readonly IBackgroundJobQueue _backgroundQueue;
 
         public MaterialOrderService(IUnitOfWork unitOfWork, IMapper mapper,
             INotificationHelperService notificationHelper, ILogger<MaterialOrderService> logger,
             INotificationService notificationService,
-            IUserInteractionService userInteractionService)
+            IUserInteractionService userInteractionService,
+            IBackgroundJobQueue backgroundQueue)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -37,6 +41,7 @@ namespace Talentree.Service.Services
             _logger = logger;
             _notificationService = notificationService;
             _userInteractionService = userInteractionService;
+            _backgroundQueue = backgroundQueue;
         }
 
         /// <inheritdoc/>
@@ -184,38 +189,26 @@ namespace Talentree.Service.Services
                 "Material order {OrderId} placed by business owner {BoId}. Total: {Total} EGP. Items: {ItemCount}",
                 order.Id, businessOwnerId, order.TotalAmount, order.Items.Count);
 
-            // ✅ Log purchase/reorder interactions (fire-and-forget)
+            // ✅ Log purchase/reorder interactions (using centralized background queue)
             if (!string.IsNullOrEmpty(businessOwnerId))
             {
-                _ = Task.Run(async () =>
+                _backgroundQueue.Enqueue(async (sp, cancellationToken) =>
                 {
-                    try
+                    var userInteractionService = sp.GetRequiredService<IUserInteractionService>();
+                    foreach (var itemData in purchaseData)
                     {
-                        foreach (var itemData in purchaseData)
-                        {
-                            await _userInteractionService.LogInteractionAsync(
-                                userId: businessOwnerId,
-                                userType: UserInteractionType.Owner,
-                                itemId: itemData.MaterialId,  // ✅ safe - copied value
-                                itemType: UserInteractionItemType.RawMaterial,
-                                actionType: itemData.IsReorder
-                                    ? UserInteractionActionType.Reorder
-                                    : UserInteractionActionType.Purchase,
-                                category: itemData.CategoryName,  // ✅ safe - copied value
-                                quantity: itemData.Quantity,
-                                price: itemData.UnitPrice  // ✅ safe - copied value
-                            );
-                        }
-
-                        _logger.LogInformation(
-                            "Logged {Count} material order interactions for owner {OwnerId}",
-                            purchaseData.Count, businessOwnerId);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex,
-                            "Error logging material order interactions for owner {OwnerId}",
-                            businessOwnerId);
+                        await userInteractionService.LogInteractionAsync(
+                            userId: businessOwnerId,
+                            userType: UserInteractionType.Owner,
+                            itemId: itemData.MaterialId,
+                            itemType: UserInteractionItemType.RawMaterial,
+                            actionType: itemData.IsReorder
+                                ? UserInteractionActionType.Reorder
+                                : UserInteractionActionType.Purchase,
+                            category: itemData.CategoryName,
+                            quantity: itemData.Quantity,
+                            price: itemData.UnitPrice
+                        );
                     }
                 });
             }

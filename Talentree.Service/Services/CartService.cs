@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+using AutoMapper;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,7 @@ using Talentree.Core.Entities;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.CartSpecifications;
+using Talentree.Service.BackgroundJobs;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Customer;
 
@@ -20,15 +22,18 @@ namespace Talentree.Service.Services
         private readonly IMapper _mapper;
         private readonly IUserInteractionService _userInteractionService;
         private readonly ILogger<CartService> _logger;
+        private readonly IBackgroundJobQueue _backgroundQueue;
 
         public CartService(IUnitOfWork unitOfWork, IMapper mapper,
             IUserInteractionService userInteractionService,
-            ILogger<CartService> logger)
+            ILogger<CartService> logger,
+            IBackgroundJobQueue backgroundQueue)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userInteractionService = userInteractionService;
             _logger = logger;
+            _backgroundQueue = backgroundQueue;
         }
 
         private async Task<CustomerCart> GetOrCreateCartEntityAsync(string customerId)
@@ -112,28 +117,27 @@ namespace Talentree.Service.Services
             var refreshedCarts = await _unitOfWork.Repository<CustomerCart>()
                 .GetAllWithSpecificationsAsync(spec);
 
-            // ✅ Log click interaction (fire-and-forget)
+            // ✅ Log click interaction (using centralized background queue)
             if (!string.IsNullOrEmpty(customerId))
             {
-                _ = Task.Run(async () =>
+                var itemId = productData.Id;
+                var categoryName = productData.CategoryName;
+                var quantity = dto.Quantity;
+                var price = productData.Price;
+
+                _backgroundQueue.Enqueue(async (sp, cancellationToken) =>
                 {
-                    try
-                    {
-                        await _userInteractionService.LogInteractionAsync(
-                            userId: customerId,
-                            userType: UserInteractionType.Customer,
-                            itemId: productData.Id,
-                            itemType: UserInteractionItemType.Product,
-                            actionType: UserInteractionActionType.Click,
-                            category: productData.CategoryName,  // ✅ use saved data
-                            quantity: dto.Quantity,
-                            price: productData.Price  // ✅ use saved data
-                        );
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error logging interaction in AddToCart");
-                    }
+                    var userInteractionService = sp.GetRequiredService<IUserInteractionService>();
+                    await userInteractionService.LogInteractionAsync(
+                        userId: customerId,
+                        userType: UserInteractionType.Customer,
+                        itemId: itemId,
+                        itemType: UserInteractionItemType.Product,
+                        actionType: UserInteractionActionType.Click,
+                        category: categoryName,
+                        quantity: quantity,
+                        price: price
+                    );
                 });
             }
 

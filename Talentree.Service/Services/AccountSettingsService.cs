@@ -1,7 +1,8 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Guidy.Core.Specifications;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities.Identity;
@@ -10,6 +11,7 @@ using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications;
 using Talentree.Core.Specifications.AccountSettingsSpecifications;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
+using Talentree.Service.BackgroundJobs;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.AccountSettings;
 using Talentree.Service.DTOs.Notification;
@@ -28,6 +30,7 @@ namespace Talentree.Service.Services
 
         private readonly INotificationService _notificationService;  
         private readonly ILogger<AccountSettingsService> _logger;
+        private readonly IBackgroundJobQueue _backgroundQueue;
         public AccountSettingsService(
             IUnitOfWork unitOfWork,
             UserManager<AppUser> userManager,
@@ -37,7 +40,8 @@ namespace Talentree.Service.Services
             INotificationService notificationService,  
             ILogger<AccountSettingsService> logger,
             ITokenService tokenService,
-            IEmailService emailService)    
+            IEmailService emailService,
+            IBackgroundJobQueue backgroundQueue)    
         {
             _unitOfWork = unitOfWork;
             _userManager = userManager;
@@ -48,6 +52,7 @@ namespace Talentree.Service.Services
             _logger = logger;
             _tokenService = tokenService;
             _emailService = emailService;
+            _backgroundQueue = backgroundQueue;
         }
 
         // ─────────────────────────────────────────────
@@ -152,8 +157,12 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<BusinessOwnerProfile>().Update(profile);
             await _unitOfWork.CompleteAsync();
 
-            // Notify AI to recompute profile completeness
-            _ = Task.Run(() => _aiService.ComputeProfileAsync(userId));
+            // Notify AI to recompute profile completeness (using centralized background queue)
+            _backgroundQueue.Enqueue(async (sp, cancellationToken) =>
+            {
+                var aiService = sp.GetRequiredService<IAIService>();
+                await aiService.ComputeProfileAsync(userId);
+            });
 
             // Email change — send OTP (handled separately via FR-BO-32 email verification flow)
             // We don't change email here directly — we send OTP first
