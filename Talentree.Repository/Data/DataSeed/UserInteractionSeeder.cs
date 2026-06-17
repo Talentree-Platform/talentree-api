@@ -13,6 +13,8 @@ using Talentree.Core.Enums;
 
 namespace Talentree.Repository.Data.DataSeed
 {
+    //Try again
+
     public static class UserInteractionSeeder
     {
         public static async Task<int> SeedAsync(
