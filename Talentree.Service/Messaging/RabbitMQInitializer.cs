@@ -27,6 +27,9 @@ namespace Talentree.Service.Messaging
         private const string ProductQueue = "talentree.ai.product.queue";
         private const string ProfileQueue = "talentree.ai.profile.queue";
         private const string ChurnQueue = "talentree.ai.churn.queue";
+        private const string CustomerRecommendQueue = "talentree.ai.customer.recommend.queue";
+        private const string OwnerRecommendQueue = "talentree.ai.owner.recommend.queue";
+        private const string RetrainQueue = "talentree.ai.retrain.queue";
         private const string RetryDelayQueue = "talentree.retry.delay.queue";
 
         public RabbitMQInitializer(
@@ -94,6 +97,9 @@ namespace Talentree.Service.Messaging
             DeclareAndBindMainQueue(channel, ProductQueue, "ai.product", "ai.task.dead");
             DeclareAndBindMainQueue(channel, ProfileQueue, "ai.profile", "ai.task.dead");
             DeclareAndBindMainQueue(channel, ChurnQueue, "ai.churn", "ai.task.dead");
+            DeclareAndBindMainQueue(channel, CustomerRecommendQueue, "ai.customer.recommend", "ai.task.dead");
+            DeclareAndBindMainQueue(channel, OwnerRecommendQueue, "ai.owner.recommend", "ai.task.dead");
+            DeclareAndBindMainQueue(channel, RetrainQueue, "ai.retrain", "ai.task.dead");
 
             _logger.LogInformation("RabbitMQ topology initialized successfully.");
         }
