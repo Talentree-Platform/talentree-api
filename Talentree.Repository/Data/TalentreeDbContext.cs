@@ -87,6 +87,7 @@ namespace Talentree.Repository.Data
         public DbSet<CustomerWishlist> CustomerWishlists { get; set; }
         public DbSet<CustomerWishlistItem> CustomerWishlistItems { get; set; }
         public DbSet<RefundRequest> RefundRequests { get; set; }
+        public DbSet<ProcessedMessage> ProcessedMessages { get; set; }
 
         // ===============================
         // Model Configuration
@@ -101,6 +102,9 @@ namespace Talentree.Repository.Data
         {
             base.OnModelCreating(modelBuilder);
             
+            modelBuilder.Entity<ProcessedMessage>()
+                .HasKey(m => m.MessageId);
+
             // Fix multiple cascade paths for RefundRequest
             modelBuilder.Entity<RefundRequest>()
                 .HasOne(r => r.Order)

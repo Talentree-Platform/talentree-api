@@ -11,11 +11,14 @@ using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.BusinessOwnerSpecifications;
 using Talentree.Core.Specifications.ProductSpecifications;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Products;
 using Talentree.Service.DTOs.Customer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Talentree.Service.Services
@@ -28,6 +31,7 @@ namespace Talentree.Service.Services
         private readonly INotificationService _notificationService;
         private readonly IAIService _aiService;
         private readonly IUserInteractionService _userInteractionService;
+        private readonly IEventPublisher _eventPublisher;
         //_logger
         private readonly ILogger<ProductService> _logger;
         public ProductService(
@@ -37,7 +41,8 @@ namespace Talentree.Service.Services
             IImageService imageService,
             INotificationService notificationService,
             IAIService aiService,
-            IUserInteractionService userInteractionService)
+            IUserInteractionService userInteractionService,
+            IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -46,6 +51,7 @@ namespace Talentree.Service.Services
             _aiService = aiService;
             _userInteractionService = userInteractionService;
             _logger = logger;
+            _eventPublisher = eventPublisher;
         }
         // ═══════════════════════════════════════════════════════════
         // PRIVATE HELPER: Get approved business owner profile by userId
@@ -184,7 +190,8 @@ namespace Talentree.Service.Services
 
             await _unitOfWork.CompleteAsync();
             // Notify AI to compute quality + demand for this product
-            _ = Task.Run(() => _aiService.ComputeProductAsync(product.Id));
+            var productId = product.Id;
+            await _eventPublisher.PublishAsync("ai.product", new ProductComputationMessage { ProductId = productId });
             return await GetProductByIdAsync(product.Id, businessOwnerUserId);
         }
 
@@ -266,19 +273,8 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<Product>().Update(product);
             await _unitOfWork.CompleteAsync();
-            // Notify AI to recompute product metrics
-            // ✅ AI should compute quality + demand
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await _aiService.ComputeProductAsync(product.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error computing product metrics for product {ProductId}", product.Id);
-                }
-            });
+
+            await _eventPublisher.PublishAsync("ai.product", new ProductComputationMessage { ProductId = productId });
             return await GetProductByIdAsync(product.Id, businessOwnerUserId);
         }
 
@@ -375,18 +371,18 @@ namespace Talentree.Service.Services
 
             if (!string.IsNullOrEmpty(userId))
             {
-                _ = Task.Run(async () =>
+                var categoryName = product.Category?.Name ?? "Uncategorized";
+                var price = product.Price;
+                await _eventPublisher.PublishAsync("interaction.log", new InteractionLogMessage
                 {
-                    await _userInteractionService.LogInteractionAsync(
-                        userId: userId,
-                        userType: UserInteractionType.Customer,
-                        itemId: productId,
-                        itemType: UserInteractionItemType.Product,
-                        actionType: UserInteractionActionType.View,
-                        category: product.Category.Name,
-                        quantity: 1,
-                        price: product.Price
-                    );
+                    UserId = userId,
+                    UserType = UserInteractionType.Customer,
+                    ItemId = productId,
+                    ItemType = UserInteractionItemType.Product,
+                    ActionType = UserInteractionActionType.View,
+                    Category = categoryName,
+                    Quantity = 1,
+                    Price = price
                 });
             }
 

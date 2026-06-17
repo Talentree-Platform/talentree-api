@@ -3,6 +3,8 @@ using Talentree.API.Services;
 using Talentree.Core;
 using Talentree.Core.Repository.Contract;
 using Talentree.Repository;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Consumers;
 using Talentree.Service.Contracts;
 using Talentree.Service.Services;
 
@@ -12,6 +14,17 @@ namespace Talentree.API.Extentions
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddSingleton<RabbitMQConnectionManager>();
+            services.AddSingleton<IEventPublisher, RabbitMQEventPublisher>();
+            services.AddHostedService<RabbitMQInitializer>();
+
+            services.AddHostedService<UserInteractionConsumer>();
+            services.AddHostedService<ReviewSentimentConsumer>();
+            services.AddHostedService<SupportTriageConsumer>();
+            services.AddHostedService<ProductAnalyticsConsumer>();
+            services.AddHostedService<ProfileCompletenessConsumer>();
+            services.AddHostedService<ChurnPredictionConsumer>();
+
             services.AddScoped<IAdminOrderService, AdminOrderService>();
             services.AddScoped<IRefundService, Talentree.Service.Services.RefundService>();
 
