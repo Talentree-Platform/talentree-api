@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
@@ -12,6 +12,9 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
         builder.Property(u => u.DisplayName)
             .IsRequired()
             .HasMaxLength(150);
+
+        builder.Property(u => u.RfmSegment)
+            .HasMaxLength(20);
 
         builder.Property(u => u.IsActive)
             .HasDefaultValue(true);

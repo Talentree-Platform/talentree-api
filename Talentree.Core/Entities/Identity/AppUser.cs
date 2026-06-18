@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 
@@ -46,5 +46,6 @@ public class AppUser : IdentityUser
      
     public string? ProfilePhotoUrl { get; set; }
 
+    public string? RfmSegment { get; set; }
 
 }
