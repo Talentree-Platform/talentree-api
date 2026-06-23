@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Talentree.Core.Entities.Identity;
 using Talentree.Repository.Data;
 
@@ -16,6 +17,7 @@ namespace Talentree.Repository.Data
             UserManager<AppUser> userManager,
             RoleManager<IdentityRole> roleManager,
             TalentreeDbContext context,
+            IConfiguration configuration,
             ILogger logger)
         {
             try
@@ -28,7 +30,7 @@ namespace Talentree.Repository.Data
                 // ═══════════════════════════════════════════════════════════
                 // STEP 2: Seed Admin User
                 // ═══════════════════════════════════════════════════════════
-                await SeedAdminUserAsync(userManager, logger);
+                await SeedAdminUserAsync(userManager, configuration, logger);
 
                 // ═══════════════════════════════════════════════════════════
                 // STEP 3: Seed Customers
@@ -59,7 +61,7 @@ namespace Talentree.Repository.Data
         // ═══════════════════════════════════════════════════════════
         private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger logger)
         {
-            var roles = new[] { "Admin", "BusinessOwner", "Customer" };
+            var roles = new[] { "SuperAdmin", "Admin", "SupportStaff", "ContentManager", "BusinessOwner", "Customer" };
 
             foreach (var roleName in roles)
             {
@@ -75,34 +77,65 @@ namespace Talentree.Repository.Data
         // ═══════════════════════════════════════════════════════════
         // SEED ADMIN USER
         // ═══════════════════════════════════════════════════════════
-        private static async Task SeedAdminUserAsync(UserManager<AppUser> userManager, ILogger logger)
+        private static async Task SeedAdminUserAsync(UserManager<AppUser> userManager, IConfiguration configuration, ILogger logger)
         {
-            const string adminEmail = "admin@talentree.com";
+            var superAdminPassword = configuration["SeedData:SuperAdminPassword"] ?? "SuperAdmin@123456";
+            var adminPassword = configuration["SeedData:AdminPassword"] ?? "Admin@123456";
 
-            if (await userManager.FindByEmailAsync(adminEmail) != null)
-                return;
-
-            var admin = new AppUser
+            // Seed Super Admin
+            const string superAdminEmail = "superadmin@talentree.com";
+            if (await userManager.FindByEmailAsync(superAdminEmail) == null)
             {
-                DisplayName    = "System Administrator",
-                Email          = adminEmail,
-                UserName       = adminEmail,
-                PhoneNumber    = "01000000000",
-                EmailConfirmed = true,
-                IsActive       = true,
-                CreatedAt      = DateTime.UtcNow
-            };
+                var superAdmin = new AppUser
+                {
+                    DisplayName    = "System Super Administrator",
+                    Email          = superAdminEmail,
+                    UserName       = superAdminEmail,
+                    PhoneNumber    = "01000000000",
+                    EmailConfirmed = true,
+                    IsActive       = true,
+                    CreatedAt      = DateTime.UtcNow
+                };
 
-            var result = await userManager.CreateAsync(admin, "Admin@123456");
+                var result = await userManager.CreateAsync(superAdmin, superAdminPassword);
 
-            if (result.Succeeded)
-            {
-                await userManager.AddToRoleAsync(admin, "Admin");
-                logger.LogInformation($"✅ Admin user created: {adminEmail}");
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(superAdmin, "SuperAdmin");
+                    logger.LogInformation($"✅ SuperAdmin user created: {superAdminEmail}");
+                }
+                else
+                {
+                    logger.LogError($"❌ Failed to create super admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
             }
-            else
+
+            // Seed Standard Admin
+            const string adminEmail = "admin@talentree.com";
+            if (await userManager.FindByEmailAsync(adminEmail) == null)
             {
-                logger.LogError($"❌ Failed to create admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                var admin = new AppUser
+                {
+                    DisplayName    = "System Administrator",
+                    Email          = adminEmail,
+                    UserName       = adminEmail,
+                    PhoneNumber    = "01000000000",
+                    EmailConfirmed = true,
+                    IsActive       = true,
+                    CreatedAt      = DateTime.UtcNow
+                };
+
+                var result = await userManager.CreateAsync(admin, adminPassword);
+
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(admin, "Admin");
+                    logger.LogInformation($"✅ Admin user created: {adminEmail}");
+                }
+                else
+                {
+                    logger.LogError($"❌ Failed to create admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
             }
         }
 

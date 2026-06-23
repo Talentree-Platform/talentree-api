@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,6 +37,11 @@ namespace Talentree.Service.Validators.Admin
                 .Matches(@"^\+?\d{7,15}$")
                 .When(x => !string.IsNullOrEmpty(x.PhoneNumber))
                 .WithMessage("Invalid phone number format");
+
+            RuleFor(x => x.Role)
+                .NotEmpty().WithMessage("Role is required")
+                .Must(role => new[] { "SuperAdmin", "Admin", "SupportStaff", "ContentManager" }.Contains(role))
+                .WithMessage("Invalid role. Role must be SuperAdmin, Admin, SupportStaff, or ContentManager");
         }
     }
 }

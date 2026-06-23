@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -25,5 +25,6 @@ namespace Talentree.Service.DTOs.Admin
 
    
         public string? PhoneNumber { get; set; }
+        public string Role { get; set; } = string.Empty;
     }
 }
