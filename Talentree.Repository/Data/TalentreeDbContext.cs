@@ -73,6 +73,9 @@ namespace Talentree.Repository.Data
         public DbSet<KnowledgeArticle> KnowledgeArticles { get; set; }
         public DbSet<ArticleBookmark> ArticleBookmarks { get; set; }
 
+        // FR-AD-43: Search term analytics
+        public DbSet<ContentSearchLog> ContentSearchLogs { get; set; }
+
         // User management and moderation logs
         public DbSet<UserActionLog> UserActionLogs { get; set; }
         public DbSet<Complaint> Complaints { get; set; }
