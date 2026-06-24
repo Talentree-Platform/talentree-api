@@ -84,8 +84,10 @@ namespace Talentree.API.Extentions
 
             services.AddScoped<ISupportService, SupportService>();
             services.AddScoped<IFileService, Talentree.Service.Services.FileService>();
-            // Knowledge Base Service
+            // Knowledge Base Services
             services.AddScoped<IKnowledgeService, KnowledgeService>();
+            // FR-AD-40 to FR-AD-43: Admin Content Management
+            services.AddScoped<IAdminKnowledgeService, AdminKnowledgeService>();
             // Review Service
             services.AddScoped<IReviewService, Talentree.Service.Services.ReviewService>();
 

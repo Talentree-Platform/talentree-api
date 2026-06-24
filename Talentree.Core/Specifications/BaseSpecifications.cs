@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using Talentree.Core.Entities;
@@ -125,6 +125,25 @@ namespace Talentree.Core.Specifications
             IsPaginated = true;
             Take = pageSize;
             Skip = (pageIndex - 1) * pageSize;
+        }
+
+        #endregion
+
+        #region Global Query Filter Override
+
+        /// <summary>
+        /// When true, bypasses EF Core global query filters (e.g. soft-delete filter).
+        /// Set via EnableIgnoreQueryFilters() in derived specs.
+        /// </summary>
+        public bool IgnoreQueryFilters { get; private set; }
+
+        /// <summary>
+        /// Call this in a derived spec constructor to bypass global query filters.
+        /// Enables admin queries to see soft-deleted records.
+        /// </summary>
+        protected void EnableIgnoreQueryFilters()
+        {
+            IgnoreQueryFilters = true;
         }
 
         #endregion

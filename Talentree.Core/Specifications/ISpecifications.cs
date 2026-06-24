@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using Talentree.Core.Entities;
 namespace Talentree.Core.Specifications
 {
@@ -47,5 +47,11 @@ namespace Talentree.Core.Specifications
         /// Indicates if pagination is enabled
         /// </summary>
         bool IsPaginated { get; }
+
+        /// <summary>
+        /// When true, bypasses global query filters (e.g. soft-delete filter).
+        /// Use for admin queries that need to see deleted records.
+        /// </summary>
+        bool IgnoreQueryFilters { get; }
     }
 }

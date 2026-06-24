@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
@@ -81,10 +81,23 @@ namespace Talentree.Service.Services
                 .GetAllWithSpecificationsAsync(bookmarkSpec);
             var bookmarkedIds = bookmarks.Select(b => b.ArticleId).ToHashSet();
 
+            // FR-AD-43: Log search term for analytics
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                _unitOfWork.Repository<ContentSearchLog>().Add(new ContentSearchLog
+                {
+                    SearchTerm = filter.Search.Trim(),
+                    SearchedAt = DateTime.UtcNow,
+                    UserId = userId
+                });
+                await _unitOfWork.CompleteAsync();
+            }
+
             var dtos = articles.Select(a => MapToDto(a, bookmarkedIds.Contains(a.Id))).ToList();
 
             return new Pagination<ArticleDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
         }
+
 
         // ═══════════════════════════════════════════════════════════
         // FR-BO-36: Get Single Article + increment view count
