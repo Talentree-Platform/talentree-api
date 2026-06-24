@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Talentree.API.Models;
 using Talentree.Service.Contracts;
@@ -8,8 +8,6 @@ namespace Talentree.API.Controllers
 {
     public class AuthController : BaseApiController
     {
-
-
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
 
@@ -27,9 +25,9 @@ namespace Talentree.API.Controllers
             var message = await _authService.RegisterAsync(registerDto);
             return Ok(ApiResponse<string>.SuccessResponse(message));
         }
+
         [HttpPost("register-business-owner")]
         [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
-        //[ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<string>>> RegisterBusinessOwner(
                      BusinessOwnerRegisterDto registerDto)
         {
@@ -41,9 +39,8 @@ namespace Talentree.API.Controllers
             ));
         }
 
-
         /// <summary>
-        /// Resend Verification Email (NEW)
+        /// Resend Verification Email
         /// </summary>
         [HttpPost("resend-verification-email")]
         [ProducesResponseType(typeof(ApiResponse<string>), StatusCodes.Status200OK)]
@@ -54,8 +51,7 @@ namespace Talentree.API.Controllers
             {
                 _logger.LogInformation("Resend verification email request for: {Email}", dto.Email);
 
-            //TODO: Implement in AuthService
-            var message = await _authService.ResendVerificationEmailAsync(dto.Email);
+                var message = await _authService.ResendVerificationEmailAsync(dto.Email);
 
                 return Ok(ApiResponse<string>.SuccessResponse(
                     data: "Verification code has been resent to your email",
@@ -68,7 +64,6 @@ namespace Talentree.API.Controllers
                 throw;
             }
         }
-
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
@@ -127,6 +122,18 @@ namespace Talentree.API.Controllers
             return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(authResponse));
         }
 
+        [HttpPost("verify-2fa")]
+        public async Task<IActionResult> VerifyTwoFactor([FromBody] VerifyTwoFactorDto verifyTwoFactorDto)
+        {
+            var authResponse = await _authService.VerifyTwoFactorAsync(verifyTwoFactorDto);
+            return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(authResponse, "Two-factor authentication verified successfully."));
+        }
 
+        [HttpPost("change-forced-password")]
+        public async Task<IActionResult> ChangeForcedPassword([FromBody] ChangeForcedPasswordDto changeForcedPasswordDto)
+        {
+            var authResponse = await _authService.ChangeForcedPasswordAsync(changeForcedPasswordDto);
+            return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(authResponse, "Password changed successfully. You are now logged in."));
+        }
     }
 }

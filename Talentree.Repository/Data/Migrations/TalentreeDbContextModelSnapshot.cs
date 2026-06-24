@@ -92,6 +92,11 @@ namespace Talentree.Repository.Data.Migrations
                     b.Property<bool>("IsBlocked")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsTwoFactorEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("datetime2");
 
@@ -106,6 +111,11 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.Property<int>("LoginCount")
                         .HasColumnType("int");
+
+                    b.Property<bool>("MustChangePassword")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -1437,9 +1447,16 @@ namespace Talentree.Repository.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Device")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("DeviceInfo")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("FailureReason")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("IpAddress")
                         .IsRequired()
@@ -1456,8 +1473,14 @@ namespace Talentree.Repository.Data.Migrations
                     b.Property<DateTime>("LoginAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("UserId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
@@ -1587,6 +1610,56 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("RefreshTokens", (string)null);
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.Identity.SecuritySettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<TimeSpan?>("AllowedLoginEndTime")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan?>("AllowedLoginStartTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("IpWhitelist")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("LockoutDurationInMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxFailedAccessAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("PasswordRequireDigit")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("PasswordRequireLowercase")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("PasswordRequireNonAlphanumeric")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("PasswordRequireUppercase")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("PasswordRequiredLength")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequireTwoFactorForAdmins")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SessionTimeoutInMinutes")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SecuritySettings", (string)null);
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Identity.UserPreferences", b =>
@@ -3220,9 +3293,26 @@ namespace Talentree.Repository.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("AdminId")
-                        .IsRequired()
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("AfterValues")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BeforeValues")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("EntityType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
@@ -3233,7 +3323,6 @@ namespace Talentree.Repository.Data.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("UserId")
-                        .IsRequired()
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
@@ -3583,8 +3672,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasOne("AppUser", "User")
                         .WithMany("LoginHistories")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("User");
                 });
@@ -3878,14 +3966,12 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasOne("AppUser", "Admin")
                         .WithMany()
                         .HasForeignKey("AdminId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("AppUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Admin");
 

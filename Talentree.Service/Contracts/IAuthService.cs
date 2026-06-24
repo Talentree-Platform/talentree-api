@@ -1,4 +1,4 @@
-﻿// Talentree.Service/Contracts/IAuthService.cs
+// Talentree.Service/Contracts/IAuthService.cs
 using Talentree.Service.DTOs.Auth;
 
 namespace Talentree.Service.Contracts
@@ -63,5 +63,15 @@ namespace Talentree.Service.Contracts
         /// Creates account if doesn't exist
         /// </summary>
         Task<AuthResponseDto> FacebookLoginAsync(ExternalLoginDto externalLoginDto);
+
+        /// <summary>
+        /// Verifies two-factor authentication OTP for admin users
+        /// </summary>
+        Task<AuthResponseDto> VerifyTwoFactorAsync(VerifyTwoFactorDto dto);
+
+        /// <summary>
+        /// Changes the temporary password on first login for admin accounts.
+        /// </summary>
+        Task<AuthResponseDto> ChangeForcedPasswordAsync(ChangeForcedPasswordDto dto);
     }
 }

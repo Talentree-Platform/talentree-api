@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
 
@@ -12,11 +12,11 @@ namespace Talentree.Repository.Data.Config
             builder.HasKey(l => l.Id);
 
             builder.Property(l => l.UserId)
-                .IsRequired()
+                .IsRequired(false)
                 .HasMaxLength(450);
 
             builder.Property(l => l.AdminId)
-                .IsRequired()
+                .IsRequired(false)
                 .HasMaxLength(450);
 
             builder.Property(l => l.Action)
@@ -29,6 +29,26 @@ namespace Talentree.Repository.Data.Config
 
             builder.Property(l => l.Notes)
                 .HasColumnType("nvarchar(max)");
+
+            builder.Property(l => l.IpAddress)
+                .HasMaxLength(45)
+                .IsRequired(false);
+
+            builder.Property(l => l.EntityType)
+                .HasMaxLength(100)
+                .IsRequired(false);
+
+            builder.Property(l => l.EntityId)
+                .HasMaxLength(100)
+                .IsRequired(false);
+
+            builder.Property(l => l.BeforeValues)
+                .HasColumnType("nvarchar(max)")
+                .IsRequired(false);
+
+            builder.Property(l => l.AfterValues)
+                .HasColumnType("nvarchar(max)")
+                .IsRequired(false);
 
             builder.HasOne(l => l.User)
                 .WithMany()

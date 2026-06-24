@@ -1,4 +1,4 @@
-﻿// Talentree.Service/Contracts/IAdminService.cs
+// Talentree.Service/Contracts/IAdminService.cs
 
 using Talentree.Service.DTOs.Admin;
 using Talentree.Service.DTOs.Admin.Product;
@@ -23,13 +23,19 @@ namespace Talentree.Service.Contracts
         // ADMIN MANAGEMENT
         // ═══════════════════════════════════════════════════════════
 
-        Task<AdminDto> CreateAdminAsync(CreateAdminDto dto);
+        Task<AdminDto> CreateAdminAsync(CreateAdminDto dto, string performingAdminId);
 
         Task<List<AdminDto>> GetAllAdminsAsync();
 
-        Task DeactivateAdminAsync(string adminUserId);
+        Task DeactivateAdminAsync(string adminUserId, string performingAdminId);
 
-        Task ReactivateAdminAsync(string adminUserId);
+        Task ReactivateAdminAsync(string adminUserId, string performingAdminId);
+
+        Task<AdminDto> EditAdminAsync(string adminUserId, EditAdminDto dto, string performingAdminId);
+
+        Task<AdminDto> ChangeAdminRoleAsync(string adminUserId, ChangeAdminRoleDto dto, string performingAdminId);
+
+        Task ResetAdminPasswordAsync(string adminUserId, ResetAdminPasswordDto dto, string performingAdminId);
 
         // ═══════════════════════════════════════════════════════════
         // PRODUCT APPROVAL (NEW)
@@ -52,5 +58,9 @@ namespace Talentree.Service.Contracts
         /// Sends notification to business owner
         /// </summary>
         Task RejectProductAsync(RejectProductDto dto, string adminId);
+
+        // Session Revocation & Unlock
+        Task RevokeSessionsAsync(string adminUserId, string performingAdminId);
+        Task UnlockAdminAsync(string adminUserId, string performingAdminId);
     }
 }

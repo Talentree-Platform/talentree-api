@@ -23,13 +23,20 @@ namespace Talentree.Service.Services
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
         private readonly ILogger<RefundService> _logger;
+        private readonly IAuditLogService _auditLogService;
 
-        public RefundService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService, ILogger<RefundService> logger)
+        public RefundService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            INotificationService notificationService,
+            ILogger<RefundService> logger,
+            IAuditLogService auditLogService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationService = notificationService;
             _logger = logger;
+            _auditLogService = auditLogService;
         }
 
         public async Task<RefundRequestDto> SubmitRefundRequestAsync(int orderId, int itemId, string customerId, CreateRefundRequestDto dto)
@@ -228,6 +235,15 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<RefundRequest>().Update(request);
             await _unitOfWork.CompleteAsync();
 
+            await _auditLogService.LogActionAsync(
+                userId: request.CustomerId,
+                adminId: adminId,
+                action: "Approve Refund",
+                reason: $"Refund of {request.RefundAmount} EGP approved for Order #{request.OrderId}.",
+                entityType: "RefundRequest",
+                entityId: request.Id.ToString()
+            );
+
             return _mapper.Map<RefundRequestDto>(request);
         }
 
@@ -248,6 +264,15 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<RefundRequest>().Update(request);
             await _unitOfWork.CompleteAsync();
+
+            await _auditLogService.LogActionAsync(
+                userId: request.CustomerId,
+                adminId: adminId,
+                action: "Reject Refund",
+                reason: $"Refund request for Order #{request.OrderId} rejected. Reason: {dto.Reason}",
+                entityType: "RefundRequest",
+                entityId: request.Id.ToString()
+            );
 
             // Notify Customer
             await _notificationService.CreateNotificationAsync(new CreateNotificationDto
