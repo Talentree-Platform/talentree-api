@@ -37,6 +37,31 @@ namespace Talentree.Repository.Data
                 // ═══════════════════════════════════════════════════════════
                 await SeedCustomersAsync(userManager, logger);
 
+                // ═══════════════════════════════════════════════════════════
+                // STEP 4: Seed Default Security Settings
+                // ═══════════════════════════════════════════════════════════
+                if (!context.SecuritySettings.Any())
+                {
+                    var defaultSettings = new SecuritySettings
+                    {
+                        PasswordRequiredLength = 8,
+                        PasswordRequireDigit = true,
+                        PasswordRequireLowercase = true,
+                        PasswordRequireUppercase = true,
+                        PasswordRequireNonAlphanumeric = true,
+                        SessionTimeoutInMinutes = 15,
+                        MaxFailedAccessAttempts = 5,
+                        LockoutDurationInMinutes = 15,
+                        RequireTwoFactorForAdmins = false,
+                        IpWhitelist = null,
+                        AllowedLoginStartTime = null,
+                        AllowedLoginEndTime = null
+                    };
+                    context.SecuritySettings.Add(defaultSettings);
+                    await context.SaveChangesAsync();
+                    logger.LogInformation("✅ Seeded default security settings");
+                }
+
                 logger.LogInformation("✅ Identity seeding completed successfully");
             }
             catch (Exception ex)
@@ -107,6 +132,44 @@ namespace Talentree.Repository.Data
                 else
                 {
                     logger.LogError($"❌ Failed to create super admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
+            }
+
+            // Seed Primary Emergency Super Admin
+            const string emergencySuperAdminEmail = "projecttalentree@gmail.com";
+            var emergencySuperAdmin = await userManager.FindByEmailAsync(emergencySuperAdminEmail);
+            if (emergencySuperAdmin == null)
+            {
+                var superAdmin = new AppUser
+                {
+                    DisplayName    = "Primary Emergency Super Administrator",
+                    Email          = emergencySuperAdminEmail,
+                    UserName       = emergencySuperAdminEmail,
+                    PhoneNumber    = "01000000000",
+                    EmailConfirmed = true,
+                    IsActive       = true,
+                    CreatedAt      = DateTime.UtcNow
+                };
+
+                var result = await userManager.CreateAsync(superAdmin, superAdminPassword);
+
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(superAdmin, "SuperAdmin");
+                    logger.LogInformation($"✅ Emergency SuperAdmin user created: {emergencySuperAdminEmail}");
+                }
+                else
+                {
+                    logger.LogError($"❌ Failed to create emergency super admin user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
+            }
+            else
+            {
+                var roles = await userManager.GetRolesAsync(emergencySuperAdmin);
+                if (!roles.Contains("SuperAdmin"))
+                {
+                    await userManager.AddToRoleAsync(emergencySuperAdmin, "SuperAdmin");
+                    logger.LogInformation($"✅ Granted SuperAdmin role to existing emergency account: {emergencySuperAdminEmail}");
                 }
             }
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
 using System.Collections.Generic;
@@ -16,9 +16,12 @@ namespace Talentree.Repository.Data.Config
             base.Configure(builder);
             builder.ToTable("LoginHistories");
 
+            builder.Property(l => l.UserId).IsRequired(false);
             builder.Property(l => l.IpAddress).IsRequired().HasMaxLength(50);
             builder.Property(l => l.DeviceInfo).HasMaxLength(500);
             builder.Property(l => l.Location).HasMaxLength(200);
+            builder.Property(l => l.UserAgent).HasMaxLength(500);
+            builder.Property(l => l.Device).HasMaxLength(200);
 
             builder.HasIndex(l => l.UserId);
             builder.HasIndex(l => l.LoginAt);

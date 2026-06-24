@@ -84,5 +84,11 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
 
         builder.HasIndex(u => u.IsBlocked)
             .HasDatabaseName("IX_AppUser_IsBlocked");
+
+        builder.Property(u => u.IsTwoFactorEnabled)
+            .HasDefaultValue(false);
+
+        builder.Property(u => u.MustChangePassword)
+            .HasDefaultValue(false);
     }
 }

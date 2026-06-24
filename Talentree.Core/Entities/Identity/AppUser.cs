@@ -48,4 +48,6 @@ public class AppUser : IdentityUser
 
     public string? RfmSegment { get; set; }
 
+    public bool IsTwoFactorEnabled { get; set; } = false;
+    public bool MustChangePassword { get; set; } = false;
 }

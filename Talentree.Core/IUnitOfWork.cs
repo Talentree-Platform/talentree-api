@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +8,7 @@ using Talentree.Core.Repository.Contract;
 
 namespace Talentree.Core
 {
-    public interface IUnitOfWork : IAsyncDisposable
+    public interface IUnitOfWork : IAsyncDisposable, IDisposable
     {
         /// <summary>
         /// Returns a repository instance for the specified entity type

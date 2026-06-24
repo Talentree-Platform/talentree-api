@@ -58,5 +58,9 @@ namespace Talentree.Service.Contracts
         /// Sends notification to business owner
         /// </summary>
         Task RejectProductAsync(RejectProductDto dto, string adminId);
+
+        // Session Revocation & Unlock
+        Task RevokeSessionsAsync(string adminUserId, string performingAdminId);
+        Task UnlockAdminAsync(string adminUserId, string performingAdminId);
     }
 }

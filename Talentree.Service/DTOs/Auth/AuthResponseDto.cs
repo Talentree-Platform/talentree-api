@@ -1,4 +1,4 @@
-﻿// Talentree.Service/DTOs/Auth/AuthResponseDto.cs
+// Talentree.Service/DTOs/Auth/AuthResponseDto.cs
 
 namespace Talentree.Service.DTOs.Auth
 {
@@ -29,6 +29,26 @@ namespace Talentree.Service.DTOs.Auth
         /// <summary>
         /// Authenticated user information
         /// </summary>
-        public UserInfoDto User { get; set; } = null!;
+        public UserInfoDto? User { get; set; }
+
+        /// <summary>
+        /// Indicates if 2FA verification is required to complete authentication
+        /// </summary>
+        public bool RequiresTwoFactor { get; set; } = false;
+
+        /// <summary>
+        /// The multi-factor authentication provider type (e.g. Email)
+        /// </summary>
+        public string? TwoFactorProvider { get; set; }
+
+        /// <summary>
+        /// The user ID requesting authentication (useful for 2FA validation)
+        /// </summary>
+        public string? UserId { get; set; }
+
+        /// <summary>
+        /// Indicates if a password change is forced on first login
+        /// </summary>
+        public bool RequiresPasswordChange { get; set; } = false;
     }
 }

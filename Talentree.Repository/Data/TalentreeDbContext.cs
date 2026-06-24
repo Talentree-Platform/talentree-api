@@ -77,6 +77,7 @@ namespace Talentree.Repository.Data
         public DbSet<UserActionLog> UserActionLogs { get; set; }
         public DbSet<Complaint> Complaints { get; set; }
         public DbSet<AutoBlockLog> AutoBlockLogs { get; set; }
+        public DbSet<SecuritySettings> SecuritySettings { get; set; }
 
         // Customer Module Branch 2
         public DbSet<CustomerCart> CustomerCarts { get; set; }
@@ -148,6 +149,85 @@ namespace Talentree.Repository.Data
             }
 
 
+        }
+
+        public override int SaveChanges()
+        {
+            EnforceImmutabilityAndSuperAdminProtection();
+            return base.SaveChanges();
+        }
+
+        public override async Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default)
+        {
+            EnforceImmutabilityAndSuperAdminProtection();
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void EnforceImmutabilityAndSuperAdminProtection()
+        {
+            // 1. Audit logs and login histories immutability check
+            var forbiddenLogs = ChangeTracker.Entries()
+                .Where(e => (e.Entity is UserActionLog || e.Entity is LoginHistory) &&
+                            (e.State == EntityState.Modified || e.State == EntityState.Deleted))
+                .ToList();
+
+            if (forbiddenLogs.Any())
+            {
+                throw new InvalidOperationException("Audit logs and login histories are immutable and cannot be updated or deleted.");
+            }
+
+            // 2. Active SuperAdmin protection checks (Prevent delete, demote, deactivate)
+            var appUserEntries = ChangeTracker.Entries<AppUser>().ToList();
+            var userRoleEntries = ChangeTracker.Entries<Microsoft.AspNetCore.Identity.IdentityUserRole<string>>().ToList();
+
+            // Find SuperAdmin role ID
+            var superAdminRole = Roles.FirstOrDefault(r => r.Name == "SuperAdmin");
+            var superAdminRoleId = superAdminRole?.Id;
+
+            // Check if any SuperAdmin is deleted, deactivated, or has their role removed
+            var deletedUsers = appUserEntries.Where(e => e.State == EntityState.Deleted).Select(e => e.Entity).ToList();
+            var deactivatedUsers = appUserEntries.Where(e => e.State == EntityState.Modified && !e.Entity.IsActive && (bool)e.Property(nameof(AppUser.IsActive)).OriginalValue == true).Select(e => e.Entity).ToList();
+            
+            var removedSuperAdminRoles = userRoleEntries
+                .Where(e => e.State == EntityState.Deleted && e.Entity.RoleId == superAdminRoleId)
+                .Select(e => e.Entity.UserId)
+                .ToList();
+
+            if (deletedUsers.Any() || deactivatedUsers.Any() || removedSuperAdminRoles.Any())
+            {
+                // Fetch all active SuperAdmin user IDs currently in the database
+                var activeSuperAdminUserIds = Users
+                    .Where(u => u.IsActive)
+                    .Join(UserRoles.Where(ur => ur.RoleId == superAdminRoleId),
+                          u => u.Id,
+                          ur => ur.UserId,
+                          (u, ur) => u.Id)
+                    .ToList();
+
+                var affectedUserIds = deletedUsers.Select(u => u.Id)
+                    .Concat(deactivatedUsers.Select(u => u.Id))
+                    .Concat(removedSuperAdminRoles)
+                    .Distinct()
+                    .ToList();
+
+                // Check remaining active SuperAdmins
+                var remainingActiveSuperAdmins = activeSuperAdminUserIds.Except(affectedUserIds).ToList();
+                if (!remainingActiveSuperAdmins.Any())
+                {
+                    throw new InvalidOperationException("Operation aborted: A system must always have at least one active SuperAdmin account. Cannot delete, deactivate, or demote the last active SuperAdmin.");
+                }
+
+                // Protect primary emergency SuperAdmin
+                var primarySuperAdmin = Users.FirstOrDefault(u => u.Email == "projecttalentree@gmail.com");
+                if (primarySuperAdmin != null)
+                {
+                    bool isPrimaryAffected = affectedUserIds.Contains(primarySuperAdmin.Id);
+                    if (isPrimaryAffected)
+                    {
+                        throw new InvalidOperationException("Operation aborted: The primary emergency SuperAdmin account (projecttalentree@gmail.com) cannot be deleted, deactivated, or demoted.");
+                    }
+                }
+            }
         }
     }
 }
