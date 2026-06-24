@@ -1,4 +1,4 @@
-﻿namespace Talentree.Service.Contracts
+namespace Talentree.Service.Contracts
 {
     public interface IAIService
     {
@@ -16,5 +16,14 @@
 
         // Called when BO logs in
         Task PredictChurnAsync(string userId);
+
+        // Called when new production request is created
+        Task PredictFraudAsync(int requestId);
+
+        // Called when production request is completed
+        Task ComputeRequestAsync(int requestId);
+
+        // Called when financial transaction is recorded
+        Task PredictAnomalyAsync(int txId);
     }
 }

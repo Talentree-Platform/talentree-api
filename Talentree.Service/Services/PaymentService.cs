@@ -11,6 +11,8 @@ using Talentree.Core.Specifications.Transactions;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.Payment;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 
 namespace Talentree.Service.Services
 {
@@ -27,6 +29,7 @@ namespace Talentree.Service.Services
         private readonly INotificationService _notificationService;  
         private readonly ILogger<PaymentService> _logger;
         private readonly INotificationHelperService _notificationHelper;
+        private readonly IEventPublisher _eventPublisher;
 
         public PaymentService(
             IUnitOfWork unitOfWork,
@@ -34,7 +37,8 @@ namespace Talentree.Service.Services
             IConfiguration configuration, 
             INotificationService notificationService,
             ILogger<PaymentService> logger,
-            INotificationHelperService notificationHelper )
+            INotificationHelperService notificationHelper,
+            IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _stripeIntentService = stripeIntentService;
@@ -42,6 +46,7 @@ namespace Talentree.Service.Services
             _notificationService = notificationService;
             _logger = logger;
             _notificationHelper = notificationHelper;
+            _eventPublisher = eventPublisher;
         }
 
         // ── BO endpoints ───────────────────────────────────────
@@ -586,6 +591,9 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<Transaction>().Add(transaction);
             await _unitOfWork.CompleteAsync();
+
+            // Publish AI anomaly check request
+            await _eventPublisher.PublishAsync("ai.anomaly", new AnomalyPredictionMessage { TransactionId = transaction.Id });
         }
 
         /// <summary>

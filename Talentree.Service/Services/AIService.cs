@@ -86,6 +86,36 @@ namespace Talentree.Service.Services
         }
 
         // ═══════════════════════════════════════════════════════
+        // FRAUD PREDICTION (Production Requests)
+        // ═══════════════════════════════════════════════════════
+        public async Task PredictFraudAsync(int requestId)
+        {
+            _logger.LogInformation("Starting fraud prediction for production request {RequestId}", requestId);
+
+            await CallAIAsync($"/ai/predict/fraud/{requestId}", HttpMethod.Post);
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // REQUEST COMPLETION COMPUTATION (Completed Requests)
+        // ═══════════════════════════════════════════════════════
+        public async Task ComputeRequestAsync(int requestId)
+        {
+            _logger.LogInformation("Starting request completion computation for production request {RequestId}", requestId);
+
+            await CallAIAsync($"/ai/compute/request/{requestId}", HttpMethod.Post);
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // ANOMALY PREDICTION (Financial Transactions)
+        // ═══════════════════════════════════════════════════════
+        public async Task PredictAnomalyAsync(int txId)
+        {
+            _logger.LogInformation("Starting anomaly prediction for transaction {TxId}", txId);
+
+            await CallAIAsync($"/ai/predict/anomaly/{txId}", HttpMethod.Post);
+        }
+
+        // ═══════════════════════════════════════════════════════
         // PRIVATE: Generic fire-and-forget HTTP caller
         // ═══════════════════════════════════════════════════════
         /// <summary>

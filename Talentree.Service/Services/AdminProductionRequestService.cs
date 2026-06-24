@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
@@ -7,6 +7,8 @@ using Talentree.Core.Specifications.BoProductionRequests;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.BoProductionRequest;
 using Talentree.Service.DTOs.Common;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 
 namespace Talentree.Service.Services
 {
@@ -20,14 +22,16 @@ namespace Talentree.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly INotificationHelperService _notificationHelper; 
+        private readonly IEventPublisher _eventPublisher;
         private readonly ILogger<AdminProductionRequestService> _logger;
 
-        public AdminProductionRequestService(IUnitOfWork unitOfWork, IMapper mapper, INotificationHelperService notificationHelper, ILogger<AdminProductionRequestService> logger)
+        public AdminProductionRequestService(IUnitOfWork unitOfWork, IMapper mapper, INotificationHelperService notificationHelper, ILogger<AdminProductionRequestService> logger, IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationHelper = notificationHelper;
             _logger = logger;
+            _eventPublisher = eventPublisher;
         }
 
         /// <inheritdoc/>
@@ -120,6 +124,9 @@ namespace Talentree.Service.Services
 
             var result = await ApplyTransitionAsync(request, BoProductionRequestStatus.Completed,
                  adminId, "Production completed. Goods are ready for the business owner.");
+
+            // Publish AI completion request
+            await _eventPublisher.PublishAsync("ai.request", new RequestComputationMessage { RequestId = requestId });
 
             // ✅ ADD NOTIFICATION
             await _notificationHelper.NotifyProductionCompleted(requestId, request.BusinessOwnerId);
