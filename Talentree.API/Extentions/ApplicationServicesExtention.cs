@@ -29,6 +29,9 @@ namespace Talentree.API.Extentions
             services.AddHostedService<CustomerRecommendationConsumer>();
             services.AddHostedService<OwnerProcurementConsumer>();
             services.AddHostedService<AIRetrainConsumer>();
+            services.AddHostedService<FraudPredictionConsumer>();
+            services.AddHostedService<RequestComputationConsumer>();
+            services.AddHostedService<AnomalyPredictionConsumer>();
 
             services.AddScoped<IAdminOrderService, AdminOrderService>();
             services.AddScoped<IRefundService, Talentree.Service.Services.RefundService>();

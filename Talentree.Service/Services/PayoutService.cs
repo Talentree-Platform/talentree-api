@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
@@ -9,6 +9,8 @@ using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.Payout;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 
 namespace Talentree.Service.Services
 {
@@ -31,16 +33,19 @@ namespace Talentree.Service.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService; 
+        private readonly IEventPublisher _eventPublisher;
         private readonly ILogger<PayoutService> _logger;
 
         public PayoutService(IUnitOfWork unitOfWork, IMapper mapper,
             INotificationService notificationService,  
-            ILogger<PayoutService> logger)
+            ILogger<PayoutService> logger,
+            IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationService = notificationService;  
             _logger = logger;
+            _eventPublisher = eventPublisher;
         }
 
         // ── BO actions ─────────────────────────────────────────
@@ -228,6 +233,9 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<Transaction>().Add(transaction);
             await _unitOfWork.CompleteAsync();
+
+            // Publish AI anomaly check request
+            await _eventPublisher.PublishAsync("ai.anomaly", new AnomalyPredictionMessage { TransactionId = transaction.Id });
 
             // TODO: notify BO — payout completed, funds transferred
 

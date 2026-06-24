@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Talentree.Core;
 using Talentree.Core.Entities;
@@ -8,6 +8,8 @@ using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.BoProductionRequest;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Notification;
+using Talentree.Service.Messaging;
+using Talentree.Service.Messaging.Contracts;
 
 namespace Talentree.Service.Services
 {
@@ -21,6 +23,7 @@ namespace Talentree.Service.Services
         private readonly IMapper _mapper;
         private readonly INotificationHelperService _notificationHelper;
         private readonly INotificationService _notificationService;
+        private readonly IEventPublisher _eventPublisher;
         private readonly ILogger<BoProductionRequestService> _logger;
         /// <summary>
         /// Statuses from which the BO is allowed to cancel their own request.
@@ -33,17 +36,15 @@ namespace Talentree.Service.Services
         ];
 
         public BoProductionRequestService(IUnitOfWork unitOfWork, IMapper mapper,
-            INotificationHelperService notificationHelper , ILogger<BoProductionRequestService> logger,
-            INotificationService notificationService
-
-            )
+            INotificationHelperService notificationHelper, ILogger<BoProductionRequestService> logger,
+            INotificationService notificationService, IEventPublisher eventPublisher)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationHelper = notificationHelper;
             _logger = logger;
             _notificationService = notificationService;
-
+            _eventPublisher = eventPublisher;
         }
 
         /// <inheritdoc/>
@@ -85,6 +86,9 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<BoProductionRequest>().Add(request);
             await _unitOfWork.CompleteAsync();
+
+            // Publish AI fraud check request
+            await _eventPublisher.PublishAsync("ai.fraud", new FraudPredictionMessage { RequestId = request.Id });
 
             var result = await LoadBoDetailAsync(request.Id, businessOwnerId);
 
