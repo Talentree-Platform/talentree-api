@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -8,8 +8,10 @@ using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.UserManagementSpecifications;
+using Guidy.Core.Specifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs;
+using Talentree.Service.DTOs.Admin;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.UserManagement;
@@ -446,19 +448,34 @@ namespace Talentree.Service.Services
             });
         }
 
-        public async Task DeleteCustomerAsync(string userId, string adminId)
+        public async Task DeactivateCustomerAsync(string userId, string adminId)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
                 throw new NotFoundException("User not found");
 
-            // Log action before deletion
-            await LogUserActionAsync(userId, adminId, "Delete", "Account permanently deleted", null);
+            if (!user.IsActive || user.AccountStatus == AccountStatus.Inactive)
+                throw new BadRequestException("User is already deactivated");
 
-            // Delete user
-            var result = await _userManager.DeleteAsync(user);
+            // Update user status to Inactive / deactivation
+            user.IsActive = false;
+            user.AccountStatus = AccountStatus.Inactive;
+
+            var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
-                throw new BadRequestException("Failed to delete user");
+                throw new BadRequestException("Failed to deactivate user");
+
+            // Revoke active refresh tokens for the user
+            var activeTokensSpec = new ActiveRefreshTokensForUserSpecification(userId);
+            var activeTokens = await _unitOfWork.Repository<RefreshToken>().GetAllWithSpecificationsAsync(activeTokensSpec);
+            foreach (var token in activeTokens)
+            {
+                token.RevokedAt = DateTime.UtcNow;
+                _unitOfWork.Repository<RefreshToken>().Update(token);
+            }
+
+            // Log action for the customer deactivation
+            await LogUserActionAsync(userId, adminId, "Deactivate Customer", "Customer account deactivated (Soft-Deleted)", null);
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -467,6 +484,12 @@ namespace Talentree.Service.Services
 
         public async Task<ComplaintDto> CreateComplaintAsync(CreateComplaintDto dto, string reportedByUserId)
         {
+            var reporter = await _userManager.FindByIdAsync(reportedByUserId);
+            if (reporter == null)
+                throw new NotFoundException("Reporter not found");
+            if (!reporter.IsActive || reporter.AccountStatus == AccountStatus.Inactive)
+                throw new ForbiddenException("Account is deactivated.");
+
             var complaint = new Complaint
             {
                 ReportedUserId = dto.ReportedUserId,
@@ -730,6 +753,56 @@ namespace Talentree.Service.Services
             return _mapper.Map<List<UserActionLogDto>>(logs.ToList());
         }
 
+        public async Task<Pagination<UserActionLogDto>> GetAuditLogsAsync(Talentree.Service.DTOs.Admin.UserActionLogFilterDto filter)
+        {
+            var countSpec = new AuditLogsCountSpecification(filter.AdminId, filter.Action, filter.StartDate, filter.EndDate);
+            var totalCount = await _unitOfWork.Repository<UserActionLog>().GetCountWithSpecificationsAsync(countSpec);
+
+            var spec = new AuditLogsSpecification(filter.AdminId, filter.Action, filter.StartDate, filter.EndDate, filter.PageIndex, filter.PageSize);
+            var logs = await _unitOfWork.Repository<UserActionLog>().GetAllWithSpecificationsAsync(spec);
+
+            var dtos = _mapper.Map<List<UserActionLogDto>>(logs.ToList());
+
+            return new Pagination<UserActionLogDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
+        }
+
+        public async Task<byte[]> ExportAuditLogsToCsvAsync(Talentree.Service.DTOs.Admin.UserActionLogFilterDto filter)
+        {
+            var spec = new AuditLogsSpecification(filter.AdminId, filter.Action, filter.StartDate, filter.EndDate);
+            var logs = await _unitOfWork.Repository<UserActionLog>().GetAllWithSpecificationsAsync(spec);
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("LogId,AdminName,AdminEmail,UserId,Action,Reason,Notes,IpAddress,EntityType,EntityId,BeforeValues,AfterValues,ActionDate");
+
+            foreach (var log in logs)
+            {
+                var adminName = log.Admin != null ? log.Admin.DisplayName : string.Empty;
+                var adminEmail = log.Admin != null ? log.Admin.Email : string.Empty;
+
+                sb.AppendLine($"{log.Id}," +
+                              $"\"{EscapeCsv(adminName)}\"," +
+                              $"\"{EscapeCsv(adminEmail)}\"," +
+                              $"\"{EscapeCsv(log.UserId)}\"," +
+                              $"\"{EscapeCsv(log.Action)}\"," +
+                              $"\"{EscapeCsv(log.Reason)}\"," +
+                              $"\"{EscapeCsv(log.Notes)}\"," +
+                              $"\"{EscapeCsv(log.IpAddress)}\"," +
+                              $"\"{EscapeCsv(log.EntityType)}\"," +
+                              $"\"{EscapeCsv(log.EntityId)}\"," +
+                              $"\"{EscapeCsv(log.BeforeValues)}\"," +
+                              $"\"{EscapeCsv(log.AfterValues)}\"," +
+                              $"\"{log.ActionDate:yyyy-MM-dd HH:mm:ss}\"");
+            }
+
+            return System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        }
+
+        private string EscapeCsv(string? value)
+        {
+            if (string.IsNullOrEmpty(value)) return string.Empty;
+            return value.Replace("\"", "\"\"");
+        }
+
         // ═══════════════════════════════════════════════════════════
         // HELPER METHODS
         // ═══════════════════════════════════════════════════════════
@@ -842,7 +915,48 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
         }
 
-   
-    
+        public async Task<Pagination<AdminLoginHistoryDto>> GetLoginHistoryAsync(LoginHistoryFilterDto filter)
+        {
+            var countSpec = new Talentree.Core.Specifications.AccountSettingsSpecifications.LoginHistoryCountSpecification(filter.UserId, filter.Email, filter.IsSuccessful, filter.IpAddress, filter.StartDate, filter.EndDate);
+            var totalCount = await _unitOfWork.Repository<LoginHistory>().GetCountWithSpecificationsAsync(countSpec);
+
+            var spec = new Talentree.Core.Specifications.AccountSettingsSpecifications.LoginHistorySpecification(filter.UserId, filter.Email, filter.IsSuccessful, filter.IpAddress, filter.StartDate, filter.EndDate, filter.PageIndex, filter.PageSize);
+            var history = await _unitOfWork.Repository<LoginHistory>().GetAllWithSpecificationsAsync(spec);
+
+            var dtos = _mapper.Map<List<AdminLoginHistoryDto>>(history.ToList());
+
+            return new Pagination<AdminLoginHistoryDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
+        }
+
+        public async Task<byte[]> ExportLoginHistoryToCsvAsync(LoginHistoryFilterDto filter)
+        {
+            var spec = new Talentree.Core.Specifications.AccountSettingsSpecifications.LoginHistorySpecification(filter.UserId, filter.Email, filter.IsSuccessful, filter.IpAddress, filter.StartDate, filter.EndDate);
+            var history = await _unitOfWork.Repository<LoginHistory>().GetAllWithSpecificationsAsync(spec);
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("HistoryId,UserId,UserEmail,UserDisplayName,IpAddress,DeviceInfo,Location,LoginAt,IsSuccessful,Status,FailureReason,UserAgent,Device");
+
+            foreach (var record in history)
+            {
+                var email = record.User != null ? record.User.Email : string.Empty;
+                var displayName = record.User != null ? record.User.DisplayName : string.Empty;
+
+                sb.AppendLine($"{record.Id}," +
+                              $"\"{EscapeCsv(record.UserId)}\"," +
+                              $"\"{EscapeCsv(email)}\"," +
+                              $"\"{EscapeCsv(displayName)}\"," +
+                              $"\"{EscapeCsv(record.IpAddress)}\"," +
+                              $"\"{EscapeCsv(record.DeviceInfo)}\"," +
+                              $"\"{EscapeCsv(record.Location)}\"," +
+                              $"\"{record.LoginAt:yyyy-MM-dd HH:mm:ss}\"," +
+                              $"{(record.IsSuccessful ? "True" : "False")}," +
+                              $"\"{EscapeCsv(record.Status)}\"," +
+                              $"\"{EscapeCsv(record.FailureReason)}\"," +
+                              $"\"{EscapeCsv(record.UserAgent)}\"," +
+                              $"\"{EscapeCsv(record.Device)}\"");
+            }
+
+            return System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        }
     }
 }

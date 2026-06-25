@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Talentree.API.Models;
 using Talentree.Core.Enums;
@@ -221,17 +221,17 @@ namespace Talentree.API.Controllers
         }
 
         /// <summary>
-        /// Delete customer account permanently
+        /// Deactivate (soft-delete) customer account
         /// </summary>
-        [HttpDelete("customers/{userId}")]
+        [HttpPost("customers/{userId}/deactivate")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        public async Task<ActionResult<ApiResponse<object>>> DeleteCustomer(string userId)
+        public async Task<ActionResult<ApiResponse<object>>> DeactivateCustomer(string userId)
         {
             var adminId = GetCurrentUserId();
-            await _userManagementService.DeleteCustomerAsync(userId, adminId);
+            await _userManagementService.DeactivateCustomerAsync(userId, adminId);
 
             return Ok(ApiResponse<object>.SuccessResponse(
-                message: "Customer account deleted permanently."
+                message: "Customer account deactivated successfully."
             ));
         }
 

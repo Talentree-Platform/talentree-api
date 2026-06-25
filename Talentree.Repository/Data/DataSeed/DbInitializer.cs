@@ -8,6 +8,7 @@
 // ============================================================
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Talentree.Core.Entities.Identity;
 using Talentree.Repository.Data;
 
@@ -20,12 +21,13 @@ namespace Talentree.Repository.Data.DataSeed
             RoleManager<IdentityRole> roleManager,
             UserManager<AppUser> userManager,
             ILoggerFactory loggerFactory,
+            IConfiguration configuration,
             bool seedInteractions = false)
         {
             var logger = loggerFactory.CreateLogger("DbInitializer");
 
             // ── 1: Roles + Admin + 6 Customers (fixed GUIDs) ─────────────────────
-            await TalentreeContextSeed.SeedAsync(userManager, roleManager, context, logger);
+            await TalentreeContextSeed.SeedAsync(userManager, roleManager, context, configuration, logger);
 
             // ── 2: Fixed-GUID BOs — Nour Couture, Karim Craft Studio, Salma Naturals ─
             //       Must run before any seed that references these GUIDs.

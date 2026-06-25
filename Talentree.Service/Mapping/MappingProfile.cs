@@ -60,6 +60,10 @@ namespace Talentree.Service.Mapping
                 .ForMember(dest => dest.Roles,
                     opt => opt.Ignore()); // Will be set manually in service
 
+            CreateMap<LoginHistory, AdminLoginHistoryDto>()
+                .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User != null ? src.User.Email : string.Empty))
+                .ForMember(dest => dest.UserDisplayName, opt => opt.MapFrom(src => src.User != null ? src.User.DisplayName : string.Empty));
+
             // ───────────────────────────────────────────────────────────
             // RegisterDto → AppUser (for registration)
             // ───────────────────────────────────────────────────────────
@@ -755,9 +759,11 @@ namespace Talentree.Service.Mapping
 
             CreateMap<UserActionLog, UserActionLogDto>()
                 .ForMember(dest => dest.AdminName,
-                    opt => opt.MapFrom(src => src.Admin.DisplayName))
+                    opt => opt.MapFrom(src => src.Admin != null ? src.Admin.DisplayName : null))
                 .ForMember(dest => dest.AdminEmail,
-                    opt => opt.MapFrom(src => src.Admin.Email));
+                    opt => opt.MapFrom(src => src.Admin != null ? src.Admin.Email : null));
+
+            CreateMap<SecuritySettings, SecuritySettingsDto>();
 
             CreateMap<Complaint, ComplaintDto>()
                 .ForMember(dest => dest.ReportedUserName,

@@ -23,13 +23,20 @@ namespace Talentree.Service.Services
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
         private readonly ILogger<AdminOrderService> _logger;
+        private readonly IAuditLogService _auditLogService;
 
-        public AdminOrderService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService, ILogger<AdminOrderService> logger)
+        public AdminOrderService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            INotificationService notificationService,
+            ILogger<AdminOrderService> logger,
+            IAuditLogService auditLogService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationService = notificationService;
             _logger = logger;
+            _auditLogService = auditLogService;
         }
 
         public async Task<Pagination<AdminOrderSummaryDto>> GetOrdersAsync(AdminOrderFilterDto filter)
@@ -113,6 +120,15 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<CustomerOrder>().Update(order);
             await _unitOfWork.CompleteAsync();
 
+            await _auditLogService.LogActionAsync(
+                userId: order.CustomerId,
+                adminId: adminId,
+                action: "Update Order Status",
+                reason: $"Order status changed to {dto.NewStatus}. Reason: {dto.Reason}",
+                entityType: "CustomerOrder",
+                entityId: order.Id.ToString()
+            );
+
             // Notify Customer
             await _notificationService.CreateNotificationAsync(new CreateNotificationDto
             {
@@ -145,6 +161,15 @@ namespace Talentree.Service.Services
             
             _unitOfWork.Repository<CustomerOrder>().Update(order);
             await _unitOfWork.CompleteAsync();
+
+            await _auditLogService.LogActionAsync(
+                userId: order.CustomerId,
+                adminId: adminId,
+                action: "Add Order Note",
+                reason: $"Note added: {note}",
+                entityType: "CustomerOrder",
+                entityId: order.Id.ToString()
+            );
 
             return _mapper.Map<AdminOrderDetailDto>(order);
         }

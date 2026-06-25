@@ -27,6 +27,7 @@ namespace Talentree.API.Extensions
                 var dbContext = services.GetRequiredService<TalentreeDbContext>();
                 var userManager = services.GetRequiredService<UserManager<AppUser>>();
                 var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+                var configuration = services.GetRequiredService<IConfiguration>();
 
                 // 1 — Apply any pending EF Core migrations first
                 logger.LogInformation("Applying migrations...");
@@ -35,7 +36,7 @@ namespace Talentree.API.Extensions
 
                 // 2 — Run all seed operations via the single DbInitializer
                 logger.LogInformation("Starting data seeding...");
-                await DbInitializer.SeedAllAsync(dbContext, roleManager, userManager, loggerFactory, seedInteractions);
+                await DbInitializer.SeedAllAsync(dbContext, roleManager, userManager, loggerFactory, configuration, seedInteractions);
                 logger.LogInformation("Data seeding completed successfully.");
             }
             catch (Exception ex)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -65,5 +65,11 @@ namespace Talentree.Repository
         /// </summary>
         public async ValueTask DisposeAsync()
             => await _dbContext.DisposeAsync();
+
+        /// <summary>
+        /// Synchronously disposes the database context
+        /// </summary>
+        public void Dispose()
+            => _dbContext.Dispose();
     }
 }

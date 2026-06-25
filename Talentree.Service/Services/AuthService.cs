@@ -1,6 +1,7 @@
 using AutoMapper;
 using Google.Apis.Auth;
 using Guidy.Core.Specifications;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,6 +33,9 @@ namespace Talentree.Service.Services
         private readonly INotificationHelperService _notificationHelper;
         private readonly ILogger<AuthService> _logger;
         private readonly IEventPublisher _eventPublisher;
+        private readonly IAuditLogService _auditLogService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
         public AuthService(
             UserManager<AppUser> userManager,
             //RoleManager<IdentityRole> roleManager,
@@ -40,10 +44,12 @@ namespace Talentree.Service.Services
             IMapper mapper,
             IUnitOfWork unitOfWork,
             IConfiguration configuration,
-             IAIService aiService,
-                INotificationHelperService notificationHelper,
-        ILogger<AuthService> logger,
-        IEventPublisher eventPublisher)
+            IAIService aiService,
+            INotificationHelperService notificationHelper,
+            ILogger<AuthService> logger,
+            IEventPublisher eventPublisher,
+            IAuditLogService auditLogService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _userManager = userManager;
             //_roleManager = roleManager;
@@ -56,6 +62,8 @@ namespace Talentree.Service.Services
             _notificationHelper = notificationHelper;
             _logger = logger;
             _eventPublisher = eventPublisher;
+            _auditLogService = auditLogService;
+            _httpContextAccessor = httpContextAccessor;
         }
         public async Task<string> RegisterAsync(RegisterDto registerDto)
         {
@@ -141,31 +149,292 @@ namespace Talentree.Service.Services
             // Find user by email
             var user = await _userManager.FindByEmailAsync(loginDto.Email);
             if (user == null)
+            {
+                await _auditLogService.LogActionAsync(
+                    userId: null,
+                    adminId: null,
+                    action: "Login Failure",
+                    reason: $"User email '{loginDto.Email}' not found."
+                );
+                await LogLoginHistoryAsync(userId: null, isSuccessful: false, status: "Failed", failureReason: $"User email '{loginDto.Email}' not found.");
                 throw new UnauthorizedException("Invalid email or password");
-
+            }
 
             // Check if email is verified
             if (!user.EmailConfirmed)
+            {
+                await _auditLogService.LogActionAsync(
+                    userId: user.Id,
+                    adminId: null,
+                    action: "Login Failure",
+                    reason: "Email not verified.",
+                    entityType: "AppUser",
+                    entityId: user.Id
+                );
+                await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Email not verified.");
                 throw new ForbiddenException("Email not verified. Please verify your email first.");
+            }
 
+            if (!user.IsActive)
+            {
+                await _auditLogService.LogActionAsync(
+                    userId: user.Id,
+                    adminId: null,
+                    action: "Login Failure",
+                    reason: "Account is deactivated.",
+                    entityType: "AppUser",
+                    entityId: user.Id
+                );
+                await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Account deactivated.");
+                throw new ForbiddenException("Account is inactive. Please contact the administrator.");
+            }
+
+            // Get user roles
+            var roles = await _userManager.GetRolesAsync(user);
+            var isAdmin = roles.Any(r => r == "SuperAdmin" || r == "Admin" || r == "SupportStaff" || r == "ContentManager");
+            var isSuperAdmin = roles.Contains("SuperAdmin");
+
+            // Retrieve database security settings
+            var settings = await _unitOfWork.Repository<SecuritySettings>().GetByIdAsync(1);
+            if (settings == null)
+            {
+                settings = new SecuritySettings(); // safe default settings
+            }
+
+            // 1. IP Whitelist (Exempting SuperAdmin; fail-open on any exception)
+            if (isAdmin && !isSuperAdmin && !string.IsNullOrEmpty(settings.IpWhitelist))
+            {
+                try
+                {
+                    var clientIp = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+                    if (!string.IsNullOrEmpty(clientIp))
+                    {
+                        var whitelistedIps = settings.IpWhitelist.Split(',')
+                            .Select(ip => ip.Trim())
+                            .Where(ip => !string.IsNullOrEmpty(ip))
+                            .ToList();
+
+                        // Match or check fallback loop
+                        if (!whitelistedIps.Contains(clientIp))
+                        {
+                            await _auditLogService.LogActionAsync(
+                                userId: user.Id,
+                                adminId: null,
+                                action: "Login Failure",
+                                reason: $"IP {clientIp} not in whitelisted range: {settings.IpWhitelist}",
+                                entityType: "AppUser",
+                                entityId: user.Id
+                            );
+                            await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: $"IP Whitelist Rejection: {clientIp}");
+                            throw new ForbiddenException("Access denied: IP address is not whitelisted.");
+                        }
+                    }
+                }
+                catch (ForbiddenException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error checking IP Whitelist. Degraded to fail-open.");
+                }
+            }
+
+            // 2. Allowed Login Hours (Exempting SuperAdmin; fail-open on any exception)
+            if (isAdmin && !isSuperAdmin && settings.AllowedLoginStartTime.HasValue && settings.AllowedLoginEndTime.HasValue)
+            {
+                try
+                {
+                    var currentLocalTime = DateTime.Now.TimeOfDay;
+                    var start = settings.AllowedLoginStartTime.Value;
+                    var end = settings.AllowedLoginEndTime.Value;
+
+                    bool isWithinAllowedWindow;
+                    if (start <= end)
+                    {
+                        isWithinAllowedWindow = currentLocalTime >= start && currentLocalTime <= end;
+                    }
+                    else
+                    {
+                        // Overnight window
+                        isWithinAllowedWindow = currentLocalTime >= start || currentLocalTime <= end;
+                    }
+
+                    if (!isWithinAllowedWindow)
+                    {
+                        await _auditLogService.LogActionAsync(
+                            userId: user.Id,
+                            adminId: null,
+                            action: "Login Failure",
+                            reason: $"Login attempted at {currentLocalTime} which is outside allowed range {start} - {end}",
+                            entityType: "AppUser",
+                            entityId: user.Id
+                        );
+                        await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Login hours restricted.");
+                        throw new ForbiddenException("Access denied: login time is restricted.");
+                    }
+                }
+                catch (ForbiddenException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error checking login hours. Degraded to fail-open.");
+                }
+            }
+
+            // 3. Lockout Check (Exempting SuperAdmin)
+            if (isAdmin && !isSuperAdmin)
+            {
+                if (await _userManager.IsLockedOutAsync(user))
+                {
+                    await _auditLogService.LogActionAsync(
+                        userId: user.Id,
+                        adminId: null,
+                        action: "Login Failure",
+                        reason: "Account is temporarily locked out due to multiple failed attempts.",
+                        entityType: "AppUser",
+                        entityId: user.Id
+                    );
+                    await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "LockedOut", failureReason: "Account locked out.");
+                    throw new ForbiddenException($"Account is temporarily locked out. Please try again later.");
+                }
+            }
 
             // Verify password
             var isPasswordValid = await _userManager.CheckPasswordAsync(user, loginDto.Password);
             if (!isPasswordValid)
+            {
+                if (isAdmin && !isSuperAdmin)
+                {
+                    // Increment failed count
+                    await _userManager.AccessFailedAsync(user);
+
+                    // Check if threshold is reached
+                    var maxAttempts = settings.MaxFailedAccessAttempts <= 0 ? 5 : settings.MaxFailedAccessAttempts;
+                    var lockoutMinutes = settings.LockoutDurationInMinutes <= 0 ? 15 : settings.LockoutDurationInMinutes;
+                    
+                    var accessFailedCount = await _userManager.GetAccessFailedCountAsync(user);
+                    if (accessFailedCount >= maxAttempts)
+                    {
+                        await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddMinutes(lockoutMinutes));
+                        await _auditLogService.LogActionAsync(
+                            userId: user.Id,
+                            adminId: null,
+                            action: "Login Failure",
+                            reason: $"Max failed attempts ({maxAttempts}) exceeded. Locked for {lockoutMinutes} minutes.",
+                            entityType: "AppUser",
+                            entityId: user.Id
+                        );
+                        await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "LockedOut", failureReason: "Lockout threshold reached.");
+                    }
+                    else
+                    {
+                        await _auditLogService.LogActionAsync(
+                            userId: user.Id,
+                            adminId: null,
+                            action: "Login Failure",
+                            reason: "Incorrect password.",
+                            entityType: "AppUser",
+                            entityId: user.Id
+                        );
+                        await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Incorrect password.");
+                    }
+                }
+                else
+                {
+                    await _auditLogService.LogActionAsync(
+                        userId: user.Id,
+                        adminId: null,
+                        action: "Login Failure",
+                        reason: "Incorrect password.",
+                        entityType: "AppUser",
+                        entityId: user.Id
+                    );
+                    await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Incorrect password.");
+                }
+
                 throw new UnauthorizedException("Invalid email or password");
+            }
 
+            // Reset failed count on successful password check
+            if (isAdmin && !isSuperAdmin)
+            {
+                await _userManager.ResetAccessFailedCountAsync(user);
+            }
 
-            // Get user roles
-            var roles = await _userManager.GetRolesAsync(user);
+            // Forced password change check
+            if (user.MustChangePassword)
+            {
+                await _auditLogService.LogActionAsync(
+                    userId: user.Id,
+                    adminId: null,
+                    action: "Login Failure",
+                    reason: "Password change is forced on first login.",
+                    entityType: "AppUser",
+                    entityId: user.Id
+                );
+                await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Password change forced.");
+                return new AuthResponseDto
+                {
+                    RequiresPasswordChange = true,
+                    UserId = user.Id
+                };
+            }
 
-            // Generate JWT access token
+            // 4. 2FA Check (Triggered if user has manually enabled 2FA OR if globally required for admins)
+            if (user.IsTwoFactorEnabled || (isAdmin && settings.RequireTwoFactorForAdmins))
+            {
+                // Generate and save OTP code
+                var code = GenerateOtpCode();
+                await SaveOtpCodeAsync(user.Id, code, OtpPurpose.TwoFactorAuth);
+
+                // OTP Logging Hardening: Only logs OTP code to console in Development environment
+                var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+                if (string.Equals(envName, "Development", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning($"[MFA EMERGENCY BYPASS] User {user.Email} requested 2FA. Generated OTP code is: {code}");
+                }
+
+                try
+                {
+                    // Send code via email
+                    await _emailService.SendOtpAsync(user.Email!, code, OtpPurpose.TwoFactorAuth);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send 2FA OTP email.");
+                }
+
+                // Log pending 2FA authentication
+                await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "2FA Pending", failureReason: "MFA OTP code generated and sent.");
+
+                return new AuthResponseDto
+                {
+                    RequiresTwoFactor = true,
+                    TwoFactorProvider = "Email",
+                    UserId = user.Id
+                };
+            }
+
+            // Proceed standard login
             var accessToken = _tokenService.GenerateAccessToken(user, roles.ToList());
-
-            // Generate refresh token
             var refreshToken = _tokenService.GenerateRefreshToken();
 
             // Save refresh token to database (hashed)
             await SaveRefreshTokenAsync(user.Id.ToString(), refreshToken);
+
+            // Log successful login
+            await _auditLogService.LogActionAsync(
+                userId: user.Id,
+                adminId: user.Id,
+                action: "Login Success",
+                reason: "User authenticated successfully.",
+                entityType: "AppUser",
+                entityId: user.Id
+            );
+            await LogLoginHistoryAsync(userId: user.Id, isSuccessful: true, status: "Success", failureReason: null);
 
             // Map user to UserInfoDto
             var userInfo = _mapper.Map<UserInfoDto>(user);
@@ -179,6 +448,223 @@ namespace Talentree.Service.Services
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetAccessTokenExpiryMinutes()),
                 User = userInfo
             };
+        }
+
+        public async Task<AuthResponseDto> VerifyTwoFactorAsync(VerifyTwoFactorDto dto)
+        {
+            var user = await _userManager.FindByIdAsync(dto.UserId);
+            if (user == null)
+                throw new UnauthorizedException("Invalid request details");
+
+            if (!user.IsActive)
+                throw new ForbiddenException("Account is inactive.");
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var isSuperAdmin = roles.Contains("SuperAdmin");
+
+            // Check Emergency Bypass Code for SuperAdmin
+            bool isBypassUsed = false;
+            if (isSuperAdmin)
+            {
+                var bypassCode = _configuration["SeedData:SuperAdminEmergency2FaBypassCode"] ?? "TalentreeEmergencyBypass2026!";
+                if (dto.OtpCode == bypassCode)
+                {
+                    isBypassUsed = true;
+                }
+            }
+
+            if (!isBypassUsed)
+            {
+                // Retrieve the active OTP for TwoFactorAuth
+                var spec = new OtpCodeSpecification(user.Id, dto.OtpCode, OtpPurpose.TwoFactorAuth);
+                var otpEntity = await _unitOfWork.Repository<OtpCode>().GetByIdWithSpecificationsAsync(spec);
+
+                if (otpEntity == null || !otpEntity.IsValid)
+                {
+                    if (!isSuperAdmin)
+                    {
+                        await _userManager.AccessFailedAsync(user);
+                    }
+                    // Log failed 2FA verification
+                    await _auditLogService.LogActionAsync(
+                        userId: user.Id,
+                        adminId: null,
+                        action: "2FA Verification Failure",
+                        reason: "Invalid or expired OTP code.",
+                        entityType: "AppUser",
+                        entityId: user.Id
+                    );
+                    await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Invalid or expired 2FA OTP code.");
+                    throw new UnauthorizedException("Invalid or expired verification code.");
+                }
+
+                // Mark OTP as used
+                otpEntity.IsUsed = true;
+                otpEntity.UsedAt = DateTime.UtcNow;
+                _unitOfWork.Repository<OtpCode>().Update(otpEntity);
+                await _unitOfWork.CompleteAsync();
+            }
+
+            // Generate tokens
+            var accessToken = _tokenService.GenerateAccessToken(user, roles.ToList());
+            var refreshToken = _tokenService.GenerateRefreshToken();
+            await SaveRefreshTokenAsync(user.Id.ToString(), refreshToken);
+
+            // Reset failed access attempts
+            if (!isSuperAdmin)
+            {
+                await _userManager.ResetAccessFailedCountAsync(user);
+            }
+
+            // Log successful login
+            if (isBypassUsed)
+            {
+                await _auditLogService.LogActionAsync(
+                    userId: user.Id,
+                    adminId: user.Id,
+                    action: "Emergency 2FA Bypass Used",
+                    reason: "SuperAdmin bypassed 2FA using emergency recovery code.",
+                    entityType: "AppUser",
+                    entityId: user.Id
+                );
+                await LogLoginHistoryAsync(userId: user.Id, isSuccessful: true, status: "Success (Emergency Bypass)", failureReason: null);
+            }
+            else
+            {
+                await _auditLogService.LogActionAsync(
+                    userId: user.Id,
+                    adminId: user.Id,
+                    action: "2FA Verification Success",
+                    reason: "Two-factor authentication succeeded.",
+                    entityType: "AppUser",
+                    entityId: user.Id
+                );
+                await LogLoginHistoryAsync(userId: user.Id, isSuccessful: true, status: "Success (2FA)", failureReason: null);
+            }
+
+            var userInfo = _mapper.Map<UserInfoDto>(user);
+            userInfo.Roles = roles.ToList();
+
+            return new AuthResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetAccessTokenExpiryMinutes()),
+                User = userInfo
+            };
+        }
+
+        public async Task<AuthResponseDto> ChangeForcedPasswordAsync(ChangeForcedPasswordDto dto)
+        {
+            var user = await _userManager.FindByIdAsync(dto.UserId);
+            if (user == null)
+                throw new UnauthorizedException("User not found");
+
+            if (!user.MustChangePassword)
+                throw new BadRequestException("Password change is not forced for this account.");
+
+            // Verify temporary password
+            var isTempValid = await _userManager.CheckPasswordAsync(user, dto.TemporaryPassword);
+            if (!isTempValid)
+            {
+                await _auditLogService.LogActionAsync(
+                    userId: user.Id,
+                    adminId: null,
+                    action: "Login Failure",
+                    reason: "Invalid temporary password during forced password change.",
+                    entityType: "AppUser",
+                    entityId: user.Id
+                );
+                await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Invalid temporary password during change.");
+                throw new UnauthorizedException("Invalid temporary password");
+            }
+
+            // Change password
+            var result = await _userManager.ChangePasswordAsync(user, dto.TemporaryPassword, dto.NewPassword);
+            if (!result.Succeeded)
+            {
+                var errorsDict = result.Errors
+                    .GroupBy(e => e.Code)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
+                throw new ValidationException(errorsDict);
+            }
+
+            user.MustChangePassword = false;
+            await _userManager.UpdateAsync(user);
+
+            // Log successful password change
+            await _auditLogService.LogActionAsync(
+                userId: user.Id,
+                adminId: user.Id,
+                action: "Password Changed",
+                reason: "Forced password changed successfully on first login.",
+                entityType: "AppUser",
+                entityId: user.Id,
+                beforeValues: "{\"mustChangePassword\": true}",
+                afterValues: "{\"mustChangePassword\": false}"
+            );
+
+            // Successful login record
+            await LogLoginHistoryAsync(userId: user.Id, isSuccessful: true, status: "Success (Forced Password Change)", failureReason: null);
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var accessToken = _tokenService.GenerateAccessToken(user, roles.ToList());
+            var refreshToken = _tokenService.GenerateRefreshToken();
+            await SaveRefreshTokenAsync(user.Id.ToString(), refreshToken);
+
+            var userInfo = _mapper.Map<UserInfoDto>(user);
+            userInfo.Roles = roles.ToList();
+
+            return new AuthResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetAccessTokenExpiryMinutes()),
+                User = userInfo
+            };
+        }
+
+        private async Task LogLoginHistoryAsync(string? userId, bool isSuccessful, string status, string? failureReason)
+        {
+            try
+            {
+                var context = _httpContextAccessor.HttpContext;
+                var ip = context?.Connection?.RemoteIpAddress?.ToString() ?? "Unknown";
+                var userAgent = context?.Request?.Headers["User-Agent"].ToString() ?? "Unknown";
+                
+                // Parse Device
+                var device = "Unknown Device";
+                if (!string.IsNullOrEmpty(userAgent))
+                {
+                    if (userAgent.Contains("Android")) device = "Android Device";
+                    else if (userAgent.Contains("iPhone")) device = "iOS Device";
+                    else if (userAgent.Contains("iPad")) device = "iPad Device";
+                    else if (userAgent.Contains("Windows")) device = "Windows PC";
+                    else if (userAgent.Contains("Macintosh")) device = "Mac PC";
+                    else if (userAgent.Contains("Linux")) device = "Linux PC";
+                }
+
+                var history = new LoginHistory
+                {
+                    UserId = userId,
+                    IpAddress = ip,
+                    DeviceInfo = userAgent.Length > 500 ? userAgent.Substring(0, 500) : userAgent,
+                    Location = "Unknown",
+                    LoginAt = DateTime.UtcNow,
+                    IsSuccessful = isSuccessful,
+                    Status = status,
+                    FailureReason = failureReason,
+                    UserAgent = userAgent,
+                    Device = device
+                };
+
+                _unitOfWork.Repository<LoginHistory>().Add(history);
+                await _unitOfWork.CompleteAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error writing login history log.");
+            }
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -208,6 +694,10 @@ namespace Talentree.Service.Services
 
             // Get user
             var user = storedToken.User;
+            if (user == null)
+                throw new BadRequestException("User not found");
+            if (!user.IsActive || user.AccountStatus == AccountStatus.Inactive)
+                throw new ForbiddenException("Account is deactivated.");
 
             // Get user roles
             var roles = await _userManager.GetRolesAsync(user);
@@ -469,6 +959,22 @@ namespace Talentree.Service.Services
                 await _notificationHelper.NotifyUserRegistered(user.Id);
 
             }
+            else
+            {
+                if (!user.IsActive || user.AccountStatus == AccountStatus.Inactive)
+                {
+                    await _auditLogService.LogActionAsync(
+                        userId: user.Id,
+                        adminId: null,
+                        action: "Login Failure",
+                        reason: "Account is deactivated.",
+                        entityType: "AppUser",
+                        entityId: user.Id
+                    );
+                    await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Account deactivated.");
+                    throw new ForbiddenException("Account is inactive. Please contact the administrator.");
+                }
+            }
 
             // Get user roles
             var roles = await _userManager.GetRolesAsync(user);
@@ -541,6 +1047,22 @@ namespace Talentree.Service.Services
                 // ✅ SEND NOTIFICATION FOR NEW USER
                 await _notificationHelper.NotifyUserRegistered(user.Id);
 
+            }
+            else
+            {
+                if (!user.IsActive || user.AccountStatus == AccountStatus.Inactive)
+                {
+                    await _auditLogService.LogActionAsync(
+                        userId: user.Id,
+                        adminId: null,
+                        action: "Login Failure",
+                        reason: "Account is deactivated.",
+                        entityType: "AppUser",
+                        entityId: user.Id
+                    );
+                    await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Account deactivated.");
+                    throw new ForbiddenException("Account is inactive. Please contact the administrator.");
+                }
             }
 
             // Get user roles

@@ -1,8 +1,10 @@
-﻿
+
 using System.Net;
 using System.Text.Json;
 using Talentree.API.Models;
 using Talentree.Core.Exceptions;
+using Talentree.Service.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Guidy.API.Middleware;
 
@@ -28,10 +30,48 @@ public class GlobalExceptionHandlingMiddleware
         try
         {
             await _next(context);
+
+            if (context.Response.StatusCode == (int)HttpStatusCode.Forbidden || 
+                context.Response.StatusCode == (int)HttpStatusCode.Unauthorized)
+            {
+                await LogUnauthorizedAccessAsync(context, "Access rejected by policy check");
+            }
         }
         catch (Exception ex)
         {
+            await LogExceptionToAuditAsync(context, ex);
             await HandleExceptionAsync(context, ex);
+        }
+    }
+
+    private async Task LogUnauthorizedAccessAsync(HttpContext context, string reason)
+    {
+        try
+        {
+            var path = context.Request.Path.ToString();
+            if (path.Contains("/admin", StringComparison.OrdinalIgnoreCase))
+            {
+                var auditLogService = context.RequestServices.GetRequiredService<IAuditLogService>();
+                var userId = context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                await auditLogService.LogActionAsync(
+                    userId: userId,
+                    adminId: userId,
+                    action: "Unauthorized Access Attempt",
+                    reason: $"{reason}. Target path: {path}"
+                );
+            }
+        }
+        catch
+        {
+            // Fail-open: do not crash if audit logging encounters an error
+        }
+    }
+
+    private async Task LogExceptionToAuditAsync(HttpContext context, Exception exception)
+    {
+        if (exception is ForbiddenException || exception is UnauthorizedException)
+        {
+            await LogUnauthorizedAccessAsync(context, exception.Message);
         }
     }
 

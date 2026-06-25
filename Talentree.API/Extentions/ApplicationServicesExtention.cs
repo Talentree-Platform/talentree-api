@@ -42,6 +42,8 @@ namespace Talentree.API.Extentions
 
             // Auth Service
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IAuditLogService, AuditLogService>();
+            services.AddScoped<ISecuritySettingsService, SecuritySettingsService>();
             
 
             // User Interaction Service

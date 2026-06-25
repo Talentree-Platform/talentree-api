@@ -1,11 +1,15 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Talentree.Core;
 using Talentree.Core.Entities.Identity;
 using Talentree.Service.Contracts;
 
@@ -14,13 +18,15 @@ namespace Talentree.Service.Services
     public class TokenService : ITokenService
     {
         private readonly IConfiguration _configuration;
+        private readonly IServiceProvider _serviceProvider;
         private readonly int _accessTokenExpirationMinutes;
         private readonly int _refreshTokenExpirationDays;
         private readonly string _jwtSecret;
 
-        public TokenService(IConfiguration configuration)
+        public TokenService(IConfiguration configuration, IServiceProvider serviceProvider)
         {
             _configuration = configuration;
+            _serviceProvider = serviceProvider;
 
             _jwtSecret = _configuration["Jwt:SecretKey"] ?? throw new ArgumentNullException("Jwt:Secret missing in configuration");
             _accessTokenExpirationMinutes = int.Parse(_configuration["Jwt:AccessTokenExpirationMinutes"] ?? "15");
@@ -53,11 +59,32 @@ namespace Talentree.Service.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecret));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            var isConnectionAdmin = roles.Any(r => r == "SuperAdmin" || r == "Admin" || r == "SupportStaff" || r == "ContentManager");
+            var expirationMinutes = _accessTokenExpirationMinutes;
+
+            if (isConnectionAdmin)
+            {
+                try
+                {
+                    using var scope = _serviceProvider.CreateScope();
+                    var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+                    var settings = unitOfWork.Repository<SecuritySettings>().GetByIdAsync(1).GetAwaiter().GetResult();
+                    if (settings != null && settings.SessionTimeoutInMinutes > 0)
+                    {
+                        expirationMinutes = settings.SessionTimeoutInMinutes;
+                    }
+                }
+                catch
+                {
+                    // Fallback
+                }
+            }
+
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(_accessTokenExpirationMinutes),
+                expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
                 signingCredentials: creds
             );
 

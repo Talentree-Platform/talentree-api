@@ -1,6 +1,7 @@
-﻿using Talentree.Core.Entities;
+using Talentree.Core.Entities;
 using Talentree.Core.Enums;
 using Talentree.Service.DTOs;
+using Talentree.Service.DTOs.Admin;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.UserManagement;
 
@@ -44,7 +45,7 @@ namespace Talentree.Service.Contracts
         Task<CustomerDetailsDto> GetCustomerDetailsAsync(string userId);
         Task BlockCustomerAsync(BlockUserDto dto, string adminId);
         Task UnblockCustomerAsync(string userId, string adminId);
-        Task DeleteCustomerAsync(string userId, string adminId);
+        Task DeactivateCustomerAsync(string userId, string adminId);
 
         // ═══════════════════════════════════════════════════════════
         // COMPLAINT MANAGEMENT
@@ -74,5 +75,13 @@ namespace Talentree.Service.Contracts
         // ═══════════════════════════════════════════════════════════
 
         Task<List<UserActionLogDto>> GetUserActionLogsAsync(string userId);
+        Task<Pagination<UserActionLogDto>> GetAuditLogsAsync(Talentree.Service.DTOs.Admin.UserActionLogFilterDto filter);
+        Task<byte[]> ExportAuditLogsToCsvAsync(Talentree.Service.DTOs.Admin.UserActionLogFilterDto filter);
+
+        // ═══════════════════════════════════════════════════════════
+        // LOGIN HISTORY
+        // ═══════════════════════════════════════════════════════════
+        Task<Pagination<AdminLoginHistoryDto>> GetLoginHistoryAsync(LoginHistoryFilterDto filter);
+        Task<byte[]> ExportLoginHistoryToCsvAsync(LoginHistoryFilterDto filter);
     }
 }
