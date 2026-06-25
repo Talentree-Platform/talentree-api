@@ -432,6 +432,96 @@ namespace Talentree.Service.Mapping
                 .ForMember(dest => dest.TimeAgo,
                     opt => opt.MapFrom(src => GetTimeAgo(src.CreatedAt)));
 
+            // ───────────────────────────────────────────────────────────
+            // FR-AD-10: Product → AdminProductDto (moderation table row)
+            // ───────────────────────────────────────────────────────────
+            CreateMap<Product, AdminProductDto>()
+                .ForMember(dest => dest.CategoryName,
+                    opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : string.Empty))
+                .ForMember(dest => dest.BusinessOwnerProfileId,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfileId))
+                .ForMember(dest => dest.BusinessOwnerName,
+                    opt => opt.MapFrom(src => src.BusinessOwner != null ? src.BusinessOwner.User.DisplayName : string.Empty))
+                .ForMember(dest => dest.BusinessName,
+                    opt => opt.MapFrom(src => src.BusinessOwner != null ? src.BusinessOwner.BusinessName : string.Empty))
+                .ForMember(dest => dest.StatusText,
+                    opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.MainImageUrl,
+                    opt => opt.MapFrom(src =>
+                        src.Images != null && src.Images.Any()
+                            ? (src.Images.FirstOrDefault(i => i.IsMain) != null
+                                ? src.Images.First(i => i.IsMain).ImageUrl
+                                : src.Images.OrderBy(i => i.SortOrder).First().ImageUrl)
+                            : null))
+                .ForMember(dest => dest.ImageCount,
+                    opt => opt.MapFrom(src => src.Images != null ? src.Images.Count : 0))
+                .ForMember(dest => dest.ConversionRate,
+                    opt => opt.MapFrom(src =>
+                        src.ViewCount > 0
+                            ? Math.Round((double)src.PurchaseCount / src.ViewCount * 100, 2)
+                            : 0.0));
+
+            // ───────────────────────────────────────────────────────────
+            // FR-AD-09: Product → AdminProductDetailDto (review panel)
+            // ───────────────────────────────────────────────────────────
+            CreateMap<Product, AdminProductDetailDto>()
+                .ForMember(dest => dest.CategoryName,
+                    opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : string.Empty))
+                .ForMember(dest => dest.BusinessOwnerProfileId,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfileId))
+                .ForMember(dest => dest.BusinessOwnerName,
+                    opt => opt.MapFrom(src => src.BusinessOwner != null ? src.BusinessOwner.User.DisplayName : string.Empty))
+                .ForMember(dest => dest.BusinessName,
+                    opt => opt.MapFrom(src => src.BusinessOwner != null ? src.BusinessOwner.BusinessName : string.Empty))
+                .ForMember(dest => dest.StatusText,
+                    opt => opt.MapFrom(src => src.Status.ToString()))
+                .ForMember(dest => dest.ImageUrls,
+                    opt => opt.MapFrom(src =>
+                        src.Images != null
+                            ? src.Images.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).ToList()
+                            : new List<string>()));
+
+            // ───────────────────────────────────────────────────────────
+            // FR-AD-10: Product → AdminProductAnalyticsDto
+            // ───────────────────────────────────────────────────────────
+            CreateMap<Product, AdminProductAnalyticsDto>()
+                .ForMember(dest => dest.ProductId,
+                    opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.ProductName,
+                    opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.TotalViews,
+                    opt => opt.MapFrom(src => src.ViewCount))
+                .ForMember(dest => dest.RevenueGenerated,
+                    opt => opt.MapFrom(src => src.RevenueTotal))
+                .ForMember(dest => dest.ConversionRate,
+                    opt => opt.MapFrom(src =>
+                        src.ViewCount > 0
+                            ? Math.Round((double)src.PurchaseCount / src.ViewCount * 100, 2)
+                            : 0.0));
+
+            // ───────────────────────────────────────────────────────────
+            // FR-AD-11: Product → LowStockProductDto
+            // ───────────────────────────────────────────────────────────
+            CreateMap<Product, LowStockProductDto>()
+                .ForMember(dest => dest.ProductId,
+                    opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.ProductName,
+                    opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.BusinessOwnerProfileId,
+                    opt => opt.MapFrom(src => src.BusinessOwnerProfileId))
+                .ForMember(dest => dest.SellerName,
+                    opt => opt.MapFrom(src => src.BusinessOwner != null ? src.BusinessOwner.User.DisplayName : string.Empty))
+                .ForMember(dest => dest.BusinessName,
+                    opt => opt.MapFrom(src => src.BusinessOwner != null ? src.BusinessOwner.BusinessName : string.Empty))
+                .ForMember(dest => dest.SellerUserId,
+                    opt => opt.MapFrom(src => src.BusinessOwner != null ? src.BusinessOwner.UserId : string.Empty))
+                .ForMember(dest => dest.CategoryName,
+                    opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : string.Empty))
+                .ForMember(dest => dest.CurrentStock,
+                    opt => opt.MapFrom(src => src.StockQuantity))
+                .ForMember(dest => dest.LastUpdatedAt,
+                    opt => opt.MapFrom(src => src.UpdatedAt));
+
             // ═══════════════════════════════════════════════════════════
             // MATERIAL ORDER
             // ═══════════════════════════════════════════════════════════

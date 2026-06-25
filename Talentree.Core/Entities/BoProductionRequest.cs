@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Enums;
+using Talentree.Core.Enums;
 
 namespace Talentree.Core.Entities
 {
@@ -89,5 +89,12 @@ namespace Talentree.Core.Entities
         public bool IsFraudFlag { get; set; } = false;
 
         public float? FraudScore { get; set; }
+
+        // ── Admin Assignment (FR-AD-12) ───────────────────────────
+        /// <summary>
+        /// Identity ID of the admin team member assigned to handle this request.
+        /// Null if unassigned.
+        /// </summary>
+        public string? AssignedAdminId { get; set; }
     }
 }

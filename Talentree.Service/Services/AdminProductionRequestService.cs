@@ -209,5 +209,70 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
             return await GetRequestByIdAsync(request.Id);
         }
+
+        // ═══════════════════════════════════════════════════════════
+        // FR-AD-12: Service Request Management — Assignment & Notes
+        // ═══════════════════════════════════════════════════════════
+
+        /// <inheritdoc/>
+        public async Task<ProductionRequestDetailDto> AssignRequestAsync(
+            int requestId, string assignedAdminId, string actingAdminId)
+        {
+            var request = await LoadRequestAsync(requestId);
+
+            if (request.Status is BoProductionRequestStatus.Completed
+                                or BoProductionRequestStatus.Cancelled
+                                or BoProductionRequestStatus.Rejected)
+                throw new InvalidOperationException(
+                    $"Cannot assign a request with status '{request.Status}'.");
+
+            request.AssignedAdminId = assignedAdminId;
+            request.UpdatedAt = DateTime.UtcNow;
+            request.UpdatedBy = actingAdminId;
+
+            _unitOfWork.Repository<BoProductionRequest>().Update(request);
+            await _unitOfWork.CompleteAsync();
+
+            _logger.LogInformation("Production request {RequestId} assigned to admin {AssignedAdminId} by {ActingAdminId}.",
+                requestId, assignedAdminId, actingAdminId);
+
+            return await GetRequestByIdAsync(requestId);
+        }
+
+        /// <inheritdoc/>
+        public async Task<ProductionRequestDetailDto> AddNoteAsync(
+            int requestId, string note, string adminId)
+        {
+            if (string.IsNullOrWhiteSpace(note))
+                throw new InvalidOperationException("Note cannot be empty.");
+
+            var request = await LoadRequestAsync(requestId);
+
+            // Prefix with timestamp so the conversation thread is traceable
+            var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm UTC");
+            var prefixedNote = $"[{timestamp}] {note}";
+
+            request.AdminNotes = string.IsNullOrWhiteSpace(request.AdminNotes)
+                ? prefixedNote
+                : request.AdminNotes + "\n\n" + prefixedNote;
+
+            request.UpdatedAt = DateTime.UtcNow;
+            request.UpdatedBy = adminId;
+
+            _unitOfWork.Repository<BoProductionRequest>().Update(request);
+            await _unitOfWork.CompleteAsync();
+
+            // Notify the seller
+            await _notificationHelper.NotifyAllAdmins(
+                title: $"Note Added to Request #{requestId}",
+                message: note,
+                type: Core.Enums.NotificationType.Order,
+                actionUrl: $"/admin/production-requests/{requestId}"
+            );
+
+            _logger.LogInformation("Note added to production request {RequestId} by admin {AdminId}.", requestId, adminId);
+
+            return await GetRequestByIdAsync(requestId);
+        }
     }
 }

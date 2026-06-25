@@ -57,6 +57,8 @@ namespace Talentree.API.Extentions
             // product service
             services.AddScoped<IProductService, Talentree.Service.Services.ProductService>();
             services.AddScoped<IImageService, ImageService>();
+            // FR-AD-09, FR-AD-10, FR-AD-11: Admin product moderation & low-stock
+            services.AddScoped<IAdminProductService, AdminProductService>();
 
 
             // Add AutoMapper (scans assemblies)
