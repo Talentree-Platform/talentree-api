@@ -1,10 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Talentree.Core.Entities;
 using Talentree.Repository.Data.Config.Base;
 
@@ -28,6 +23,29 @@ namespace Talentree.Repository.Data.Config
 
             builder.Property(c => c.BusinessType)
                .HasMaxLength(100);
+
+            // FR-AD-31: Category Management additions
+            builder.Property(c => c.IconUrl)
+                .HasMaxLength(2048);
+
+            builder.Property(c => c.DisplayOrder)
+                .HasDefaultValue(0);
+
+            builder.Property(c => c.IsDisabled)
+                .HasDefaultValue(false);
+
+            // Self-referencing FK for subcategories
+            // On parent delete → set child ParentCategoryId to null (preserves subcategory data)
+            builder.HasOne(c => c.ParentCategory)
+                .WithMany(c => c.SubCategories)
+                .HasForeignKey(c => c.ParentCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(c => c.DisplayOrder)
+                .HasDatabaseName("IX_Categories_DisplayOrder");
+
+            builder.HasIndex(c => c.ParentCategoryId)
+                .HasDatabaseName("IX_Categories_ParentCategoryId");
         }
     }
 }

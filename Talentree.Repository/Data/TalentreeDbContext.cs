@@ -81,6 +81,22 @@ namespace Talentree.Repository.Data
         public DbSet<Complaint> Complaints { get; set; }
         public DbSet<AutoBlockLog> AutoBlockLogs { get; set; }
 
+        // ── Platform Settings (FR-AD-31 to FR-AD-36) ──────────────────
+        // FR-AD-31: Category Management (Category already registered above)
+        // FR-AD-32: Commission & Fee Configuration
+        public DbSet<CommissionSetting> CommissionSettings { get; set; }
+        // FR-AD-33: Shipping Configuration
+        public DbSet<ShippingSettings> ShippingSettings { get; set; }
+        // FR-AD-34: Tax Configuration
+        public DbSet<TaxSettings> TaxSettings { get; set; }
+        // FR-AD-35: Homepage Management
+        public DbSet<HomepageBanner> HomepageBanners { get; set; }
+        public DbSet<HomepageFeaturedBrand> HomepageFeaturedBrands { get; set; }
+        public DbSet<HomepageFeaturedProduct> HomepageFeaturedProducts { get; set; }
+        public DbSet<AnnouncementBar> AnnouncementBars { get; set; }
+        // FR-AD-36: Terms & Policies
+        public DbSet<PlatformPolicy> PlatformPolicies { get; set; }
+
         // Customer Module Branch 2
         public DbSet<CustomerCart> CustomerCarts { get; set; }
         public DbSet<CustomerCartItem> CustomerCartItems { get; set; }

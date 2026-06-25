@@ -117,6 +117,20 @@ namespace Talentree.API.Extentions
             // user management service
             services.AddScoped<IUserManagementService, UserManagementService>();
 
+            // ── Platform Settings (FR-AD-31 to FR-AD-36) ──────────────────────────
+            // FR-AD-31: Category Management
+            services.AddScoped<ICategoryManagementService, CategoryManagementService>();
+            // FR-AD-32: Commission & Fee Configuration
+            services.AddScoped<ICommissionSettingService, CommissionSettingService>();
+            // FR-AD-33: Shipping Configuration
+            services.AddScoped<IShippingSettingsService, ShippingSettingsService>();
+            // FR-AD-34: Tax Configuration
+            services.AddScoped<ITaxSettingsService, TaxSettingsService>();
+            // FR-AD-35: Homepage Management
+            services.AddScoped<IHomepageManagementService, HomepageManagementService>();
+            // FR-AD-36: Terms & Policies
+            services.AddScoped<IPolicyService, PolicyService>();
+
             // Register HttpClient for AI service
             services.AddHttpClient<IAIService, AIService>(client =>
             {
