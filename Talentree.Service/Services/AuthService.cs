@@ -383,8 +383,8 @@ namespace Talentree.Service.Services
                 };
             }
 
-            // 4. 2FA Check (Triggered only if user belongs to admin role AND global settings allow 2FA AND user.IsTwoFactorEnabled is true)
-            if (isAdmin && settings.RequireTwoFactorForAdmins && user.IsTwoFactorEnabled)
+            // 4. 2FA Check (Triggered if user has manually enabled 2FA OR if globally required for admins)
+            if (user.IsTwoFactorEnabled || (isAdmin && settings.RequireTwoFactorForAdmins))
             {
                 // Generate and save OTP code
                 var code = GenerateOtpCode();
