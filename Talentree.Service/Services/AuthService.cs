@@ -383,8 +383,8 @@ namespace Talentree.Service.Services
                 };
             }
 
-            // 4. 2FA Check (Triggered only if user belongs to admin role AND global settings allow 2FA AND user.IsTwoFactorEnabled is true)
-            if (isAdmin && settings.RequireTwoFactorForAdmins && user.IsTwoFactorEnabled)
+            // 4. 2FA Check (Triggered if user has manually enabled 2FA OR if globally required for admins)
+            if (user.IsTwoFactorEnabled || (isAdmin && settings.RequireTwoFactorForAdmins))
             {
                 // Generate and save OTP code
                 var code = GenerateOtpCode();
@@ -694,6 +694,10 @@ namespace Talentree.Service.Services
 
             // Get user
             var user = storedToken.User;
+            if (user == null)
+                throw new BadRequestException("User not found");
+            if (!user.IsActive || user.AccountStatus == AccountStatus.Inactive)
+                throw new ForbiddenException("Account is deactivated.");
 
             // Get user roles
             var roles = await _userManager.GetRolesAsync(user);
@@ -955,6 +959,22 @@ namespace Talentree.Service.Services
                 await _notificationHelper.NotifyUserRegistered(user.Id);
 
             }
+            else
+            {
+                if (!user.IsActive || user.AccountStatus == AccountStatus.Inactive)
+                {
+                    await _auditLogService.LogActionAsync(
+                        userId: user.Id,
+                        adminId: null,
+                        action: "Login Failure",
+                        reason: "Account is deactivated.",
+                        entityType: "AppUser",
+                        entityId: user.Id
+                    );
+                    await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Account deactivated.");
+                    throw new ForbiddenException("Account is inactive. Please contact the administrator.");
+                }
+            }
 
             // Get user roles
             var roles = await _userManager.GetRolesAsync(user);
@@ -1027,6 +1047,22 @@ namespace Talentree.Service.Services
                 // ✅ SEND NOTIFICATION FOR NEW USER
                 await _notificationHelper.NotifyUserRegistered(user.Id);
 
+            }
+            else
+            {
+                if (!user.IsActive || user.AccountStatus == AccountStatus.Inactive)
+                {
+                    await _auditLogService.LogActionAsync(
+                        userId: user.Id,
+                        adminId: null,
+                        action: "Login Failure",
+                        reason: "Account is deactivated.",
+                        entityType: "AppUser",
+                        entityId: user.Id
+                    );
+                    await LogLoginHistoryAsync(userId: user.Id, isSuccessful: false, status: "Failed", failureReason: "Account deactivated.");
+                    throw new ForbiddenException("Account is inactive. Please contact the administrator.");
+                }
             }
 
             // Get user roles

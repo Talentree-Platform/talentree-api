@@ -15,6 +15,7 @@ using Talentree.Repository.Data.Interceptors;
 using Talentree.Service.Contracts;
 using Talentree.Service.Mapping;
 using Talentree.Service.Services;
+using Talentree.Core.Entities.Identity;
 
 namespace Talentree.API
 {
@@ -162,6 +163,20 @@ namespace Talentree.API
                                 context.Token = accessToken;
                             }
                             return Task.CompletedTask;
+                        },
+                        OnTokenValidated = async context =>
+                        {
+                            var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<AppUser>>();
+                            var claimsPrincipal = context.Principal;
+                            var userId = claimsPrincipal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                            if (!string.IsNullOrEmpty(userId))
+                            {
+                                var user = await userManager.FindByIdAsync(userId);
+                                if (user == null || !user.IsActive || user.AccountStatus == Talentree.Core.Enums.AccountStatus.Inactive)
+                                {
+                                    context.Fail("User is inactive or deactivated.");
+                                }
+                            }
                         }
                     };
                 });

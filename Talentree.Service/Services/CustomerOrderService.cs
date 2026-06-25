@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
+using Talentree.Core.Entities.Identity;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.CartSpecifications;
 using Talentree.Core.Specifications.OrderSpecifications;
@@ -52,6 +53,13 @@ namespace Talentree.Service.Services
         PaymentMethod method,
         string customerId)
         {
+            // Validate customer active status
+            var customer = await _unitOfWork.Repository<AppUser>().GetByIdAsync(customerId);
+            if (customer == null)
+                throw new NotFoundException("Customer not found.");
+            if (!customer.IsActive || customer.AccountStatus == AccountStatus.Inactive)
+                throw new ForbiddenException("Account is deactivated.");
+
             // 1. Fetch the cart
             var cartSpec = new CartByCustomerSpecification(customerId);
             var carts = await _unitOfWork.Repository<CustomerCart>()

@@ -8,6 +8,7 @@ using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.UserManagementSpecifications;
+using Guidy.Core.Specifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs;
 using Talentree.Service.DTOs.Admin;
@@ -447,19 +448,34 @@ namespace Talentree.Service.Services
             });
         }
 
-        public async Task DeleteCustomerAsync(string userId, string adminId)
+        public async Task DeactivateCustomerAsync(string userId, string adminId)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
                 throw new NotFoundException("User not found");
 
-            // Log action before deletion
-            await LogUserActionAsync(userId, adminId, "Delete", "Account permanently deleted", null);
+            if (!user.IsActive || user.AccountStatus == AccountStatus.Inactive)
+                throw new BadRequestException("User is already deactivated");
 
-            // Delete user
-            var result = await _userManager.DeleteAsync(user);
+            // Update user status to Inactive / deactivation
+            user.IsActive = false;
+            user.AccountStatus = AccountStatus.Inactive;
+
+            var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
-                throw new BadRequestException("Failed to delete user");
+                throw new BadRequestException("Failed to deactivate user");
+
+            // Revoke active refresh tokens for the user
+            var activeTokensSpec = new ActiveRefreshTokensForUserSpecification(userId);
+            var activeTokens = await _unitOfWork.Repository<RefreshToken>().GetAllWithSpecificationsAsync(activeTokensSpec);
+            foreach (var token in activeTokens)
+            {
+                token.RevokedAt = DateTime.UtcNow;
+                _unitOfWork.Repository<RefreshToken>().Update(token);
+            }
+
+            // Log action for the customer deactivation
+            await LogUserActionAsync(userId, adminId, "Deactivate Customer", "Customer account deactivated (Soft-Deleted)", null);
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -468,6 +484,12 @@ namespace Talentree.Service.Services
 
         public async Task<ComplaintDto> CreateComplaintAsync(CreateComplaintDto dto, string reportedByUserId)
         {
+            var reporter = await _userManager.FindByIdAsync(reportedByUserId);
+            if (reporter == null)
+                throw new NotFoundException("Reporter not found");
+            if (!reporter.IsActive || reporter.AccountStatus == AccountStatus.Inactive)
+                throw new ForbiddenException("Account is deactivated.");
+
             var complaint = new Complaint
             {
                 ReportedUserId = dto.ReportedUserId,
