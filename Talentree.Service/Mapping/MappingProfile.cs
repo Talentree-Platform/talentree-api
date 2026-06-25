@@ -25,6 +25,7 @@ using Talentree.Service.DTOs.Support;
 using Talentree.Service.DTOs.Transaction;
 using Talentree.Service.DTOs.UserInteraction;
 using Talentree.Service.DTOs.UserManagement;
+using Talentree.Service.DTOs.PlatformSettings;
 
 namespace Talentree.Service.Mapping
 {
@@ -950,4 +951,9 @@ namespace Talentree.Service.Mapping
             return $"{(int)(timeSpan.TotalDays / 365)} year{((int)(timeSpan.TotalDays / 365) == 1 ? "" : "s")} ago";
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // NOTE: Platform Settings mappings are defined in PlatformSettingsMappingProfile
+    // to keep this file from growing further. Registered via the same AutoMapper scan.
+    // ─────────────────────────────────────────────────────────────────────
 }
