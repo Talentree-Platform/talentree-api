@@ -1,0 +1,5550 @@
+{
+  "info": {
+    "_postman_id": "837db542-a89e-4c74-a69c-091a92e1bd07",
+    "name": "Talentree API",
+    "description": "Comprehensive Postman Collection for the Talentree API. Organizes all Customer, Business Owner, Admin, and SuperAdmin endpoints with automated token mapping, environment configurations, and business flows.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication & Authorization",
+      "description": "Public and user registration/login endpoints. Contains automated Postman test scripts that extract JWT tokens and save them into environment variables based on the logged-in role.",
+      "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Jane Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"Customer@123456\",\n  \"confirmPassword\": \"Customer@123456\",\n  \"phoneNumber\": \"01011112222\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/register",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registers a new Customer user. Send a verification email OTP."
+          },
+          "response": []
+        },
+        {
+          "name": "Register Business Owner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Business\",\n  \"email\": \"john.owner@example.com\",\n  \"password\": \"Business@123456\",\n  \"confirmPassword\": \"Business@123456\",\n  \"phoneNumber\": \"01133334444\",\n  \"companyName\": \"John Textile Hub\",\n  \"businessType\": \"Fashion\",\n  \"commercialRegisterNumber\": \"CR-998877\",\n  \"taxCardNumber\": \"TC-554433\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/register-business-owner",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register-business-owner"
+              ]
+            },
+            "description": "Registers a new Business Owner (BO). The application will be in a pending state until approved by an Admin."
+          },
+          "response": []
+        },
+        {
+          "name": "Resend Verification Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.doe@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/resend-verification-email",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "resend-verification-email"
+              ]
+            },
+            "description": "Resends the email verification code for email activation."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"otpCode\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/verify-email",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-email"
+              ]
+            },
+            "description": "Submits the email OTP verification code. If successful, issues access and refresh tokens directly."
+          },
+          "response": []
+        },
+        {
+          "name": "Login as Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login Customer: token saved to environment\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    var token = json?.data?.accessToken;",
+                  "    var rToken = json?.data?.refreshToken;",
+                  "    var userId = json?.data?.userId;",
+                  "    if (token) {",
+                  "        pm.environment.set(\"Customer-Token\", token);",
+                  "        pm.environment.set(\"refreshToken\", rToken);",
+                  "        pm.environment.set(\"customerId\", userId);",
+                  "        console.log(\"Saved Customer-Token, refreshToken, and customerId\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"Customer@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/login",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Logins a Customer user. Automatically extracts and stores Customer-Token."
+          },
+          "response": []
+        },
+        {
+          "name": "Login as Business Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login BO: token saved to environment\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    var token = json?.data?.accessToken;",
+                  "    var rToken = json?.data?.refreshToken;",
+                  "    var userId = json?.data?.userId;",
+                  "    if (token) {",
+                  "        pm.environment.set(\"BO-Token\", token);",
+                  "        pm.environment.set(\"refreshToken\", rToken);",
+                  "        pm.environment.set(\"businessOwnerId\", userId);",
+                  "        console.log(\"Saved BO-Token, refreshToken, and businessOwnerId\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.owner@example.com\",\n  \"password\": \"Business@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/login",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Logins a Business Owner. Automatically extracts and stores BO-Token."
+          },
+          "response": []
+        },
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login Admin: token saved to environment\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    var token = json?.data?.accessToken;",
+                  "    var rToken = json?.data?.refreshToken;",
+                  "    var userId = json?.data?.userId;",
+                  "    if (token) {",
+                  "        pm.environment.set(\"Admin-Token\", token);",
+                  "        pm.environment.set(\"refreshToken\", rToken);",
+                  "        pm.environment.set(\"adminId\", userId);",
+                  "        console.log(\"Saved Admin-Token, refreshToken, and adminId\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@talentree.com\",\n  \"password\": \"Admin@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/login",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Logins an Admin (e.g. support staff, manager). Automatically extracts and stores Admin-Token."
+          },
+          "response": []
+        },
+        {
+          "name": "Login as SuperAdmin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login SuperAdmin: token saved to environment\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    var token = json?.data?.accessToken;",
+                  "    var rToken = json?.data?.refreshToken;",
+                  "    var userId = json?.data?.userId;",
+                  "    if (token) {",
+                  "        pm.environment.set(\"SuperAdmin-Token\", token);",
+                  "        pm.environment.set(\"refreshToken\", rToken);",
+                  "        pm.environment.set(\"superAdminId\", userId);",
+                  "        console.log(\"Saved SuperAdmin-Token, refreshToken, and superAdminId\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"projecttalentree@gmail.com\",\n  \"password\": \"SuperAdmin@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/login",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Logins as SuperAdmin (emergency/seeding account). Automatically extracts and stores SuperAdmin-Token."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify 2FA OTP Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{customerId}}\",\n  \"otpCode\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/verify-2fa",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-2fa"
+              ]
+            },
+            "description": "Verifies the 2FA OTP code during login if requiresTwoFactor is true in the initial login response."
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Forced Password Change",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{adminId}}\",\n  \"temporaryPassword\": \"TempAdmin@123\",\n  \"newPassword\": \"SecureAdmin@123456\",\n  \"confirmNewPassword\": \"SecureAdmin@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/change-forced-password",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "change-forced-password"
+              ]
+            },
+            "description": "Requires password change on first login. Submit user ID, temporary password, and new password."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Access Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"{{Customer-Token}}\",\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/refresh-token",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh-token"
+              ]
+            },
+            "description": "Requests a new Access Token using a valid Refresh Token."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/logout",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logs out the user and invalidates the refresh token."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.doe@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/forgot-password",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Initiates the password reset flow. Sends a reset token/code to the user's email."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password Confirmation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"token\": \"123456\",\n  \"newPassword\": \"Customer@1234567\",\n  \"confirmPassword\": \"Customer@1234567\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/reset-password",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Resets the user's password using the token sent via email."
+          },
+          "response": []
+        },
+        {
+          "name": "Google Social Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"Google\",\n  \"idToken\": \"google-oauth-token-here\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/google-login",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "google-login"
+              ]
+            },
+            "description": "Logs in the user using Google OAuth ID Token."
+          },
+          "response": []
+        },
+        {
+          "name": "Facebook Social Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"Facebook\",\n  \"idToken\": \"facebook-oauth-token-here\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/auth/facebook-login",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "facebook-login"
+              ]
+            },
+            "description": "Logs in the user using Facebook Access Token."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Account & Profile",
+      "description": "Authenticated user profile operations, effective permissions, and individual 2FA activation.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{Customer-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get Security Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/account/security-status",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "account",
+                "security-status"
+              ]
+            },
+            "description": "Returns security details for the authenticated user, including 2FA status, last login date/IP, and active session counts."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Effective Permissions Matrix",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/account/me/permissions",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "account",
+                "me",
+                "permissions"
+              ]
+            },
+            "description": "Returns the logged-in user's role and list of permissions. Used by the frontend to dynamically hide features."
+          },
+          "response": []
+        },
+        {
+          "name": "Request Enable Two-Factor Authentication",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/account/request-enable-2fa",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "account",
+                "request-enable-2fa"
+              ]
+            },
+            "description": "Sends a 2FA OTP verification code to the logged-in user's registered email."
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Enable Two-Factor Authentication",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otpCode\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/account/confirm-enable-2fa",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "account",
+                "confirm-enable-2fa"
+              ]
+            },
+            "description": "Confirms the email OTP code to enable 2FA on the account."
+          },
+          "response": []
+        },
+        {
+          "name": "Disable Two-Factor Authentication",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Customer@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/account/disable-2fa",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "account",
+                "disable-2fa"
+              ]
+            },
+            "description": "Disables two-factor authentication on the account after verifying the user's password."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. SuperAdmin Management",
+      "description": "Operations reserved exclusively for the SuperAdmin role (Admin creation, global security policies, audit logs, login history, account unlocking, and session revocation).",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{SuperAdmin-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create Admin Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Alex Smith\",\n  \"email\": \"alex.smith@talentree.com\",\n  \"phoneNumber\": \"01233445566\",\n  \"role\": \"Admin\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/create",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "create"
+              ]
+            },
+            "description": "Creates a new Admin or SupportStaff account. The temporary password is automatically generated on the backend and sent via a welcome email."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Admin Accounts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/admins",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "admins"
+              ]
+            },
+            "description": "Lists all administrator and support accounts in the system."
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Admin Profile Info",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Alex Smith Updated\",\n  \"phoneNumber\": \"01099998888\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/admins/{{adminId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "admins",
+                "{{adminId}}"
+              ]
+            },
+            "description": "Updates profile details of an admin account."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Admin Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"SupportStaff\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/admins/{{adminId}}/role",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "admins",
+                "{{adminId}}",
+                "role"
+              ]
+            },
+            "description": "Changes the role of an admin. Protects against demoting the last SuperAdmin."
+          },
+          "response": []
+        },
+        {
+          "name": "Force Reset Admin Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"SecureAdmin@123\",\n  \"confirmNewPassword\": \"SecureAdmin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/admins/{{adminId}}/reset-password",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "admins",
+                "{{adminId}}",
+                "reset-password"
+              ]
+            },
+            "description": "Resets the target admin's password and revokes all active sessions for that account."
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate Admin Account",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/admins/{{adminId}}/deactivate",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "admins",
+                "{{adminId}}",
+                "deactivate"
+              ]
+            },
+            "description": "Deactivates an admin. Self-deactivation and deactivating the last SuperAdmin are forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Reactivate Admin Account",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/admins/{{adminId}}/reactivate",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "admins",
+                "{{adminId}}",
+                "reactivate"
+              ]
+            },
+            "description": "Re-enables a deactivated admin account."
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke Target Admin Sessions",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/admins/{{adminId}}/revoke-sessions",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "admins",
+                "{{adminId}}",
+                "revoke-sessions"
+              ]
+            },
+            "description": "Immediately invalidates all refresh tokens and forces logout on all devices for the target admin."
+          },
+          "response": []
+        },
+        {
+          "name": "Unlock Locked Account",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/admins/{{adminId}}/unlock",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "admins",
+                "{{adminId}}",
+                "unlock"
+              ]
+            },
+            "description": "Clears the login lockout and resets the access failed attempt count for the target admin."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Roles Permissions Matrix",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/roles",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "roles"
+              ]
+            },
+            "description": "Returns the platform-wide permissions matrix mapping roles (SuperAdmin, Admin, SupportStaff, ContentManager) to features."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Global Security Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/security-settings",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "security-settings"
+              ]
+            },
+            "description": "Returns global authentication security rules (brute-force thresholds, MFA forced status)."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Global Security Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requireTwoFactorForAdmins\": true,\n  \"maxFailedLoginAttempts\": 5,\n  \"lockoutDurationMinutes\": 15\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/security-settings",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "security-settings"
+              ]
+            },
+            "description": "Updates global security constraints."
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Global Login History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/login-history?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "login-history"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "email",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "isSuccessful",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Queries login attempts, IP addresses, browser device info, and MFA status. Supports filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Login History CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/login-history/export",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "login-history",
+                "export"
+              ]
+            },
+            "description": "Downloads the login history logs as a CSV file."
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Audit Action Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/audit-logs?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Queries append-only immutable audit logs tracking actions, before/after parameters, and timestamps."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Audit Logs CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin-management/audit-logs/export",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin-management",
+                "audit-logs",
+                "export"
+              ]
+            },
+            "description": "Downloads the immutable audit action logs as a CSV file."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Admin User Management",
+      "description": "Endpoints for Admins to view profiles, track client action logs, block, suspend, or ban platform accounts.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{Admin-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get Business Owners List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/business-owners?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "business-owners"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists all business owners with registration date ranges, active statuses, and query filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Business Owner Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/business-owners/{{businessOwnerId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "business-owners",
+                "{{businessOwnerId}}"
+              ]
+            },
+            "description": "Retrieves comprehensive info, including commercial register data and active store verification state."
+          },
+          "response": []
+        },
+        {
+          "name": "Suspend Business Owner Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{businessOwnerId}}\",\n  \"reason\": \"Suspicious transactions identified\",\n  \"durationDays\": 14\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/business-owners/suspend",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "business-owners",
+                "suspend"
+              ]
+            },
+            "description": "Temporarily suspends a Business Owner. Restricts store access."
+          },
+          "response": []
+        },
+        {
+          "name": "Unsuspend Business Owner",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/business-owners/{{businessOwnerId}}/unsuspend",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "business-owners",
+                "{{businessOwnerId}}",
+                "unsuspend"
+              ]
+            },
+            "description": "Re-enables a suspended Business Owner account."
+          },
+          "response": []
+        },
+        {
+          "name": "Ban Business Owner (Permanent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{businessOwnerId}}\",\n  \"reason\": \"Severe breach of platform policies\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/business-owners/ban",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "business-owners",
+                "ban"
+              ]
+            },
+            "description": "Bans a Business Owner permanently. Automatically hides their products from the public catalog."
+          },
+          "response": []
+        },
+        {
+          "name": "Block Business Owner Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{businessOwnerId}}\",\n  \"reason\": \"Under review for dispute\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/business-owners/block",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "business-owners",
+                "block"
+              ]
+            },
+            "description": "Blocks access to a Business Owner account."
+          },
+          "response": []
+        },
+        {
+          "name": "Unblock Business Owner",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/business-owners/{{businessOwnerId}}/unblock",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "business-owners",
+                "{{businessOwnerId}}",
+                "unblock"
+              ]
+            },
+            "description": "Removes the block on a Business Owner."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customers List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/customers?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "customers"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Retrieves the list of customer accounts with query filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/customers/{{customerId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "customers",
+                "{{customerId}}"
+              ]
+            },
+            "description": "Retrieves detailed information for a customer."
+          },
+          "response": []
+        },
+        {
+          "name": "Block Customer Account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{customerId}}\",\n  \"reason\": \"Repeated payment disputes\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/customers/block",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "customers",
+                "block"
+              ]
+            },
+            "description": "Blocks access to a Customer account."
+          },
+          "response": []
+        },
+        {
+          "name": "Unblock Customer Account",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/customers/{{customerId}}/unblock",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "customers",
+                "{{customerId}}",
+                "unblock"
+              ]
+            },
+            "description": "Removes the block on a Customer."
+          },
+          "response": []
+        },
+        {
+          "name": "Permanently Delete Customer Account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/customers/{{customerId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "customers",
+                "{{customerId}}"
+              ]
+            },
+            "description": "Hard-deletes a customer account and anonymizes related transactional records."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific User Action Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/users/{{customerId}}/logs",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{customerId}}",
+                "logs"
+              ]
+            },
+            "description": "Queries action audit logs filtered for a single target user."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Admin Approvals & Processing",
+      "description": "Approvals for Business Owner applications, pending product validations, payouts, and IP-level security auto-blocks.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{Admin-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get Pending Business Owner Applications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/business-owners/pending?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "business-owners",
+                "pending"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists BO registrations awaiting verification of documents and company credentials."
+          },
+          "response": []
+        },
+        {
+          "name": "Get BO Application Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/business-owners/1",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "business-owners",
+                "1"
+              ]
+            },
+            "description": "Retrieves pending application details by BO Profile ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Business Owner Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profileId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/business-owners/approve",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "business-owners",
+                "approve"
+              ]
+            },
+            "description": "Approves the application. Activates the store and sends a notification email."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Business Owner Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profileId\": 1,\n  \"rejectionReason\": \"Business registration certificate expired\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/business-owners/reject",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "business-owners",
+                "reject"
+              ]
+            },
+            "description": "Rejects the application. Sends rejection reason details via email."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pending Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminProduct/products/pending?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminProduct",
+                "products",
+                "pending"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists newly created/edited products from Business Owners waiting for content review."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Product Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{productId}}\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminProduct/products/approve",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminProduct",
+                "products",
+                "approve"
+              ]
+            },
+            "description": "Approves the product, publishing it to the public customer catalog."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Product Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{productId}},\n  \"rejectionReason\": \"Description violates catalog policies\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminProduct/products/reject",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminProduct",
+                "products",
+                "reject"
+              ]
+            },
+            "description": "Rejects the product. Sends feedback back to the Business Owner."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payout Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Payout/admin?status=Pending&pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Payout",
+                "admin"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "Pending"
+                },
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Retrieves payout requests from BOs."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Payout Request",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Payout/admin/1/approve",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Payout",
+                "admin",
+                "1",
+                "approve"
+              ]
+            },
+            "description": "Approves the payout request, marking it ready for processing."
+          },
+          "response": []
+        },
+        {
+          "name": "Complete Payout Request",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Payout/admin/1/complete",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Payout",
+                "admin",
+                "1",
+                "complete"
+              ]
+            },
+            "description": "Marks the payout request as completed (funds transferred)."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Payout Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Bank routing code is invalid\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Payout/admin/1/reject",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Payout",
+                "admin",
+                "1",
+                "reject"
+              ]
+            },
+            "description": "Rejects the payout request and refunds the balance to the BO's ledger."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pending Auto-Blocks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/auto-blocks/pending",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "auto-blocks",
+                "pending"
+              ]
+            },
+            "description": "Returns a list of IP addresses auto-blocked due to suspicious request rates or failed logins."
+          },
+          "response": []
+        },
+        {
+          "name": "Review Auto-Block Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"logId\": 1,\n  \"decision\": \"KeepBlocked\",\n  \"reason\": \"Confirming malicious script behavior from this IP\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/auto-blocks/review",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "auto-blocks",
+                "review"
+              ]
+            },
+            "description": "Decides whether to KeepBlocked or Unblock a flagged IP address."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Admin Operations",
+      "description": "General admin operations (Platform order modifications, financial ledger audit, and customer refund approvals).",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{Admin-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get Admin Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminOrders?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminOrders"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists all platform customer orders. Supports advanced filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Admin Order Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminOrders/{{orderId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminOrders",
+                "{{orderId}}"
+              ]
+            },
+            "description": "Retrieves order status, line items, and transaction history."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminOrders/stats",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminOrders",
+                "stats"
+              ]
+            },
+            "description": "Returns counts of pending, processing, shipped, and disputed orders."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Shipped\",\n  \"trackingNumber\": \"TRK99887766\",\n  \"carrier\": \"Aramex\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminOrders/{{orderId}}/status",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminOrders",
+                "{{orderId}}",
+                "status"
+              ]
+            },
+            "description": "Updates order status (Processing, Shipped, Delivered) and attaches tracking codes."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Admin Order Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "\"Customer called to request delivery address modification to Apt 4B\""
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminOrders/{{orderId}}/notes",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminOrders",
+                "{{orderId}}",
+                "notes"
+              ]
+            },
+            "description": "Appends an internal admin log note to the order history."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Platform Orders CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminOrders/export",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminOrders",
+                "export"
+              ]
+            },
+            "description": "Downloads the filtered order catalog list as a CSV file."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Platform Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminTransactions?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminTransactions"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Queries the global transaction ledger history (purchases, subscription charges, payouts)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Financial Ledger Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminTransactions/report?from=2026-06-01T00:00:00Z&to=2026-06-30T23:59:59Z",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminTransactions",
+                "report"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-06-01T00:00:00Z"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-06-30T23:59:59Z"
+                }
+              ]
+            },
+            "description": "Generates platform-wide sales volume summaries, commission revenues, and payout ratios."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pending Refund Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminRefunds?status=Pending&pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminRefunds"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "Pending"
+                },
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists customer item refund requests that have been reviewed and forwarded by Business Owners."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Customer Refund",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminRefunds/1/approve",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminRefunds",
+                "1",
+                "approve"
+              ]
+            },
+            "description": "Approves the refund and triggers the automated Stripe reverse-payment processing."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Customer Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Item returned is outside the allowable refund window\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/AdminRefunds/1/reject",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "AdminRefunds",
+                "1",
+                "reject"
+              ]
+            },
+            "description": "Rejects the refund request. Notifies the customer."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Business Owner (BO) Portal",
+      "description": "Catalog management, client review responses, production requests, financials, and supply procurement.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{BO-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Subfolder 7.1: Products CRUD",
+          "description": "Submit and update catalog listings. Subject to admin approval.",
+          "item": [
+            {
+              "name": "Get My Products",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerProducts?pageIndex=1&pageSize=20",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerProducts"
+                  ],
+                  "query": [
+                    {
+                      "key": "pageIndex",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Lists the BO's own product catalog with review state."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Product Details",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerProducts/{{productId}}",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerProducts",
+                    "{{productId}}"
+                  ]
+                },
+                "description": "Retrieves detailed product info."
+              },
+              "response": []
+            },
+            {
+              "name": "Create Product Listing (multipart)",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Casual Cotton T-Shirt",
+                      "type": "text"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Premium 100% organic cotton breathable fabric",
+                      "type": "text"
+                    },
+                    {
+                      "key": "price",
+                      "value": "350.00",
+                      "type": "text"
+                    },
+                    {
+                      "key": "stockQuantity",
+                      "value": "50",
+                      "type": "text"
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "brandId",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "images",
+                      "description": "Product image file upload",
+                      "type": "file",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerProducts",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerProducts"
+                  ]
+                },
+                "description": "Creates a new product listing. Submit as multipart/form-data. Initial state is PendingApproval."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Product Listing (multipart)",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Casual Cotton T-Shirt Updated",
+                      "type": "text"
+                    },
+                    {
+                      "key": "price",
+                      "value": "380.00",
+                      "type": "text"
+                    },
+                    {
+                      "key": "stockQuantity",
+                      "value": "60",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerProducts/{{productId}}",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerProducts",
+                    "{{productId}}"
+                  ]
+                },
+                "description": "Updates an existing product listing. Submitting price/name changes sends the product back for re-approval."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Product Listing",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerProducts/{{productId}}",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerProducts",
+                    "{{productId}}"
+                  ]
+                },
+                "description": "Soft-deletes the product listing, hiding it from customers."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Subfolder 7.2: Production Requests",
+          "description": "Request production services from Talentree's verified manufacturing plants.",
+          "item": [
+            {
+              "name": "Get My Production Requests",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BoProductionRequest?pageIndex=1&pageSize=20",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BoProductionRequest"
+                  ],
+                  "query": [
+                    {
+                      "key": "pageIndex",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Lists the BO's production requests."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Production Request Details",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BoProductionRequest/1",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BoProductionRequest",
+                    "1"
+                  ]
+                },
+                "description": "Retrieves details of a production request, including the status history."
+              },
+              "response": []
+            },
+            {
+              "name": "Submit Production Request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Winter Collection Hoodies\",\n  \"notes\": \"Targeting heavy fleece fabric material\",\n  \"items\": [\n    {\n      \"productType\": \"Hoodie\",\n      \"quantity\": 150,\n      \"preferredRawMaterialId\": 1,\n      \"specifications\": \"Black, size L\"\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BoProductionRequest",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BoProductionRequest"
+                  ]
+                },
+                "description": "Submits a request to Talentree. Admin reviews it and sends a quote."
+              },
+              "response": []
+            },
+            {
+              "name": "Cancel Production Request",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BoProductionRequest/1",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BoProductionRequest",
+                    "1"
+                  ]
+                },
+                "description": "Cancels the request. Only allowed before production starts."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Subfolder 7.3: Account Settings",
+          "description": "Business profile configuration, verification documents upload, email/password settings, and preferences.",
+          "item": [
+            {
+              "name": "Get Settings Profile",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerAccountSettings/profile",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerAccountSettings",
+                    "profile"
+                  ]
+                },
+                "description": "Retrieves the Business Owner's profile settings."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Profile & Photos (multipart)",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "fullName",
+                      "value": "John Business Owner",
+                      "type": "text"
+                    },
+                    {
+                      "key": "phoneNumber",
+                      "value": "01122334455",
+                      "type": "text"
+                    },
+                    {
+                      "key": "bio",
+                      "value": "Managing director at Textile Hub",
+                      "type": "text"
+                    },
+                    {
+                      "key": "profilePhoto",
+                      "type": "file",
+                      "disabled": true
+                    },
+                    {
+                      "key": "businessLogo",
+                      "type": "file",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerAccountSettings/profile",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerAccountSettings",
+                    "profile"
+                  ]
+                },
+                "description": "Updates profile details and uploads logo/profile photo."
+              },
+              "response": []
+            },
+            {
+              "name": "Request Email Change",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"newEmail\": \"new.email@example.com\"\n}"
+                },
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerAccountSettings/profile/request-email-change",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerAccountSettings",
+                    "profile",
+                    "request-email-change"
+                  ]
+                },
+                "description": "Sends an OTP code to the new email address to initiate verification."
+              },
+              "response": []
+            },
+            {
+              "name": "Confirm Email Change",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"otpCode\": \"123456\",\n  \"newEmail\": \"new.email@example.com\"\n}"
+                },
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerAccountSettings/profile/confirm-email-change",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerAccountSettings",
+                    "profile",
+                    "confirm-email-change"
+                  ]
+                },
+                "description": "Confirms the change by providing the OTP sent to the new address."
+              },
+              "response": []
+            },
+            {
+              "name": "View Payment Information",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"currentPassword\": \"Business@123456\"\n}"
+                },
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerAccountSettings/payment-info/view",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerAccountSettings",
+                    "payment-info",
+                    "view"
+                  ]
+                },
+                "description": "Retrieves payout bank details. Requires password validation for security."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Payment Information",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bankName\": \"National Bank of Egypt\",\n  \"accountNumber\": \"100200300400\",\n  \"iban\": \"EG120003000400050006\",\n  \"accountHolderName\": \"John Textile Hub Inc\"\n}"
+                },
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerAccountSettings/payment-info",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerAccountSettings",
+                    "payment-info"
+                  ]
+                },
+                "description": "Updates bank details. Logs an immutable audit record and client IP for fraud detection."
+              },
+              "response": []
+            },
+            {
+              "name": "Change Profile Password",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"oldPassword\": \"Business@123456\",\n  \"newPassword\": \"NewBusiness@123456\",\n  \"confirmNewPassword\": \"NewBusiness@123456\"\n}"
+                },
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerAccountSettings/security/change-password",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerAccountSettings",
+                    "security",
+                    "change-password"
+                  ]
+                },
+                "description": "Changes the account password."
+              },
+              "response": []
+            },
+            {
+              "name": "Get My Login History",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{TalentreeURL}}/api/BusinessOwnerAccountSettings/security/login-history?pageIndex=1&pageSize=20",
+                  "host": [
+                    "{{TalentreeURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "BusinessOwnerAccountSettings",
+                    "security",
+                    "login-history"
+                  ],
+                  "query": [
+                    {
+                      "key": "pageIndex",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                },
+                "description": "Returns login logs for this user account."
+              },
+              "response": []
+            },
+            {
+              "name": "Revoke All Other Sessions",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentRefreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/BusinessOwnerAccountSettings/security/revoke-other-sessions",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "BusinessOwnerAccountSettings",
+                "security",
+                "revoke-other-sessions"
+              ]
+            },
+            "description": "Invalidates all other active tokens, forcing logouts on other devices."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Notification Preferences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/BusinessOwnerAccountSettings/preferences",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "BusinessOwnerAccountSettings",
+                "preferences"
+              ]
+            },
+            "description": "Retrieves user email/SMS alerts settings."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Notification Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emailNotificationsEnabled\": true,\n  \"smsNotificationsEnabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/BusinessOwnerAccountSettings/preferences",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "BusinessOwnerAccountSettings",
+                "preferences"
+              ]
+            },
+            "description": "Updates user alert preferences."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 7.4: Customer Refunds Review",
+      "description": "Assess refund requests submitted by customers for purchased store items.",
+      "item": [
+        {
+          "name": "Get Customer Refund Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/business-owner/refund-requests?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "business-owner",
+                "refund-requests"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Queries customers' item refund requests."
+          },
+          "response": []
+        },
+        {
+          "name": "Respond to Customer Refund Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"Approved\",\n  \"reason\": \"Product packaging damaged upon arrival\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/business-owner/refund-requests/1/respond",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "business-owner",
+                "refund-requests",
+                "1",
+                "respond"
+              ]
+            },
+            "description": "Reviews the request. Approving forwards it to Admin for final authorization and payment release."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 7.5: Product Reviews Response",
+      "description": "Inspect and reply to client review ratings left on products.",
+      "item": [
+        {
+          "name": "Get Store Product Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/BusinessOwnerReviews?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "BusinessOwnerReviews"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Returns reviews for the BO's products."
+          },
+          "response": []
+        },
+        {
+          "name": "Respond to Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response\": \"Thank you! We work hard to maintain high quality standards.\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/BusinessOwnerReviews/1/respond",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "BusinessOwnerReviews",
+                "1",
+                "respond"
+              ]
+            },
+            "description": "Replies to a customer review."
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Review Response",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response\": \"Thank you! We appreciate your detailed feedback.\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/BusinessOwnerReviews/1/respond",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "BusinessOwnerReviews",
+                "1",
+                "respond"
+              ]
+            },
+            "description": "Updates a reply. Only permitted within 24 hours of posting."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Store Review Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/BusinessOwnerReviews/analytics",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "BusinessOwnerReviews",
+                "analytics"
+              ]
+            },
+            "description": "Returns rating statistics (average rating, distribution, and response rates)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 7.6: Supply Store & Raw Materials",
+      "description": "Browse materials (fabrics, buttons, etc.) provided by verified platform suppliers.",
+      "item": [
+        {
+          "name": "Browse Raw Materials",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/RawMaterial?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "RawMaterial"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists available raw materials."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Raw Material Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/RawMaterial/1",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "RawMaterial",
+                "1"
+              ]
+            },
+            "description": "Retrieves specs and stock availability for a raw material."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Suppliers Directory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/business-owner/suppliers?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "business-owner",
+                "suppliers"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists active suppliers on the platform."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Supplier Performance Records",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/business-owner/suppliers/performance",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "business-owner",
+                "suppliers",
+                "performance"
+              ]
+            },
+            "description": "Returns delivery success metrics and quality logs."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 7.7: Supply Shopping Cart & Orders",
+      "description": "Manage the raw material shopping cart and checkout orders.",
+      "item": [
+        {
+          "name": "Get Material Basket",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/MaterialBasket",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "MaterialBasket"
+              ]
+            },
+            "description": "Retrieves the BO's active raw materials shopping basket."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Items to Material Basket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rawMaterialId\": 1,\n  \"quantity\": 25\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/MaterialBasket/items",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "MaterialBasket",
+                "items"
+              ]
+            },
+            "description": "Adds raw materials to the basket."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Basket Item Quantity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 40\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/MaterialBasket/items/1",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "MaterialBasket",
+                "items",
+                "1"
+              ]
+            },
+            "description": "Updates quantity for a material item in the basket."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Item from Basket",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/MaterialBasket/items/1",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "MaterialBasket",
+                "items",
+                "1"
+              ]
+            },
+            "description": "Removes a specific line item from the basket."
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Basket",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/MaterialBasket",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "MaterialBasket"
+              ]
+            },
+            "description": "Empties the basket."
+          },
+          "response": []
+        },
+        {
+          "name": "Checkout Material Basket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shippingAddress\": \"Textile Hub Factory Warehouse A\",\n  \"city\": \"Giza\",\n  \"contactPhone\": \"01100002222\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/MaterialOrder/checkout",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "MaterialOrder",
+                "checkout"
+              ]
+            },
+            "description": "Checks out the basket and generates a material order. Returns the order ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Material Orders History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/MaterialOrder?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "MaterialOrder"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists the BO's material procurement orders."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Material Order Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/MaterialOrder/1",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "MaterialOrder",
+                "1"
+              ]
+            },
+            "description": "Retrieves line items and payment state for a procurement order."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 7.8: Financials & Payouts",
+      "description": "View store balance summaries, ledger transaction records, and request balance payouts.",
+      "item": [
+        {
+          "name": "Request Payout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1500.00,\n  \"paymentMethod\": \"BankTransfer\",\n  \"bankAccountDetails\": \"IBAN EG120003000400050006\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Payout",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Payout"
+              ]
+            },
+            "description": "Submits a payout request. Request fails if amount exceeds available balance."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payout History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Payout/my-history?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Payout",
+                "my-history"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists the BO's payout requests."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Financial Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Financial/summary?from=2026-06-01T00:00:00Z&to=2026-06-25T00:00:00Z",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Financial",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-06-01T00:00:00Z"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-06-25T00:00:00Z"
+                }
+              ]
+            },
+            "description": "Returns dashboard financial cards (total revenue, commissions paid, net balance)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transactions List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Financial/transactions?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Financial",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists transactions for the BO's store balance."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+},
+{
+  "name": "8. Customer Portal",
+  "description": "Customer operations (Homepage, browsing, shopping cart, checkout, order tracking, invoice downloading, and wishlist).",
+  "item": [
+    {
+      "name": "Subfolder 8.1: Products & Catalog",
+      "description": "Browse and search public listings. Access is open (no auth headers required).",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "item": [
+        {
+          "name": "Get Customer Homepage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/homepage",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "homepage"
+              ]
+            },
+            "description": "Returns landing page data, including featured categories, trending brands, and new products."
+          },
+          "response": []
+        },
+        {
+          "name": "Browse Products (Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/products?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "cotton",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Searches the catalog. Supports sorting and category filtering."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Search Autocomplete",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/products/autocomplete?q=cot",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "products",
+                "autocomplete"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "cot"
+                }
+              ]
+            },
+            "description": "Returns product title suggestions matching a search prefix."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/products/{{productId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "products",
+                "{{productId}}"
+              ]
+            },
+            "description": "Retrieves specs and seller store details for a product."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Categories List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/categories",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "categories"
+              ]
+            },
+            "description": "Lists all active product categories."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/categories/1/products?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "categories",
+                "1",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists products belonging to a category."
+          },
+          "response": []
+        },
+        {
+          "name": "Browse Brands",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/brands?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "brands"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists active brands on the platform."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Brand Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/brands/1",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "brands",
+                "1"
+              ]
+            },
+            "description": "Retrieves profile details for a brand."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Brand Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/brands/1/products?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "brands",
+                "1",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists products belonging to a brand."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/products/{{productId}}/reviews?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "products",
+                "{{productId}}",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Retrieves customer reviews for a product."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product Review Rating Distribution",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/products/{{productId}}/reviews/distribution",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "products",
+                "{{productId}}",
+                "reviews",
+                "distribution"
+              ]
+            },
+            "description": "Returns counts of reviews by rating (1-5 stars)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 8.2: Writing Reviews & Helpfulness",
+      "description": "Submit reviews and vote on review helpfulness.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{Customer-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Submit Product Review (multipart)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "rating",
+                  "value": "5",
+                  "type": "text"
+                },
+                {
+                  "key": "comment",
+                  "value": "Great fitting, premium organic fabric!",
+                  "type": "text"
+                },
+                {
+                  "key": "photos",
+                  "description": "Review photos file upload",
+                  "type": "file",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/products/{{productId}}/reviews",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "products",
+                "{{productId}}",
+                "reviews"
+              ]
+            },
+            "description": "Submits a review for a product. Submit as multipart/form-data. Requires the Customer role."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Review as Helpful",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/reviews/1/helpful",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "reviews",
+                "1",
+                "helpful"
+              ]
+            },
+            "description": "Increments the helpful vote count for a review."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 8.3: Cart & Checkout",
+      "description": "Shopping cart operations, checkout preview calculations, and order creation.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{Customer-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get My Cart",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/cart",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "cart"
+              ]
+            },
+            "description": "Retrieves the customer's active shopping cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{productId}},\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/cart/items",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "cart",
+                "items"
+              ]
+            },
+            "description": "Adds items to the cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Cart Item Quantity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 5\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/cart/items/{{productId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "cart",
+                "items",
+                "{{productId}}"
+              ]
+            },
+            "description": "Updates item quantity in the cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Item from Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/cart/items/{{productId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "cart",
+                "items",
+                "{{productId}}"
+              ]
+            },
+            "description": "Removes a product item from the cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Cart Items",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/cart",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "cart"
+              ]
+            },
+            "description": "Removes all items from the cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Preview Checkout Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/cart/checkout-preview?Address=123+Street&City=Cairo&PhoneNumber=01000000000",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "cart",
+                "checkout-preview"
+              ],
+              "query": [
+                {
+                  "key": "Address",
+                  "value": "123 Street"
+                },
+                {
+                  "key": "City",
+                  "value": "Cairo"
+                },
+                {
+                  "key": "PhoneNumber",
+                  "value": "01000000000"
+                }
+              ]
+            },
+            "description": "Calculates tax, delivery charges, and final order totals."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 8.4: Orders & Tracking",
+      "description": "Order placement, payment intent creation, invoices, tracking, and customer-side refund requests.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{Customer-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Place Customer Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Order placed: save orderId\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var json = pm.response.json();",
+                  "    var orderId = json?.data?.id;",
+                  "    if (orderId) {",
+                  "        pm.environment.set(\"orderId\", orderId);",
+                  "        console.log(\"Saved orderId: \" + orderId);",
+                  "    }",
+                  "});"
+                ],
+                "type": "javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": \"123 Nasr City St\",\n  \"city\": \"Cairo\",\n  \"phoneNumber\": \"01011112222\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/orders?method=Stripe",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "method",
+                  "value": "Stripe"
+                }
+              ]
+            },
+            "description": "Places an order using items from the shopping cart. Clears the cart on success."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/orders/{{orderId}}/payment-intent",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "orders",
+                "{{orderId}}",
+                "payment-intent"
+              ]
+            },
+            "description": "Generates a Stripe PaymentIntent clientSecret for client-side credit card confirmation."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Orders List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/orders?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists the customer's orders history."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/orders/{{orderId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "orders",
+                "{{orderId}}"
+              ]
+            },
+            "description": "Retrieves lines, status, and tracking info for an order."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/orders/{{orderId}}/cancel",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "orders",
+                "{{orderId}}",
+                "cancel"
+              ]
+            },
+            "description": "Cancels an order. Only permitted before shipping has started."
+          },
+          "response": []
+        },
+        {
+          "name": "Download Order Invoice PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/orders/{{orderId}}/invoice",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "orders",
+                "{{orderId}}",
+                "invoice"
+              ]
+            },
+            "description": "Downloads the official PDF invoice document for the order."
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Line Item Refund Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Size is too small, requesting replacement or refund\",\n  \"quantity\": 1\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/orders/{{orderId}}/items/1/refund-request",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "orders",
+                "{{orderId}}",
+                "items",
+                "1",
+                "refund-request"
+              ]
+            },
+            "description": "Submits a refund request for an item within an order."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 8.5: Wishlist",
+      "description": "Customer wishlist operations (adding products, moving all products to the cart, and checking status).",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{Customer-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get My Wishlist",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/wishlist",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "wishlist"
+              ]
+            },
+            "description": "Retrieves the customer's wishlist items."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Product to Wishlist",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/wishlist/{{productId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "wishlist",
+                "{{productId}}"
+              ]
+            },
+            "description": "Adds a product to the wishlist."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Product from Wishlist",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/wishlist/{{productId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "wishlist",
+                "{{productId}}"
+              ]
+            },
+            "description": "Removes a product from the wishlist."
+          },
+          "response": []
+        },
+        {
+          "name": "Move Wishlist Items to Cart",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/wishlist/move-to-cart",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "wishlist",
+                "move-to-cart"
+              ]
+            },
+            "description": "Moves all in-stock items from the wishlist into the shopping cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Check Product Wishlist Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/customer/wishlist/{{productId}}/status",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "wishlist",
+                "{{productId}}",
+                "status"
+              ]
+            },
+            "description": "Returns true if the product is in the customer's wishlist."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+},
+{
+  "name": "9. Support & Knowledge Base",
+  "description": "FAQ catalog access, support ticket submission/resolution, and knowledge base article browsing.",
+  "item": [
+    {
+      "name": "Subfolder 9.1: Public Support",
+      "description": "Browse FAQs. Access is open.",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "item": [
+        {
+          "name": "Browse FAQs List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Support/faqs",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Support",
+                "faqs"
+              ]
+            },
+            "description": "Retrieves the FAQ list."
+          },
+          "response": []
+        },
+        {
+          "name": "Search FAQs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Support/faqs/search?q=refund",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Support",
+                "faqs",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "refund"
+                }
+              ]
+            },
+            "description": "Performs FAQ keyword searches."
+          },
+          "response": []
+        },
+        {
+          "name": "Get FAQ Category List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Support/faqs/categories",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Support",
+                "faqs",
+                "categories"
+              ]
+            },
+            "description": "Returns categories for FAQs."
+          },
+          "response": []
+        },
+        {
+          "name": "Get FAQ Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Support/faqs/1",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Support",
+                "faqs",
+                "1"
+              ]
+            },
+            "description": "Retrieves detailed FAQ answer content."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 9.2: Customer Support Tickets",
+      "description": "Submit and reply to support tickets. Requires Customer/BO authentication.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{Customer-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Submit Support Ticket",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Ticket submitted: save ticketId\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    var ticketId = json?.data?.id;",
+                  "    if (ticketId) {",
+                  "        pm.environment.set(\"ticketId\", ticketId);",
+                  "        console.log(\"Saved ticketId: \" + ticketId);",
+                  "    }",
+                  "});"
+                ],
+                "type": "javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Defective item received\",\n  \"description\": \"The jacket zipper is broken upon unboxing\",\n  \"category\": \"Products\",\n  \"priority\": \"High\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Support/tickets",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Support",
+                "tickets"
+              ]
+            },
+            "description": "Submits a support ticket."
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Support Tickets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Support/tickets",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Support",
+                "tickets"
+              ]
+            },
+            "description": "Lists support tickets submitted by the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ticket Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Support/tickets/{{ticketId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Support",
+                "tickets",
+                "{{ticketId}}"
+              ]
+            },
+            "description": "Retrieves ticket details and message thread history."
+          },
+          "response": []
+        },
+        {
+          "name": "Reply to Support Ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketId\": {{ticketId}},\n  \"message\": \"Attaching photo references shortly\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Support/tickets/messages",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Support",
+                "tickets",
+                "messages"
+              ]
+            },
+            "description": "Adds a message reply to the ticket thread."
+          },
+          "response": []
+        },
+        {
+          "name": "Close Support Ticket",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Support/tickets/{{ticketId}}/close",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Support",
+                "tickets",
+                "{{ticketId}}",
+                "close"
+              ]
+            },
+            "description": "Marks the ticket status as Closed."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 9.3: Knowledge Base & Articles",
+      "description": "Browse and bookmark educational articles. Requires authentication.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{Customer-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get Articles List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/KnowledgeBase?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "KnowledgeBase"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Retrieves the knowledge base articles."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Article Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/KnowledgeBase/1",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "KnowledgeBase",
+                "1"
+              ]
+            },
+            "description": "Retrieves article content by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Bookmark Article",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/KnowledgeBase/1/bookmark",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "KnowledgeBase",
+                "1",
+                "bookmark"
+              ]
+            },
+            "description": "Adds an article to the user's bookmarks."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Article Bookmark",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/KnowledgeBase/1/bookmark",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "KnowledgeBase",
+                "1",
+                "bookmark"
+              ]
+            },
+            "description": "Removes an article from bookmarks."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Bookmarked Articles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/KnowledgeBase/bookmarks",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "KnowledgeBase",
+                "bookmarks"
+              ]
+            },
+            "description": "Lists the user's bookmarked articles."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recommended Articles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/KnowledgeBase/recommendations",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "KnowledgeBase",
+                "recommendations"
+              ]
+            },
+            "description": "Queries the AI recommendation microservice to return personalized reading lists."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Subfolder 9.4: Admin Ticket Support",
+      "description": "Ticket assignment, triage, and admin replies. Requires Admin/SupportStaff authorization.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{Admin-Token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get All Support Tickets (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/support/tickets?pageIndex=1&pageSize=20",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "support",
+                "tickets"
+              ],
+              "query": [
+                {
+                  "key": "pageIndex",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Lists support tickets across all users. Supports status, priority, and assigned staff filtering."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Support Ticket Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketId\": {{ticketId}},\n  \"status\": \"InAnalysis\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/support/tickets/status",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "support",
+                "tickets",
+                "status"
+              ]
+            },
+            "description": "Updates a ticket's status (InAnalysis, PendingCustomer, Resolved). Sent alerts to user."
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Support Ticket",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketId\": {{ticketId}},\n  \"assignedToAdminId\": \"{{adminId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/support/tickets/assign",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "support",
+                "tickets",
+                "assign"
+              ]
+            },
+            "description": "Assigns a ticket to an administrator."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Support Ticket Priority",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "2"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/support/tickets/{{ticketId}}/priority",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "support",
+                "tickets",
+                "{{ticketId}}",
+                "priority"
+              ]
+            },
+            "description": "Updates a ticket's priority (0=Low, 1=Medium, 2=High, 3=Critical). Body parameter is raw int."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Support Ticket Details (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/support/tickets/{{ticketId}}",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "support",
+                "tickets",
+                "{{ticketId}}"
+              ]
+            },
+            "description": "Retrieves comprehensive details and message thread history for an admin."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Admin Support Reply (multipart)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "ticketId",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "message",
+                  "value": "We have investigated this issue and resolved the billing discrepancies.",
+                  "type": "text"
+                },
+                {
+                  "key": "attachments",
+                  "description": "Optional file attachments",
+                  "type": "file",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/support/tickets/messages",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "support",
+                "tickets",
+                "messages"
+              ]
+            },
+            "description": "Posts an admin reply to a ticket thread. Submit as multipart/form-data. Sent notification to the ticket owner."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+},
+{
+  "name": "10. Notifications",
+  "description": "Notification inbox management, counts, mark read, delete, and preferences.",
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{Customer-Token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Get Unread Count",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{TalentreeURL}}/api/Notification/unread-count",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "Notification",
+            "unread-count"
+          ]
+        },
+        "description": "Returns the number of unread notifications for the authenticated user."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Notifications Inbox",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{TalentreeURL}}/api/Notification?pageIndex=1&pageSize=20",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "Notification"
+          ],
+          "query": [
+            {
+              "key": "pageIndex",
+              "value": "1"
+            },
+            {
+              "key": "pageSize",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "Retrieves the notifications inbox."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Notification Details",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{TalentreeURL}}/api/Notification/1",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "Notification",
+            "1"
+          ]
+        },
+        "description": "Retrieves details of a single notification."
+      },
+      "response": []
+    },
+    {
+      "name": "Mark All as Read",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{TalentreeURL}}/api/Notification/mark-all-as-read",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "Notification",
+            "mark-all-as-read"
+          ]
+        },
+        "description": "Marks all notifications for the user as read."
+      },
+      "response": []
+    },
+    {
+      "name": "Mark Single Notification Read",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{TalentreeURL}}/api/Notification/1/mark-as-read",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "Notification",
+            "1",
+            "mark-as-read"
+          ]
+        },
+        "description": "Marks a specific notification as read."
+      },
+      "response": []
+    },
+    {
+      "name": "Clear All Read",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{TalentreeURL}}/api/Notification/clear-all-read",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "Notification",
+            "clear-all-read"
+          ]
+        },
+        "description": "Deletes all read notifications from the user's inbox."
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Notification",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{TalentreeURL}}/api/Notification/1",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "Notification",
+            "1"
+          ]
+        },
+        "description": "Deletes a specific notification."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Alerts Preferences",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{TalentreeURL}}/api/Notification/preferences",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "Notification",
+            "preferences"
+          ]
+        },
+        "description": "Retrieves user alerts preferences."
+      },
+      "response": []
+    },
+    {
+      "name": "Update Alerts Preferences",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"enableSystemNotifications\": true,\n  \"enablePushNotifications\": true\n}"
+        },
+        "url": {
+          "raw": "{{TalentreeURL}}/api/Notification/preferences",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "Notification",
+            "preferences"
+          ]
+        },
+        "description": "Updates alert delivery configurations."
+      },
+      "response": []
+    }
+  ]
+},
+{
+  "name": "11. Complaints Management",
+  "description": "Filing user complaints and resolving or rejecting them from the Admin side.",
+  "item": [
+    {
+      "name": "Submit Complaint",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{Customer-Token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reportedUserId\": \"{{businessOwnerId}}\",\n  \"description\": \"The seller description claimed fabric was 100% cotton, but tags show synthetic polyester\",\n  \"violationType\": 0\n}"
+        },
+        "url": {
+          "raw": "{{TalentreeURL}}/api/complaint",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "complaint"
+          ]
+        },
+        "description": "Submits a user complaint against another account (e.g. seller)."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Complaint Details",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{Customer-Token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{TalentreeURL}}/api/complaint/{{complaintId}}",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "complaint",
+            "{{complaintId}}"
+          ]
+        },
+        "description": "Retrieves detailed information for a complaint by ID."
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Complaints (Admin)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{Admin-Token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{TalentreeURL}}/api/admin/complaints?pageIndex=1&pageSize=20",
+          "host": [
+            "{{TalentreeURL}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "complaints"
+          ],
+          "query": [
+            {
+              "key": "pageIndex",
+              "value": "1"
+            },
+            {
+              "key": "pageSize",
+              "value": "20"
+            }
+          ]
+        },
+        "description": "Lists all platform complaints for administration review."
+      },
+      "response": []
+    },
+    {
+      "name": "Resolve Complaint (Admin)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{Admin-Token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"complaintId\": {{complaintId}},\n  \"resolutionAction\": \"WarnedUser\",\n  \"decisionNotes\": \"Seller was warned regarding listing policy verification\"\n}"
+        },
+        "url": {
+          "raw": "{{TalentreeURL}}/api/admin/complaints/resolve",
+          "host": [
+            "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "complaints",
+                "resolve"
+              ]
+            },
+            "description": "Resolves a complaint and notes action taken."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Complaint (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Admin-Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "\"Insufficient evidence provided by the reporter\""
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/admin/complaints/{{complaintId}}/reject",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "complaints",
+                "{{complaintId}}",
+                "reject"
+              ]
+            },
+            "description": "Rejects the complaint. Body parameter is raw string reason."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "12. Stripe Payments & Webhooks",
+      "description": "Stripe checkouts, payment intent creation, and inbound payment updates.",
+      "item": [
+        {
+          "name": "Create Material Order Stripe Intent",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{BO-Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Payment/material-orders/1/create-intent",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Payment",
+                "material-orders",
+                "1",
+                "create-intent"
+              ]
+            },
+            "description": "Creates a Stripe PaymentIntent clientSecret for purchasing supplies."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Production Request Stripe Intent",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{BO-Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Payment/production-requests/1/create-intent",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Payment",
+                "production-requests",
+                "1",
+                "create-intent"
+              ]
+            },
+            "description": "Creates a Stripe PaymentIntent clientSecret for a quoted production request."
+          },
+          "response": []
+        },
+        {
+          "name": "Inbound Stripe Webhook Receiver",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Stripe-Signature",
+                "value": "t=1719318000,v1=signature-hash-here"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_12345\",\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"pi_12345\",\n      \"amount\": 450000,\n      \"currency\": \"egp\",\n      \"status\": \"succeeded\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Payment/webhook",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Payment",
+                "webhook"
+              ]
+            },
+            "description": "Direct Stripe API Webhook endpoint. Process raw json payload. Requires valid Stripe-Signature header matching the secret key."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "13. AI & Recommendation Service",
+      "description": "Personalized item list queries and model training control.",
+      "item": [
+        {
+          "name": "Get Customer AI Recommendations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Recommendation/customer",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Recommendation",
+                "customer"
+              ]
+            },
+            "description": "Queries the AI engine to return a list of recommended products for a customer."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Owner AI Sourcing Recommendations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessOwnerId\": \"{{businessOwnerId}}\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Recommendation/owner",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Recommendation",
+                "owner"
+              ]
+            },
+            "description": "Queries the AI engine to suggest suppliers or raw materials for business owners."
+          },
+          "response": []
+        },
+        {
+          "name": "Trigger Model Retraining",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Admin-Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{TalentreeURL}}/api/Recommendation/retrain",
+              "host": [
+                "{{TalentreeURL}}"
+              ],
+              "path": [
+                "api",
+                "Recommendation",
+                "retrain"
+              ]
+            },
+            "description": "Instructs the AI service to fetch recent logs and rebuild recommendation matrices."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

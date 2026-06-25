@@ -45,7 +45,7 @@ namespace Talentree.Service.Contracts
         Task<CustomerDetailsDto> GetCustomerDetailsAsync(string userId);
         Task BlockCustomerAsync(BlockUserDto dto, string adminId);
         Task UnblockCustomerAsync(string userId, string adminId);
-        Task DeleteCustomerAsync(string userId, string adminId);
+        Task DeactivateCustomerAsync(string userId, string adminId);
 
         // ═══════════════════════════════════════════════════════════
         // COMPLAINT MANAGEMENT

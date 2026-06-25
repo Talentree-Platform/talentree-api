@@ -68,7 +68,7 @@ namespace Talentree.API.Controllers
                 MustChangePassword = user.MustChangePassword,
                 FailedAttempts = user.AccessFailedCount,
                 LockoutEnd = user.LockoutEnd,
-                LastLoginDate = user.LastLoginAt,
+                LastLoginDate = lastLoginRecord?.LoginAt,
                 LastLoginIp = lastLoginRecord?.IpAddress,
                 ActiveSessionCount = activeSessionCount
             };
