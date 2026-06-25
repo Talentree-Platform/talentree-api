@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Enums;
+using Talentree.Core.Enums;
 using Talentree.Service.DTOs.BoProductionRequest;
 using Talentree.Service.DTOs.Common;
 
@@ -74,5 +74,29 @@ namespace Talentree.Service.Contracts
         /// <param name="dto">Mandatory rejection reason.</param>
         Task<ProductionRequestDetailDto> RejectRequestAsync(
             int requestId, string adminId, RejectRequestDto dto);
+
+        // ═══════════════════════════════════════════════════════════
+        // FR-AD-12: Service Request Management — Assignment & Notes
+        // ═══════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Assigns the production service request to an admin team member (FR-AD-12).
+        /// Sets <c>AssignedAdminId</c> on the request and notifies the assigned admin.
+        /// </summary>
+        /// <param name="requestId">The request's primary key.</param>
+        /// <param name="assignedAdminId">Identity ID of the admin to assign.</param>
+        /// <param name="actingAdminId">The authenticated admin performing the assignment.</param>
+        Task<ProductionRequestDetailDto> AssignRequestAsync(
+            int requestId, string assignedAdminId, string actingAdminId);
+
+        /// <summary>
+        /// Appends a note to the request's AdminNotes and sends a notification to the seller (FR-AD-12).
+        /// Notes are prefixed with a UTC timestamp so the conversation is traceable.
+        /// </summary>
+        /// <param name="requestId">The request's primary key.</param>
+        /// <param name="note">The note text to append.</param>
+        /// <param name="adminId">The authenticated admin adding the note.</param>
+        Task<ProductionRequestDetailDto> AddNoteAsync(
+            int requestId, string note, string adminId);
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using Talentree.Core.Enums;
 
 namespace Talentree.Service.DTOs.BoProductionRequest
@@ -228,5 +228,29 @@ namespace Talentree.Service.DTOs.BoProductionRequest
         /// <summary>Mandatory rejection reason — shown to the BO via AdminNotes.</summary>
         [Required, MaxLength(2000)]
         public string Reason { get; set; } = null!;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // FR-AD-12 Admin Input DTOs
+    // ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Payload for assigning a production service request to an admin team member (FR-AD-12).
+    /// </summary>
+    public class AssignRequestDto
+    {
+        /// <summary>Identity ID of the admin to assign this request to.</summary>
+        [Required]
+        public string AssignedAdminId { get; set; } = null!;
+    }
+
+    /// <summary>
+    /// Payload for adding a communication note to a service request (FR-AD-12).
+    /// Notes are appended (with timestamp prefix) to AdminNotes and a notification is sent to the seller.
+    /// </summary>
+    public class AddNoteDto
+    {
+        [Required, MaxLength(2000)]
+        public string Note { get; set; } = null!;
     }
 }
