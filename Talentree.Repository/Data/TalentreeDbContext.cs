@@ -73,6 +73,11 @@ namespace Talentree.Repository.Data
         public DbSet<KnowledgeArticle> KnowledgeArticles { get; set; }
         public DbSet<ArticleBookmark> ArticleBookmarks { get; set; }
 
+        // AI Chatbot Feature
+        public DbSet<AiSession> AiSessions { get; set; }
+        public DbSet<AiMessage> AiMessages { get; set; }
+        public DbSet<AiImage> AiImages { get; set; }
+
         // FR-AD-43: Search term analytics
         public DbSet<ContentSearchLog> ContentSearchLogs { get; set; }
 
