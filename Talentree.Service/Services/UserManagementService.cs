@@ -8,6 +8,8 @@ using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.UserManagementSpecifications;
+using Talentree.Core.Specifications.OrderSpecifications;
+using Talentree.Core.Specifications.ProductSpecifications;
 using Guidy.Core.Specifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs;
@@ -490,14 +492,159 @@ namespace Talentree.Service.Services
             if (!reporter.IsActive || reporter.AccountStatus == AccountStatus.Inactive)
                 throw new ForbiddenException("Account is deactivated.");
 
+            string? resolvedTargetUserId = null;
+
+            // A. Resolve from Product
+            if (!string.IsNullOrEmpty(dto.RelatedProductId))
+            {
+                if (int.TryParse(dto.RelatedProductId, out var productId))
+                {
+                    var product = await _unitOfWork.Repository<TalentreeProduct>()
+                        .GetByIdWithSpecificationsAsync(new ProductByIdPublicSpecification(productId));
+
+                    if (product == null)
+                        throw new NotFoundException("Product not found or not active");
+
+                    resolvedTargetUserId = product.BusinessOwner?.UserId;
+                    if (string.IsNullOrEmpty(resolvedTargetUserId))
+                        throw new NotFoundException("Seller profile associated with this product not found");
+                }
+                else
+                {
+                    throw new BadRequestException("Invalid product ID format.");
+                }
+            }
+            // B. Resolve from Brand Profile
+            else if (!string.IsNullOrEmpty(dto.RelatedBrandId))
+            {
+                if (int.TryParse(dto.RelatedBrandId, out var brandId))
+                {
+                    var brand = await _unitOfWork.Repository<BusinessOwnerProfile>().GetByIdAsync(brandId);
+                    if (brand == null)
+                        throw new NotFoundException("Brand profile not found.");
+
+                    resolvedTargetUserId = brand.UserId;
+                }
+                else
+                {
+                    throw new BadRequestException("Invalid brand ID format.");
+                }
+            }
+            // C. Resolve from Order Details
+            else if (!string.IsNullOrEmpty(dto.RelatedOrderId))
+            {
+                if (int.TryParse(dto.RelatedOrderId, out var orderId))
+                {
+                    var orderSpec = new AdminOrderByIdSpecification(orderId);
+                    var order = await _unitOfWork.Repository<CustomerOrder>().GetByIdWithSpecificationsAsync(orderSpec);
+                    if (order == null)
+                        throw new NotFoundException($"Order #{orderId} not found.");
+
+                    // Verify Authorization
+                    var isCustomer = order.CustomerId == reportedByUserId;
+                    var isSeller = order.Items.Any(item => item.Product != null && 
+                                                           item.Product.BusinessOwner != null && 
+                                                           item.Product.BusinessOwner.UserId == reportedByUserId);
+
+                    if (!isCustomer && !isSeller)
+                        throw new ForbiddenException("You are not authorized to view or file complaints for this order.");
+
+                    if (isSeller)
+                    {
+                        // Business Owner is reporting the Customer
+                        resolvedTargetUserId = order.CustomerId;
+                    }
+                    else
+                    {
+                        // Customer is reporting the Seller
+                        var sellers = order.Items
+                            .Select(item => item.Product?.BusinessOwner?.UserId)
+                            .Where(userId => userId != null)
+                            .Distinct()
+                            .ToList();
+
+                        if (sellers.Count == 0)
+                        {
+                            throw new BadRequestException("No active sellers found for the items in this order.");
+                        }
+                        else if (sellers.Count == 1)
+                        {
+                            resolvedTargetUserId = sellers.First();
+                        }
+                        else
+                        {
+                            // Multi-seller order: disambiguate using RelatedProductId
+                            if (string.IsNullOrEmpty(dto.RelatedProductId))
+                            {
+                                throw new BadRequestException("This order contains items from multiple sellers. Please specify a RelatedProductId to identify which seller you are reporting.");
+                            }
+
+                            if (int.TryParse(dto.RelatedProductId, out var productId))
+                            {
+                                var productItem = order.Items.FirstOrDefault(item => item.ProductId == productId);
+                                if (productItem == null)
+                                {
+                                    throw new BadRequestException($"Product #{productId} is not part of this order.");
+                                }
+                                resolvedTargetUserId = productItem.Product?.BusinessOwner?.UserId;
+                            }
+                            else
+                            {
+                                throw new BadRequestException("Invalid product ID format.");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    throw new BadRequestException("Invalid order ID format.");
+                }
+            }
+            // D. Fallback to direct user ID reporting (e.g. Chat)
+            else if (!string.IsNullOrEmpty(dto.ReportedUserId))
+            {
+                var targetUser = await _userManager.FindByIdAsync(dto.ReportedUserId);
+                if (targetUser == null)
+                    throw new NotFoundException("Target user not found");
+
+                resolvedTargetUserId = dto.ReportedUserId;
+            }
+
+            if (string.IsNullOrEmpty(resolvedTargetUserId))
+            {
+                throw new BadRequestException("Could not resolve a target user for the complaint.");
+            }
+
+            // Self-reporting check
+            if (resolvedTargetUserId == reportedByUserId)
+            {
+                throw new BadRequestException("You cannot report yourself.");
+            }
+
+            // Check for duplicate open complaints
+            var existingComplaintSpec = new DuplicateComplaintSpecification(
+                reportedByUserId, 
+                resolvedTargetUserId, 
+                dto.RelatedProductId, 
+                dto.RelatedBrandId, 
+                dto.RelatedOrderId);
+            var existingComplaintsCount = await _unitOfWork.Repository<Complaint>()
+                .GetCountWithSpecificationsAsync(existingComplaintSpec);
+            
+            if (existingComplaintsCount > 0)
+            {
+                throw new BadRequestException("You have already submitted an active complaint for this target/context.");
+            }
+
             var complaint = new Complaint
             {
-                ReportedUserId = dto.ReportedUserId,
+                ReportedUserId = resolvedTargetUserId,
                 ReportedByUserId = reportedByUserId,
                 ViolationType = dto.ViolationType,
                 Description = dto.Description,
                 RelatedOrderId = dto.RelatedOrderId,
                 RelatedProductId = dto.RelatedProductId,
+                RelatedBrandId = dto.RelatedBrandId,
                 RelatedContext = dto.RelatedContext,
                 Status = ComplaintStatus.Open,
                 CreatedAt = DateTime.UtcNow
@@ -507,10 +654,10 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
 
             // Check if auto-block rules should be applied
-            await CheckAndApplyAutoBlockRulesAsync(dto.ReportedUserId);
+            await CheckAndApplyAutoBlockRulesAsync(resolvedTargetUserId);
 
             // Get complaint with includes
-            var spec = new ComplaintsSpecification(dto.ReportedUserId);
+            var spec = new ComplaintsSpecification(resolvedTargetUserId);
             var createdComplaint = await _unitOfWork.Repository<Complaint>()
                 .GetAllWithSpecificationsAsync(spec);
 
