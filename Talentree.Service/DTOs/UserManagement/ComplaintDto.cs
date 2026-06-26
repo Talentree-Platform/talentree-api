@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Enums;
+using Talentree.Core.Enums;
 
 namespace Talentree.Service.DTOs.UserManagement
 {
@@ -23,6 +23,7 @@ namespace Talentree.Service.DTOs.UserManagement
 
         public string? RelatedOrderId { get; set; }
         public string? RelatedProductId { get; set; }
+        public string? RelatedBrandId { get; set; }
 
         public string? ReviewedBy { get; set; }
         public DateTime? ReviewedAt { get; set; }

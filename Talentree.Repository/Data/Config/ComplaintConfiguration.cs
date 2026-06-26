@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
@@ -41,6 +41,9 @@ namespace Talentree.Repository.Data.Config
             builder.Property(c => c.RelatedProductId)
                 .HasMaxLength(100);
 
+            builder.Property(c => c.RelatedBrandId)
+                .HasMaxLength(100);
+
             builder.Property(c => c.RelatedContext)
                 .HasMaxLength(100);
 
@@ -80,6 +83,9 @@ namespace Talentree.Repository.Data.Config
 
             builder.HasIndex(c => c.RelatedProductId)
                 .HasDatabaseName("IX_Complaints_RelatedProductId");
+
+            builder.HasIndex(c => c.RelatedBrandId)
+                .HasDatabaseName("IX_Complaints_RelatedBrandId");
         }
     }
 }

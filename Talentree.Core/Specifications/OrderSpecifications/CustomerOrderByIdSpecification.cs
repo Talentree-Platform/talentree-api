@@ -8,6 +8,7 @@ namespace Talentree.Core.Specifications.OrderSpecifications
             : base(o => o.Id == orderId && o.CustomerId == customerId)
         {
             AddInclude("Items.Product.Images");
+            AddInclude("Items.Product.BusinessOwner");
             AddInclude("StatusHistory");
         }
     }
