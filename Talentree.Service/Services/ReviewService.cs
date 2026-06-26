@@ -438,6 +438,9 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<ProductReview>().Add(review);
             await _unitOfWork.CompleteAsync();
 
+            // Publish AI sentiment prediction request
+            await _eventPublisher.PublishAsync("ai.sentiment", new SentimentPredictionMessage { ReviewId = review.Id });
+
             // 6. Recalculate Product.AvgRating
             var allReviewsSpec = new ProductReviewsSpecification(dto.ProductId, new CustomerReviewFilterParams { PageSize = 1000 });
             var allReviews = await _unitOfWork.Repository<ProductReview>()

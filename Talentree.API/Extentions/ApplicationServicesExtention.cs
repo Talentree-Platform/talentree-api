@@ -29,6 +29,9 @@ namespace Talentree.API.Extentions
             services.AddHostedService<CustomerRecommendationConsumer>();
             services.AddHostedService<OwnerProcurementConsumer>();
             services.AddHostedService<AIRetrainConsumer>();
+            services.AddHostedService<FraudPredictionConsumer>();
+            services.AddHostedService<RequestComputationConsumer>();
+            services.AddHostedService<AnomalyPredictionConsumer>();
 
             services.AddScoped<IAdminOrderService, AdminOrderService>();
             services.AddScoped<IRefundService, Talentree.Service.Services.RefundService>();
@@ -56,6 +59,8 @@ namespace Talentree.API.Extentions
             // product service
             services.AddScoped<IProductService, Talentree.Service.Services.ProductService>();
             services.AddScoped<IImageService, ImageService>();
+            // FR-AD-09, FR-AD-10, FR-AD-11: Admin product moderation & low-stock
+            services.AddScoped<IAdminProductService, AdminProductService>();
 
 
             // Add AutoMapper (scans assemblies)
@@ -86,8 +91,10 @@ namespace Talentree.API.Extentions
 
             services.AddScoped<ISupportService, SupportService>();
             services.AddScoped<IFileService, Talentree.Service.Services.FileService>();
-            // Knowledge Base Service
+            // Knowledge Base Services
             services.AddScoped<IKnowledgeService, KnowledgeService>();
+            // FR-AD-40 to FR-AD-43: Admin Content Management
+            services.AddScoped<IAdminKnowledgeService, AdminKnowledgeService>();
             // Review Service
             services.AddScoped<IReviewService, Talentree.Service.Services.ReviewService>();
 
@@ -111,6 +118,20 @@ namespace Talentree.API.Extentions
 
             // user management service
             services.AddScoped<IUserManagementService, UserManagementService>();
+
+            // ── Platform Settings (FR-AD-31 to FR-AD-36) ──────────────────────────
+            // FR-AD-31: Category Management
+            services.AddScoped<ICategoryManagementService, CategoryManagementService>();
+            // FR-AD-32: Commission & Fee Configuration
+            services.AddScoped<ICommissionSettingService, CommissionSettingService>();
+            // FR-AD-33: Shipping Configuration
+            services.AddScoped<IShippingSettingsService, ShippingSettingsService>();
+            // FR-AD-34: Tax Configuration
+            services.AddScoped<ITaxSettingsService, TaxSettingsService>();
+            // FR-AD-35: Homepage Management
+            services.AddScoped<IHomepageManagementService, HomepageManagementService>();
+            // FR-AD-36: Terms & Policies
+            services.AddScoped<IPolicyService, PolicyService>();
 
             // Register HttpClient for AI service
             services.AddHttpClient<IAIService, AIService>(client =>

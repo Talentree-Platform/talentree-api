@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Talentree.API.Models;
@@ -116,6 +116,36 @@ namespace Talentree.API.Controllers
         {
             var result = await _service.RejectRequestAsync(id, GetAdminId(), dto);
             return Ok(ApiResponse<object>.SuccessResponse(result, "Request rejected."));
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // FR-AD-12: Service Request Management — Assignment & Notes
+        // ═══════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Assign the production service request to an admin team member.
+        /// </summary>
+        /// <remarks>PUT /api/admin/production-requests/3/assign</remarks>
+        [HttpPut("{id:int}/assign")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> AssignRequest(int id, [FromBody] AssignRequestDto dto)
+        {
+            var result = await _service.AssignRequestAsync(id, dto.AssignedAdminId, GetAdminId());
+            return Ok(ApiResponse<object>.SuccessResponse(result, "Request assigned successfully."));
+        }
+
+        /// <summary>
+        /// Add a communication note to the service request (visible to seller via AdminNotes).
+        /// </summary>
+        /// <remarks>PUT /api/admin/production-requests/3/add-note</remarks>
+        [HttpPut("{id:int}/add-note")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> AddNote(int id, [FromBody] AddNoteDto dto)
+        {
+            var result = await _service.AddNoteAsync(id, dto.Note, GetAdminId());
+            return Ok(ApiResponse<object>.SuccessResponse(result, "Note added to service request."));
         }
 
         private string GetAdminId() => User.FindFirstValue(ClaimTypes.NameIdentifier)!;

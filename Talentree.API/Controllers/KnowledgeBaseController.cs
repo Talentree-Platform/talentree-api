@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Talentree.API.Models;
@@ -12,10 +12,14 @@ namespace Talentree.API.Controllers
     public class KnowledgeBaseController : BaseApiController
     {
         private readonly IKnowledgeService _knowledgeService;
+        private readonly IAdminKnowledgeService _adminKnowledgeService;
 
-        public KnowledgeBaseController(IKnowledgeService knowledgeService)
+        public KnowledgeBaseController(
+            IKnowledgeService knowledgeService,
+            IAdminKnowledgeService adminKnowledgeService)
         {
             _knowledgeService = knowledgeService;
+            _adminKnowledgeService = adminKnowledgeService;
         }
 
         private string GetUserId() =>
@@ -117,6 +121,24 @@ namespace Talentree.API.Controllers
             return Ok(ApiResponse<List<RecommendedArticleDto>>.SuccessResponse(
                 data: result,
                 message: "Recommendations retrieved successfully"
+            ));
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // POST: api/knowledge-base/{id}/view-duration
+        // FR-AD-43: Record view duration sent by frontend on article exit
+        // ═══════════════════════════════════════════════════════════
+        [HttpPost("{id:int}/view-duration")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ApiResponse<object>>> RecordViewDuration(
+            int id,
+            [FromBody] RecordViewDurationDto dto)
+        {
+            await _adminKnowledgeService.RecordViewDurationAsync(id, dto.DurationSeconds);
+
+            return Ok(ApiResponse<object>.SuccessResponse(
+                message: "View duration recorded"
             ));
         }
     }

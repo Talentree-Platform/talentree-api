@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Enums;
+using Talentree.Core.Enums;
 
 namespace Talentree.Core.Entities
 {
@@ -14,6 +14,7 @@ namespace Talentree.Core.Entities
         // ✅ Keep as simple reference IDs (no navigation)
         public string? RelatedOrderId { get; set; } // Optional: link to order (as string for flexibility)
         public string? RelatedProductId { get; set; } // Optional: link to product
+        public string? RelatedBrandId { get; set; } // Optional: link to brand profile
         public string? RelatedContext { get; set; } // Optional: additional context (e.g., "MaterialOrder", "ProductOrder", etc.)
 
         public string? ReviewedBy { get; set; } // Admin who reviewed

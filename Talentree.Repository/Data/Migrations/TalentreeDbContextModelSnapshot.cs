@@ -317,6 +317,64 @@ namespace Talentree.Repository.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Talentree.Core.Entities.AnnouncementBar", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("LinkUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ScheduleEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ScheduleStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_AnnouncementBar_CreatedAt");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_AnnouncementBars_IsActive");
+
+                    b.HasIndex("CreatedBy", "CreatedAt")
+                        .HasDatabaseName("IX_AnnouncementBar_CreatedBy_CreatedAt");
+
+                    b.ToTable("AnnouncementBars", (string)null);
+                });
+
             modelBuilder.Entity("Talentree.Core.Entities.ArticleBookmark", b =>
                 {
                     b.Property<int>("Id")
@@ -419,6 +477,9 @@ namespace Talentree.Repository.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<string>("AssignedAdminId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("BusinessOwnerId")
                         .IsRequired()
                         .HasMaxLength(450)
@@ -485,7 +546,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("BoProductionRequests", (string)null);
+                    b.ToTable("BoProductionRequests");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.BoProductionRequestItem", b =>
@@ -532,7 +593,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("PreferredRawMaterialId");
 
-                    b.ToTable("BoProductionRequestItems", (string)null);
+                    b.ToTable("BoProductionRequestItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.BoProductionRequestStatusHistory", b =>
@@ -576,7 +637,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("BoProductionRequestId");
 
-                    b.ToTable("BoProductionRequestStatusHistories", (string)null);
+                    b.ToTable("BoProductionRequestStatusHistories");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Category", b =>
@@ -611,7 +672,21 @@ namespace Talentree.Repository.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("IconUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
                     b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDisabled")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
@@ -620,6 +695,9 @@ namespace Talentree.Repository.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("ParentCategoryId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -633,11 +711,17 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("IX_Category_CreatedAt");
 
+                    b.HasIndex("DisplayOrder")
+                        .HasDatabaseName("IX_Categories_DisplayOrder");
+
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_Category_IsDeleted");
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("ParentCategoryId")
+                        .HasDatabaseName("IX_Categories_ParentCategoryId");
 
                     b.HasIndex("CreatedBy", "CreatedAt")
                         .HasDatabaseName("IX_Category_CreatedBy_CreatedAt");
@@ -693,6 +777,70 @@ namespace Talentree.Repository.Data.Migrations
                     b.ToTable("ChatHistory", (string)null);
                 });
 
+            modelBuilder.Entity("Talentree.Core.Entities.CommissionSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsTransactionFeePercent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<decimal>("MinimumPayoutAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("PayoutProcessingFee")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("PlatformCommissionPercent")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("TransactionFeeValue")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 4)
+                        .HasColumnType("decimal(10,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_CommissionSetting_CreatedAt");
+
+                    b.HasIndex("CreatedBy", "CreatedAt")
+                        .HasDatabaseName("IX_CommissionSetting_CreatedBy_CreatedAt");
+
+                    b.ToTable("CommissionSettings", (string)null);
+                });
+
             modelBuilder.Entity("Talentree.Core.Entities.Complaint", b =>
                 {
                     b.Property<int>("Id")
@@ -716,6 +864,10 @@ namespace Talentree.Repository.Data.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RelatedBrandId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("RelatedContext")
                         .HasMaxLength(100)
@@ -769,6 +921,9 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("IX_Complaint_CreatedAt");
 
+                    b.HasIndex("RelatedBrandId")
+                        .HasDatabaseName("IX_Complaints_RelatedBrandId");
+
                     b.HasIndex("RelatedOrderId")
                         .HasDatabaseName("IX_Complaints_RelatedOrderId");
 
@@ -790,6 +945,38 @@ namespace Talentree.Repository.Data.Migrations
                         .HasDatabaseName("IX_Complaints_ReportedUserId_Status");
 
                     b.ToTable("Complaints", (string)null);
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.ContentSearchLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("SearchTerm")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("SearchedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SearchTerm");
+
+                    b.HasIndex("SearchedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ContentSearchLogs", (string)null);
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerCart", b =>
@@ -832,7 +1019,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CreatedBy", "CreatedAt")
                         .HasDatabaseName("IX_CustomerCart_CreatedBy_CreatedAt");
 
-                    b.ToTable("CustomerCarts", (string)null);
+                    b.ToTable("CustomerCarts");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerCartItem", b =>
@@ -862,7 +1049,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CartId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("CustomerCartItems", (string)null);
+                    b.ToTable("CustomerCartItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerOrder", b =>
@@ -973,7 +1160,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CreatedBy", "CreatedAt")
                         .HasDatabaseName("IX_CustomerOrder_CreatedBy_CreatedAt");
 
-                    b.ToTable("CustomerOrders", (string)null);
+                    b.ToTable("CustomerOrders");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerOrderItem", b =>
@@ -1017,7 +1204,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("CustomerOrderItems", (string)null);
+                    b.ToTable("CustomerOrderItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerWishlist", b =>
@@ -1060,7 +1247,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CreatedBy", "CreatedAt")
                         .HasDatabaseName("IX_CustomerWishlist_CreatedBy_CreatedAt");
 
-                    b.ToTable("CustomerWishlists", (string)null);
+                    b.ToTable("CustomerWishlists");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerWishlistItem", b =>
@@ -1089,7 +1276,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("WishlistId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("CustomerWishlistItems", (string)null);
+                    b.ToTable("CustomerWishlistItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.FAQ", b =>
@@ -1186,6 +1373,205 @@ namespace Talentree.Repository.Data.Migrations
                         .HasDatabaseName("IX_FAQs_IsPublished_Category_DisplayOrder");
 
                     b.ToTable("FAQs", (string)null);
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.HomepageBanner", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsHero")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LinkUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<DateTime?>("ScheduleEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ScheduleStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Subtitle")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("TextOverlay")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_HomepageBanner_CreatedAt");
+
+                    b.HasIndex("CreatedBy", "CreatedAt")
+                        .HasDatabaseName("IX_HomepageBanner_CreatedBy_CreatedAt");
+
+                    b.HasIndex("IsActive", "DisplayOrder")
+                        .HasDatabaseName("IX_HomepageBanners_IsActive_DisplayOrder");
+
+                    b.HasIndex("ScheduleStart", "ScheduleEnd")
+                        .HasDatabaseName("IX_HomepageBanners_Schedule");
+
+                    b.ToTable("HomepageBanners", (string)null);
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.HomepageFeaturedBrand", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BusinessOwnerId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessOwnerId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_HomepageFeaturedBrands_BusinessOwnerId_Unique");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_HomepageFeaturedBrand_CreatedAt");
+
+                    b.HasIndex("CreatedBy", "CreatedAt")
+                        .HasDatabaseName("IX_HomepageFeaturedBrand_CreatedBy_CreatedAt");
+
+                    b.ToTable("HomepageFeaturedBrands", (string)null);
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.HomepageFeaturedProduct", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ScheduleEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ScheduleStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_HomepageFeaturedProduct_CreatedAt");
+
+                    b.HasIndex("ProductId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_HomepageFeaturedProducts_ProductId_Unique");
+
+                    b.HasIndex("CreatedBy", "CreatedAt")
+                        .HasDatabaseName("IX_HomepageFeaturedProduct_CreatedBy_CreatedAt");
+
+                    b.HasIndex("ScheduleStart", "ScheduleEnd")
+                        .HasDatabaseName("IX_HomepageFeaturedProducts_Schedule");
+
+                    b.ToTable("HomepageFeaturedProducts", (string)null);
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Identity.Address", b =>
@@ -1741,6 +2127,13 @@ namespace Talentree.Repository.Data.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("ExternalUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -1748,6 +2141,11 @@ namespace Talentree.Repository.Data.Migrations
                     b.Property<string>("FileUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsPublished")
                         .ValueGeneratedOnAdd()
@@ -1777,6 +2175,11 @@ namespace Talentree.Repository.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<long>("TotalViewDurationSeconds")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -1793,6 +2196,8 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("Category");
 
                     b.HasIndex("ContentType");
+
+                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("IsPublished");
 
@@ -1839,7 +2244,7 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("CreatedBy", "CreatedAt")
                         .HasDatabaseName("IX_MaterialBasket_CreatedBy_CreatedAt");
 
-                    b.ToTable("MaterialBaskets", (string)null);
+                    b.ToTable("MaterialBaskets");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.MaterialBasketItem", b =>
@@ -1877,7 +2282,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("RawMaterialId");
 
-                    b.ToTable("MaterialBasketItems", (string)null);
+                    b.ToTable("MaterialBasketItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.MaterialOrder", b =>
@@ -1951,7 +2356,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("BusinessOwnerId");
 
-                    b.ToTable("MaterialOrders", (string)null);
+                    b.ToTable("MaterialOrders");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.MaterialOrderItem", b =>
@@ -1992,7 +2397,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("RawMaterialId");
 
-                    b.ToTable("MaterialOrderItems", (string)null);
+                    b.ToTable("MaterialOrderItems");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Notification", b =>
@@ -2218,7 +2623,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("OrderStatusHistories", (string)null);
+                    b.ToTable("OrderStatusHistories");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.PayoutRequest", b =>
@@ -2295,7 +2700,73 @@ namespace Talentree.Repository.Data.Migrations
                         .IsUnique()
                         .HasFilter("[Status] = 'Pending'");
 
-                    b.ToTable("PayoutRequests", (string)null);
+                    b.ToTable("PayoutRequests");
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.PlatformPolicy", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsPublished")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("RequireUserAcceptance")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_PlatformPolicy_CreatedAt");
+
+                    b.HasIndex("CreatedBy", "CreatedAt")
+                        .HasDatabaseName("IX_PlatformPolicy_CreatedBy_CreatedAt");
+
+                    b.HasIndex("DocumentType", "IsPublished")
+                        .HasDatabaseName("IX_PlatformPolicies_DocumentType_IsPublished");
+
+                    b.HasIndex("DocumentType", "VersionNumber")
+                        .HasDatabaseName("IX_PlatformPolicies_DocumentType_VersionNumber");
+
+                    b.ToTable("PlatformPolicies", (string)null);
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.ProcessedMessage", b =>
@@ -2309,7 +2780,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasKey("MessageId");
 
-                    b.ToTable("ProcessedMessages", (string)null);
+                    b.ToTable("ProcessedMessages");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Product", b =>
@@ -2762,7 +3233,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("OrderItemId");
 
-                    b.ToTable("RefundRequests", (string)null);
+                    b.ToTable("RefundRequests");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.ReviewPhoto", b =>
@@ -2791,6 +3262,78 @@ namespace Talentree.Repository.Data.Migrations
                     b.HasIndex("ReviewId");
 
                     b.ToTable("ReviewPhotos", (string)null);
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.ShippingSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("EstimatedDeliveryDomesticDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(3);
+
+                    b.Property<int>("EstimatedDeliveryInternationalDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(14);
+
+                    b.Property<decimal>("FlatRate")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<bool>("FreeShippingEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal>("FreeShippingThreshold")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<bool>("InternationalShippingEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsFlatRatePerItem")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_ShippingSettings_CreatedAt");
+
+                    b.HasIndex("CreatedBy", "CreatedAt")
+                        .HasDatabaseName("IX_ShippingSettings_CreatedBy_CreatedAt");
+
+                    b.ToTable("ShippingSettings", (string)null);
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Supplier", b =>
@@ -2955,7 +3498,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("SupplierReviews", (string)null);
+                    b.ToTable("SupplierReviews");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.SupportTicket", b =>
@@ -3089,6 +3632,61 @@ namespace Talentree.Repository.Data.Migrations
                         .HasDatabaseName("IX_SupportTickets_Status_CreatedAt");
 
                     b.ToTable("SupportTickets", (string)null);
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.TaxSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsInclusive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("TaxEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("TaxExemptCategoryIds")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("TaxRate")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_TaxSettings_CreatedAt");
+
+                    b.HasIndex("CreatedBy", "CreatedAt")
+                        .HasDatabaseName("IX_TaxSettings_CreatedBy_CreatedAt");
+
+                    b.ToTable("TaxSettings", (string)null);
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.TicketAttachment", b =>
@@ -3273,7 +3871,7 @@ namespace Talentree.Repository.Data.Migrations
 
                     b.HasIndex("BusinessOwnerId", "CreatedAt");
 
-                    b.ToTable("Transactions", (string)null);
+                    b.ToTable("Transactions");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.UserActionLog", b =>
@@ -3514,6 +4112,16 @@ namespace Talentree.Repository.Data.Migrations
                     b.Navigation("Request");
                 });
 
+            modelBuilder.Entity("Talentree.Core.Entities.Category", b =>
+                {
+                    b.HasOne("Talentree.Core.Entities.Category", "ParentCategory")
+                        .WithMany("SubCategories")
+                        .HasForeignKey("ParentCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentCategory");
+                });
+
             modelBuilder.Entity("Talentree.Core.Entities.ChatHistory", b =>
                 {
                     b.HasOne("Talentree.Core.Entities.Identity.BusinessOwnerProfile", "BusinessOwnerProfile")
@@ -3542,6 +4150,17 @@ namespace Talentree.Repository.Data.Migrations
                     b.Navigation("ReportedBy");
 
                     b.Navigation("ReportedUser");
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.ContentSearchLog", b =>
+                {
+                    b.HasOne("AppUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerCart", b =>
@@ -3632,6 +4251,28 @@ namespace Talentree.Repository.Data.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("Wishlist");
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.HomepageFeaturedBrand", b =>
+                {
+                    b.HasOne("AppUser", "BusinessOwner")
+                        .WithMany()
+                        .HasForeignKey("BusinessOwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BusinessOwner");
+                });
+
+            modelBuilder.Entity("Talentree.Core.Entities.HomepageFeaturedProduct", b =>
+                {
+                    b.HasOne("Talentree.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.Identity.Address", b =>
@@ -4012,6 +4653,8 @@ namespace Talentree.Repository.Data.Migrations
             modelBuilder.Entity("Talentree.Core.Entities.Category", b =>
                 {
                     b.Navigation("Products");
+
+                    b.Navigation("SubCategories");
                 });
 
             modelBuilder.Entity("Talentree.Core.Entities.CustomerCart", b =>

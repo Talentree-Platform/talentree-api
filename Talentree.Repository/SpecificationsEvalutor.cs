@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using Talentree.Core.Entities;
 using Talentree.Core.Specifications;
@@ -32,6 +32,12 @@ namespace Talentree.Repository
             // Null check: if no specification, return as-is
             if (specifications is not null)
             {
+                // ===============================
+                // STEP 0: Ignore global query filters (e.g. soft-delete)
+                // ===============================
+                if (specifications.IgnoreQueryFilters)
+                    Query = Query.IgnoreQueryFilters();
+
                 // ===============================
                 // STEP 1: Apply WHERE clause (Criteria)
                 // ===============================

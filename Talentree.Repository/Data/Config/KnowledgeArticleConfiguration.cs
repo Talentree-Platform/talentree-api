@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
 
@@ -48,10 +48,24 @@ namespace Talentree.Repository.Data.Config
             builder.Property(a => a.OrderIndex)
                 .HasDefaultValue(0);
 
+            // FR-AD-43: View duration analytics
+            builder.Property(a => a.TotalViewDurationSeconds)
+                .HasDefaultValue(0L);
+
+            // FR-AD-42: Soft delete
+            builder.Property(a => a.IsDeleted)
+                .HasDefaultValue(false);
+
+            builder.Property(a => a.DeletedAt);
+
+            builder.Property(a => a.DeletedBy)
+                .HasMaxLength(450);
+
             // Indexes
             builder.HasIndex(a => a.Category);
             builder.HasIndex(a => a.ContentType);
             builder.HasIndex(a => a.IsPublished);
+            builder.HasIndex(a => a.IsDeleted);
         }
     }
 }
