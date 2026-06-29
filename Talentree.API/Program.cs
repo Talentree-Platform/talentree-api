@@ -207,7 +207,8 @@ namespace Talentree.API
                 options.AddPolicy("AllowFrontend", policy =>
                 {
                     policy.WithOrigins(
-                        "https://talentree-platform.netlify.app"
+                        "https://talentree-platform.netlify.app",
+                        "https://talentree-platform.vercel.app"
                     )
                     .AllowAnyHeader()
                     .AllowAnyMethod()
