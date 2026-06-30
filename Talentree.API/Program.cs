@@ -16,6 +16,7 @@ using Talentree.Service.Contracts;
 using Talentree.Service.Mapping;
 using Talentree.Service.Services;
 using Talentree.Core.Entities.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Talentree.API
 {
@@ -30,6 +31,19 @@ namespace Talentree.API
             // ===============================
             builder.Services.ValidationServices();
             builder.Services.AddControllers();
+
+            // ===============================
+            // Rate Limiting
+            // ===============================
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.AddFixedWindowLimiter("AdminAi", opt =>
+                {
+                    opt.PermitLimit = 20;
+                    opt.Window = TimeSpan.FromMinutes(1);
+                    opt.QueueLimit = 0;
+                });
+            });
 
             // ===============================
             // Swagger + JWT Authorization
@@ -240,6 +254,8 @@ namespace Talentree.API
             app.UseHttpsRedirection();
 
             app.UseCors("AllowFrontend");
+
+            app.UseRateLimiter();
 
             app.UseStaticFiles();
 

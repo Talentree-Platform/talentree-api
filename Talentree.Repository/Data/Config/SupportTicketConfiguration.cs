@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
@@ -83,6 +83,13 @@ namespace Talentree.Repository.Data.Config
 
             builder.HasIndex(t => t.AssignedToAdminId)
                 .HasDatabaseName("IX_SupportTickets_AssignedToAdminId");
+
+            // AI columns - ignore updates from backend
+            builder.Property(t => t.PriorityScore)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+
+            builder.Property(t => t.AutoCategory)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
         }
     }
 }

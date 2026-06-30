@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
@@ -60,6 +60,16 @@ namespace Talentree.Repository.Data.Configurations
                 .WithOne(h => h.Request)
                 .HasForeignKey(h => h.BoProductionRequestId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // AI/Analytics fields - ignore updates from backend
+            builder.Property(r => r.IsFraudFlag)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+
+            builder.Property(r => r.FraudScore)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+
+            builder.Property(r => r.FulfillmentTimeHours)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
         }
     }
 }

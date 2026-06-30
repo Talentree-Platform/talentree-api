@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities.Identity;
 using Talentree.Repository.Data.Config.Base;
@@ -38,5 +38,9 @@ public class BusinessOwnerProfileConfiguration
 
         builder.Property(b => b.BrandTone)
             .HasMaxLength(200);
+
+        // AI fields - ignore updates from backend
+        builder.Property(b => b.ProfileCompletenessPct)
+            .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
     }
 }
