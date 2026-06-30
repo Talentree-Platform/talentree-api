@@ -23,7 +23,11 @@ namespace Talentree.Repository.Data.Config
                 .IsRequired();
 
             builder.Property(r => r.SentimentLabel)
-                .HasMaxLength(20);
+                .HasMaxLength(20)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+
+            builder.Property(r => r.SentimentScore)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             builder.Property(r => r.FlaggedToxic)
                 .HasDefaultValue(false);

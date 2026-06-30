@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
 
@@ -44,10 +44,12 @@ namespace Talentree.Repository.Data.Config
 
             // AI columns — always inserted as defaults, updated by ML pipeline
             builder.Property(t => t.AnomalyFlag)
-                .HasDefaultValue(false);
+                .HasDefaultValue(false)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             builder.Property(t => t.AnomalyScore)
-                .HasColumnType("real");
+                .HasColumnType("real")
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             // Fast dashboard queries: all transactions for a BO ordered by date
             builder.HasIndex(t => new { t.BusinessOwnerId, t.CreatedAt });

@@ -139,6 +139,14 @@ namespace Talentree.API.Extentions
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
 
+            services.AddHttpClient("AiService", client =>
+            {
+                var baseUrl = configuration["AIService:BaseUrl"] ?? "http://20.244.32.232:8000";
+                client.BaseAddress = new Uri(baseUrl);
+                client.Timeout = TimeSpan.FromSeconds(60);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            });
+
             return services;
         }
 

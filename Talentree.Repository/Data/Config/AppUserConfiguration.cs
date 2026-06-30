@@ -14,7 +14,14 @@ public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
             .HasMaxLength(150);
 
         builder.Property(u => u.RfmSegment)
-            .HasMaxLength(20);
+            .HasMaxLength(20)
+            .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+
+        builder.Property(u => u.ChurnRiskScore)
+            .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+
+        builder.Property(u => u.ChurnRiskUpdatedAt)
+            .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
         builder.Property(u => u.IsActive)
             .HasDefaultValue(true);

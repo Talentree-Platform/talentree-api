@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Talentree.Core.Entities;
 using Talentree.Repository.Data.Config.Base;
@@ -80,32 +80,41 @@ namespace Talentree.Repository.Data.Config
 
             // AI Team Fields
             builder.Property(p => p.ViewCount)
-                .HasDefaultValue(0);
+                .HasDefaultValue(0)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             builder.Property(p => p.CartAddCount)
-                .HasDefaultValue(0);
+                .HasDefaultValue(0)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             builder.Property(p => p.PurchaseCount)
-                .HasDefaultValue(0);
+                .HasDefaultValue(0)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             builder.Property(p => p.RevenueTotal)
                 .HasColumnType("decimal(14,2)")
-                .HasDefaultValue(0);
+                .HasDefaultValue(0)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             builder.Property(p => p.DemandForecastQty)
-                .IsRequired(false);
+                .IsRequired(false)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             builder.Property(p => p.DemandForecastUpdatedAt)
-                .IsRequired(false);
+                .IsRequired(false)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             builder.Property(p => p.LowStockFlag)
-                .HasDefaultValue(false);
+                .HasDefaultValue(false)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             builder.Property(p => p.AvgRating)
-                .IsRequired(false);
+                .IsRequired(false)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
 
             builder.Property(p => p.DescriptionQualityScore)
-                .IsRequired(false);
+                .IsRequired(false)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
         }
     }
 }
