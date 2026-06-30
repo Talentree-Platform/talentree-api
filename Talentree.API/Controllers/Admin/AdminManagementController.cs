@@ -12,7 +12,7 @@ using Talentree.Service.DTOs.UserManagement;
 
 namespace Talentree.API.Controllers.Admin
 {
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [Route("api/admin-management")]
     public class AdminManagementController : BaseApiController
     {
