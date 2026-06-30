@@ -694,7 +694,7 @@ namespace Talentree.Service.Services
             }
 
             var performerRoles = await _userManager.GetRolesAsync(performer);
-            if (!performerRoles.Contains("SuperAdmin"))
+            if (!performerRoles.Contains("Admin"))
             {
                 throw new ForbiddenException("Privilege escalation prevented: Only SuperAdmin can perform admin management actions.");
             }
