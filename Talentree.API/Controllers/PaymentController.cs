@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Talentree.API.Models;
@@ -13,9 +13,13 @@ namespace Talentree.API.Controllers
     public class PaymentController : BaseApiController
     {
         private readonly IPaymentService _paymentService;
+        private readonly Microsoft.Extensions.Logging.ILogger<PaymentController> _logger;
 
-        public PaymentController(IPaymentService paymentService)
-            => _paymentService = paymentService;
+        public PaymentController(IPaymentService paymentService, Microsoft.Extensions.Logging.ILogger<PaymentController> logger)
+        {
+            _paymentService = paymentService;
+            _logger = logger;
+        }
 
         /// <summary>
         /// Step 1 of the material order payment flow.
@@ -87,10 +91,12 @@ namespace Talentree.API.Controllers
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("signature"))
             {
+                _logger.LogWarning(ex, "Stripe signature validation failed.");
                 return BadRequest(ex.Message);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "An unexpected error occurred during Stripe webhook processing.");
                 // Return 200 so Stripe doesn't retry — log the error in production
                 return Ok();
             }
