@@ -517,7 +517,14 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
 
             // Publish AI anomaly check request
-            await _eventPublisher.PublishAsync("ai.anomaly", new AnomalyPredictionMessage { TransactionId = transaction.Id });
+            try
+            {
+                await _eventPublisher.PublishAsync("ai.anomaly", new AnomalyPredictionMessage { TransactionId = transaction.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish AI anomaly prediction event for transaction {TransactionId}. Order processing will continue.", transaction.Id);
+            }
         }
 
         /// <summary>
