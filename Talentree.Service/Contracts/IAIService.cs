@@ -11,6 +11,9 @@ namespace Talentree.Service.Contracts
         // Called when product is created or updated
         Task ComputeProductAsync(int productId);
 
+        // Called when product is created or updated — predicts demand forecast
+        Task PredictDemandAsync(int productId);
+
         // Called when BO profile is updated
         Task ComputeProfileAsync(string boUserId);
 

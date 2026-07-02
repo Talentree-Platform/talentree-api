@@ -98,7 +98,15 @@ namespace Talentree.Service.Services
             await _unitOfWork.CompleteAsync();
 
             var ticketId = ticket.Id;
-            await _eventPublisher.PublishAsync("ai.triage", new TriagePredictionMessage { TicketId = ticketId });
+            // Trigger AI triage prediction (fire-and-forget resilient)
+            try
+            {
+                await _eventPublisher.PublishAsync("ai.triage", new TriagePredictionMessage { TicketId = ticketId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish AI triage event for ticket {TicketId}. Ticket creation will continue.", ticketId);
+            }
 
             // Upload attachments
             if (dto.Attachments != null && dto.Attachments.Count > 0)

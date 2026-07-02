@@ -158,8 +158,15 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<BusinessOwnerProfile>().Update(profile);
             await _unitOfWork.CompleteAsync();
 
-            // Notify AI to recompute profile completeness (using centralized background queue)
-            await _eventPublisher.PublishAsync("ai.profile", new ProfileComputationMessage { UserId = userId });
+            // Notify AI to recompute profile completeness (fire-and-forget resilient)
+            try
+            {
+                await _eventPublisher.PublishAsync("ai.profile", new ProfileComputationMessage { UserId = userId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish AI profile event for user {UserId}. Profile update will continue.", userId);
+            }
 
             // Email change — send OTP (handled separately via FR-BO-32 email verification flow)
             // We don't change email here directly — we send OTP first

@@ -112,7 +112,7 @@ namespace Talentree.API.Controllers
             }
         }
 
-        [AllowAnonymous]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         [HttpPost("retrain")]
         public async Task<IActionResult> TriggerRetraining([FromBody] RetrainRequestDto dto)
         {
