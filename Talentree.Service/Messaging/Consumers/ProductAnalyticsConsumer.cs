@@ -24,6 +24,7 @@ namespace Talentree.Service.Messaging.Consumers
         {
             var aiService = serviceProvider.GetRequiredService<IAIService>();
             await aiService.ComputeProductAsync(message.ProductId);
+            await aiService.PredictDemandAsync(message.ProductId);
         }
     }
 }

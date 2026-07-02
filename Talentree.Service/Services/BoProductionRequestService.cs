@@ -87,8 +87,15 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<BoProductionRequest>().Add(request);
             await _unitOfWork.CompleteAsync();
 
-            // Publish AI fraud check request
-            await _eventPublisher.PublishAsync("ai.fraud", new FraudPredictionMessage { RequestId = request.Id });
+            // Publish AI fraud check request (fire-and-forget resilient)
+            try
+            {
+                await _eventPublisher.PublishAsync("ai.fraud", new FraudPredictionMessage { RequestId = request.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish AI fraud event for production request {RequestId}. Request submission will continue.", request.Id);
+            }
 
             var result = await LoadBoDetailAsync(request.Id, businessOwnerId);
 

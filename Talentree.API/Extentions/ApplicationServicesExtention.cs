@@ -133,17 +133,25 @@ namespace Talentree.API.Extentions
             // FR-AD-36: Terms & Policies
             services.AddScoped<IPolicyService, PolicyService>();
 
-            // Register HttpClient for AI service
+            // ── AI microservice HTTP clients ───────────────────────────────────────────────
+            // BaseUrl is required — the app will throw at startup if the key is missing,
+            // matching the same null-guard inside AIService.cs itself.
+            var aiBaseUrl = configuration["AIService:BaseUrl"]
+                ?? throw new InvalidOperationException(
+                    "AIService:BaseUrl is required in appsettings. Add it to appsettings.json or as an environment variable.");
+
+            // Typed client used by the RabbitMQ background consumer chain (IAIService / AIService)
             services.AddHttpClient<IAIService, AIService>(client =>
             {
+                client.BaseAddress = new Uri(aiBaseUrl);
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
 
+            // Named client used by the BusinessOwnerAiProxyController and AdminAiProxyController
             services.AddHttpClient("AiService", client =>
             {
-                var baseUrl = configuration["AIService:BaseUrl"] ?? "http://20.244.32.232:8000";
-                client.BaseAddress = new Uri(baseUrl);
-                client.Timeout = TimeSpan.FromSeconds(60);
+                client.BaseAddress = new Uri(aiBaseUrl);
+                client.Timeout = TimeSpan.FromSeconds(30);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
             });
 

@@ -189,9 +189,18 @@ namespace Talentree.Service.Services
             }
 
             await _unitOfWork.CompleteAsync();
-            // Notify AI to compute quality + demand for this product
+
+            // Notify AI to compute quality + demand for this product (fire-and-forget resilient)
             var productId = product.Id;
-            await _eventPublisher.PublishAsync("ai.product", new ProductComputationMessage { ProductId = productId });
+            try
+            {
+                await _eventPublisher.PublishAsync("ai.product", new ProductComputationMessage { ProductId = productId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish AI product event for product {ProductId}. Product creation will continue.", productId);
+            }
+
             return await GetProductByIdAsync(product.Id, businessOwnerUserId);
         }
 
@@ -274,7 +283,16 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<Product>().Update(product);
             await _unitOfWork.CompleteAsync();
 
-            await _eventPublisher.PublishAsync("ai.product", new ProductComputationMessage { ProductId = productId });
+            // Notify AI to recompute quality + demand for this product (fire-and-forget resilient)
+            try
+            {
+                await _eventPublisher.PublishAsync("ai.product", new ProductComputationMessage { ProductId = productId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish AI product event for product {ProductId}. Product update will continue.", productId);
+            }
+
             return await GetProductByIdAsync(product.Id, businessOwnerUserId);
         }
 

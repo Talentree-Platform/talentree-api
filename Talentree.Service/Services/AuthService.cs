@@ -440,6 +440,16 @@ namespace Talentree.Service.Services
             var userInfo = _mapper.Map<UserInfoDto>(user);
             userInfo.Roles = roles.ToList();
 
+            // Trigger churn prediction on every successful login (fire-and-forget resilient)
+            try
+            {
+                await _eventPublisher.PublishAsync("ai.churn", new ChurnPredictionMessage { UserId = user.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish AI churn event for user {UserId}. Login will continue.", user.Id);
+            }
+
             // Return auth response
             return new AuthResponseDto
             {
@@ -719,9 +729,17 @@ namespace Talentree.Service.Services
 
             // Save changes
             await _unitOfWork.CompleteAsync();
-            // Predict churn risk on every login (using centralized background queue)
+
+            // Predict churn risk on every token refresh (fire-and-forget resilient)
             var userId = user.Id;
-            await _eventPublisher.PublishAsync("ai.churn", new ChurnPredictionMessage { UserId = userId });
+            try
+            {
+                await _eventPublisher.PublishAsync("ai.churn", new ChurnPredictionMessage { UserId = userId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish AI churn event during token refresh for user {UserId}. Refresh will continue.", userId);
+            }
 
             // Map user to UserInfoDto
             var userInfo = _mapper.Map<UserInfoDto>(user);

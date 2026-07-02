@@ -66,6 +66,16 @@ namespace Talentree.Service.Services
         }
 
         // ═══════════════════════════════════════════════════════
+        // DEMAND PREDICTION (Products)
+        // ═══════════════════════════════════════════════════════
+        public async Task PredictDemandAsync(int productId)
+        {
+            _logger.LogInformation("Starting demand prediction for product {ProductId}", productId);
+
+            await CallAIAsync($"/ai/predict/demand/{productId}", HttpMethod.Post);
+        }
+
+        // ═══════════════════════════════════════════════════════
         // PROFILE COMPUTATION (Business Owners)
         // ═══════════════════════════════════════════════════════
         public async Task ComputeProfileAsync(string boUserId)

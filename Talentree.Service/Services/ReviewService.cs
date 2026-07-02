@@ -157,7 +157,15 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<ProductReview>().Update(review);
             await _unitOfWork.CompleteAsync();
 
-            await _eventPublisher.PublishAsync("ai.sentiment", new SentimentPredictionMessage { ReviewId = reviewId });
+            // Trigger AI sentiment analysis on the BO's response (fire-and-forget resilient)
+            try
+            {
+                await _eventPublisher.PublishAsync("ai.sentiment", new SentimentPredictionMessage { ReviewId = reviewId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish AI sentiment event for review {ReviewId}. Review response will continue.", reviewId);
+            }
             // ✅ ADD NOTIFICATION TO CUSTOMER
             await _notificationService.CreateNotificationAsync(new DTOs.Notification.CreateNotificationDto
             {
@@ -438,8 +446,15 @@ namespace Talentree.Service.Services
             _unitOfWork.Repository<ProductReview>().Add(review);
             await _unitOfWork.CompleteAsync();
 
-            // Publish AI sentiment prediction request
-            await _eventPublisher.PublishAsync("ai.sentiment", new SentimentPredictionMessage { ReviewId = review.Id });
+            // Publish AI sentiment prediction request (fire-and-forget resilient)
+            try
+            {
+                await _eventPublisher.PublishAsync("ai.sentiment", new SentimentPredictionMessage { ReviewId = review.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish AI sentiment event for review {ReviewId}. Review creation will continue.", review.Id);
+            }
 
             // 6. Recalculate Product.AvgRating
             var allReviewsSpec = new ProductReviewsSpecification(dto.ProductId, new CustomerReviewFilterParams { PageSize = 1000 });
