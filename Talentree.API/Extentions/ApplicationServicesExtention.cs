@@ -144,14 +144,14 @@ namespace Talentree.API.Extentions
             services.AddHttpClient<IAIService, AIService>(client =>
             {
                 client.BaseAddress = new Uri(aiBaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(30);
+                client.Timeout = TimeSpan.FromMinutes(5);
             });
 
             // Named client used by the BusinessOwnerAiProxyController and AdminAiProxyController
             services.AddHttpClient("AiService", client =>
             {
                 client.BaseAddress = new Uri(aiBaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(30);
+                client.Timeout = TimeSpan.FromMinutes(5);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
             });
 

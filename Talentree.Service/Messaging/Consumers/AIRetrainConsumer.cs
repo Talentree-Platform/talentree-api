@@ -50,7 +50,7 @@ namespace Talentree.Service.Messaging.Consumers
             }
 
             using var httpClient = _httpClientFactory.CreateClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(30);
+            httpClient.Timeout = TimeSpan.FromMinutes(5);
 
             _logger.LogInformation("Sending retraining trigger request to FastAPI Railway for model: {ModelType}.", message.ModelType);
             var response = await httpClient.PostAsync($"{baseUrl}{endpoint}", new StringContent(string.Empty, Encoding.UTF8, "application/json"));

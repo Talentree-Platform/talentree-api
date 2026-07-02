@@ -141,7 +141,7 @@ namespace Talentree.Service.Services
                 _logger.LogDebug("Calling AI endpoint: {Endpoint}", endpoint);
 
                 var request = new HttpRequestMessage(method, $"{_baseUrl}{endpoint}");
-                var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30));
+                var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromMinutes(5));
 
                 var response = await _httpClient.SendAsync(request, cts.Token);
 
