@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using Talentree.Core;
 using Talentree.Core.Entities.Identity;
 using Talentree.Service.DTOs.AI;
 
@@ -29,15 +30,18 @@ namespace Talentree.API.Controllers.BusinessOwner
     {
         private readonly HttpClient _httpClient;
         private readonly UserManager<AppUser> _userManager;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<ChatbotController> _logger;
 
         public ChatbotController(
             IHttpClientFactory httpClientFactory,
             UserManager<AppUser> userManager,
+            IUnitOfWork unitOfWork,
             ILogger<ChatbotController> logger)
         {
             _httpClient = httpClientFactory.CreateClient("ChatbotService");
             _userManager = userManager;
+            _unitOfWork = unitOfWork;
             _logger = logger;
         }
 
@@ -76,7 +80,8 @@ namespace Talentree.API.Controllers.BusinessOwner
             profile.TargetAudience = dto.TargetAudience;
             profile.BrandTone = dto.Tone;
 
-            await _userManager.UpdateAsync(profile.User);
+            _unitOfWork.Repository<BusinessOwnerProfile>().Update(profile);
+            await _unitOfWork.CompleteAsync();
 
             _logger.LogInformation(
                 "Chatbot settings updated for seller {SellerId}. Audience: {Audience}, Tone: {Tone}",
