@@ -82,7 +82,9 @@ namespace Talentree.Service.Services
                 BusinessStatus = profile.Status.ToString(),
                 FacebookLink = profile.FacebookLink,
                 InstagramLink = profile.InstagramLink,
-                WebsiteLink = profile.WebsiteLink
+                WebsiteLink = profile.WebsiteLink,
+                TargetAudience = profile.TargetAudience,
+                BrandTone = profile.BrandTone
             };
         }
 
@@ -126,6 +128,12 @@ namespace Talentree.Service.Services
             profile.FacebookLink = dto.FacebookLink;
             profile.InstagramLink = dto.InstagramLink;
             profile.WebsiteLink = dto.WebsiteLink;
+
+            // AI Chatbot Agent context (only update if provided)
+            if (dto.TargetAudience != null)
+                profile.TargetAudience = dto.TargetAudience;
+            if (dto.BrandTone != null)
+                profile.BrandTone = dto.BrandTone;
 
             // Upload profile photo (max 2MB)
             if (profilePhoto != null)

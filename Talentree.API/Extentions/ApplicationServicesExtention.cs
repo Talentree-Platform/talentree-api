@@ -155,6 +155,18 @@ namespace Talentree.API.Extentions
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
             });
 
+            // ── AI Chatbot Agent (Railway) ─────────────────────────────────────────────
+            var chatbotBaseUrl = configuration["AIService:ChatbotBaseUrl"];
+            if (!string.IsNullOrEmpty(chatbotBaseUrl))
+            {
+                services.AddHttpClient("ChatbotService", client =>
+                {
+                    client.BaseAddress = new Uri(chatbotBaseUrl);
+                    client.Timeout = TimeSpan.FromSeconds(60);
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
+                });
+            }
+
             return services;
         }
 

@@ -1,4 +1,4 @@
-﻿namespace Talentree.Service.DTOs.AccountSettings
+namespace Talentree.Service.DTOs.AccountSettings
 {
     public class ProfileDto
     {
@@ -19,5 +19,9 @@
         public string? FacebookLink { get; set; }
         public string? InstagramLink { get; set; }
         public string? WebsiteLink { get; set; }
+
+        // AI Chatbot Agent context
+        public string? TargetAudience { get; set; }
+        public string? BrandTone { get; set; }
     }
 }
