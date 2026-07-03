@@ -109,13 +109,22 @@ namespace Talentree.API.Controllers.BusinessOwner
             var (user, profile) = await GetUserAndProfileAsync();
 
             // Build the request payload the Railway chatbot expects
+            // Backend-side resilience: Fallback if BusinessName or BusinessCategory is empty in DB
+            var brandName = !string.IsNullOrWhiteSpace(profile.BusinessName) 
+                ? profile.BusinessName 
+                : (!string.IsNullOrWhiteSpace(user.DisplayName) ? user.DisplayName : "TalentTree Seller");
+
+            var category = !string.IsNullOrWhiteSpace(profile.BusinessCategory)
+                ? profile.BusinessCategory
+                : "General Retail";
+
             var chatbotPayload = new
             {
                 seller_id = user.Id,
-                brand_name = profile.BusinessName,
-                category = profile.BusinessCategory,
-                target_audience = profile.TargetAudience ?? "General audience",
-                tone = profile.BrandTone ?? "Professional",
+                brand_name = brandName,
+                category = category,
+                target_audience = !string.IsNullOrWhiteSpace(profile.TargetAudience) ? profile.TargetAudience : "General audience",
+                tone = !string.IsNullOrWhiteSpace(profile.BrandTone) ? profile.BrandTone : "Professional",
                 message = dto.Message
             };
 
