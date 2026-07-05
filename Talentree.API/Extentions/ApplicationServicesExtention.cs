@@ -167,6 +167,20 @@ namespace Talentree.API.Extentions
                 });
             }
 
+            // ── AI Help Center Support API ─────────────────────────────────────────────
+            services.Configure<Talentree.Core.Settings.AiHelpCenterOptions>(
+                configuration.GetSection("AiHelpCenter"));
+
+            var helpCenterBaseUrl = configuration["AiHelpCenter:BaseUrl"]
+                ?? "https://mona38-talentree-support.hf.space";
+
+            services.AddHttpClient<IAiHelpCenterService, AiHelpCenterService>(client =>
+            {
+                client.BaseAddress = new Uri(helpCenterBaseUrl);
+                client.Timeout = TimeSpan.FromSeconds(30);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            });
+
             return services;
         }
 
