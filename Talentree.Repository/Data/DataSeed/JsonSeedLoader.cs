@@ -5,6 +5,7 @@
 // inserts or updates data into the correct EF DbSets.
 //
 // Execution order (dependency-safe):
+//   0. UsersData               INSERT  (AppUsers + roles — must run first, all other steps FK on users)
 //   1. Transactions            INSERT  (no Id — auto-generated)
 //   2. LoginHistories          INSERT  (no Id — auto-generated)
 //   3. ProductReviews          INSERT  (no Id — auto-generated)
@@ -19,6 +20,7 @@
 // All sections are idempotent: INSERT sections check Any() first.
 // ============================================================
 using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Talentree.Core.Entities;
 using Talentree.Core.Entities.Identity;
@@ -28,7 +30,11 @@ namespace Talentree.Repository.Data.DataSeed
 {
     public static class JsonSeedLoader
     {
-        public static async Task SeedAsync(TalentreeDbContext context, string jsonSeedFolderPath, bool seedInteractions = false)
+        public static async Task SeedAsync(
+            TalentreeDbContext context,
+            string jsonSeedFolderPath,
+            bool seedInteractions = false,
+            UserManager<AppUser>? userManager = null)
         {
             if (!Directory.Exists(jsonSeedFolderPath))
             {
@@ -37,6 +43,9 @@ namespace Talentree.Repository.Data.DataSeed
             }
 
             Console.WriteLine($"[JsonSeedLoader] Loading from: {jsonSeedFolderPath}");
+
+            // ── 0. Users (must run before every other section — all FK-validate against AppUsers)
+            await SeedUsersDataAsync(context, Path.Combine(jsonSeedFolderPath, "UsersData.json"), userManager);
 
             // ── 0a. Products
             var productSeedResult = await ProductSeeder.SeedAsync(context, jsonSeedFolderPath);
@@ -473,6 +482,215 @@ namespace Talentree.Repository.Data.DataSeed
 
             await ctx.SaveChangesAsync();
             Console.WriteLine($"[JsonSeedLoader] Products_stats_update → {updated} rows updated.");
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        // 0. UsersData
+        // Seeds AppUser rows from UsersData.json.
+        // Requires UserManager to hash passwords and assign roles correctly.
+        // Gracefully degrades (warning only) when userManager is null or
+        // the file does not exist / is empty.
+        // Each JSON object may carry an optional "Role" string field;
+        // defaults to "Customer" when the field is absent.
+        // Idempotency sentinel: first user's email (customer001@seed.talentree.test).
+        // ──────────────────────────────────────────────────────────────
+        private static async Task SeedUsersDataAsync(
+            TalentreeDbContext ctx,
+            string filePath,
+            UserManager<AppUser>? userManager)
+        {
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine("[JsonSeedLoader] UsersData.json not found — skipping.");
+                return;
+            }
+
+            var fileInfo = new FileInfo(filePath);
+            if (fileInfo.Length == 0)
+            {
+                Console.WriteLine("[JsonSeedLoader] UsersData.json is empty — skipping.");
+                return;
+            }
+
+            if (userManager == null)
+            {
+                Console.WriteLine("[JsonSeedLoader] WARNING: UserManager not provided — skipping UsersData seed.");
+                return;
+            }
+
+            // Idempotency check — sentinel is the first seeded user's e-mail.
+            const string SeedPassword = "Seed@Talentree2026";
+            const string SentinelEmail = "customer001@seed.talentree.test";
+
+            if (await ctx.Users.AnyAsync(u => u.Email == SentinelEmail))
+            {
+                Console.WriteLine("[JsonSeedLoader] UsersData already seeded — skipping.");
+                return;
+            }
+
+            using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(filePath));
+            var tablesElement = doc.RootElement.GetProperty("tables");
+            var usersElement = tablesElement.GetProperty("AspNetUsers");
+            var rolesElement = tablesElement.GetProperty("AspNetUserRoles");
+            var profilesElement = tablesElement.GetProperty("BusinessOwnerProfile");
+
+            // ── 1. Read Role Mappings ──────────────────────────────────
+            var userIdToRoleName = new Dictionary<string, string>();
+            foreach (var el in rolesElement.EnumerateArray())
+            {
+                var userId = el.GetProperty("UserId").GetString();
+                var roleId = el.GetProperty("RoleId").GetString();
+                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(roleId)) continue;
+
+                var roleName = roleId switch
+                {
+                    "d36bb1ec-0086-4bb2-87f6-74e4317e9f25" => "Customer",
+                    "2dc54145-70b1-418c-83aa-bdf412133d88" => "BusinessOwner",
+                    _ => "Customer"
+                };
+                userIdToRoleName[userId] = roleName;
+            }
+
+            // ── 2. Seed AspNetUsers ────────────────────────────────────
+            var inserted = 0;
+            var skipped  = 0;
+
+            foreach (var el in usersElement.EnumerateArray())
+            {
+                var email = el.GetProperty("Email").GetString();
+                if (string.IsNullOrWhiteSpace(email)) { skipped++; continue; }
+
+                var userId = el.GetProperty("Id").GetString();
+                if (string.IsNullOrEmpty(userId)) { skipped++; continue; }
+
+                // Skip if this specific user already exists (partial-run safety)
+                if (await ctx.Users.AnyAsync(u => u.Email == email))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                // ── Build AppUser from JSON ─────────────────────────────
+                var user = new AppUser
+                {
+                    // Identity core fields
+                    Id                   = userId,
+                    DisplayName          = el.GetProperty("DisplayName").GetString() ?? string.Empty,
+                    Email                = email,
+                    UserName             = el.GetProperty("UserName").GetString() ?? email,
+                    NormalizedEmail      = (el.GetProperty("NormalizedEmail").GetString() ?? email).ToUpperInvariant(),
+                    NormalizedUserName   = (el.GetProperty("NormalizedUserName").GetString() ?? email).ToUpperInvariant(),
+                    EmailConfirmed       = el.TryGetProperty("EmailConfirmed", out var ec) && ec.GetBoolean(),
+                    PhoneNumberConfirmed = el.TryGetProperty("PhoneNumberConfirmed", out var pnc) && pnc.GetBoolean(),
+                    TwoFactorEnabled     = el.TryGetProperty("TwoFactorEnabled", out var tfe) && tfe.GetBoolean(),
+                    LockoutEnabled       = el.TryGetProperty("LockoutEnabled", out var le) && le.GetBoolean(),
+                    AccessFailedCount    = el.TryGetProperty("AccessFailedCount", out var afc) ? afc.GetInt32() : 0,
+                    SecurityStamp        = el.TryGetProperty("SecurityStamp", out var ss) && ss.ValueKind != JsonValueKind.Null
+                                               ? ss.GetString()! : Guid.NewGuid().ToString(),
+                    ConcurrencyStamp     = el.TryGetProperty("ConcurrencyStamp", out var cs) && cs.ValueKind != JsonValueKind.Null
+                                               ? cs.GetString()! : Guid.NewGuid().ToString(),
+
+                    // AppUser custom fields
+                    IsActive             = !el.TryGetProperty("IsActive", out var ia) || ia.GetBoolean(),
+                    LoginCount           = el.TryGetProperty("LoginCount", out var lc) ? lc.GetInt32() : 0,
+                    AccountStatus        = el.TryGetProperty("AccountStatus", out var ast)
+                                               ? (AccountStatus)ast.GetInt32()
+                                               : AccountStatus.Active,
+                    IsBlocked            = el.TryGetProperty("IsBlocked", out var ib) && ib.GetBoolean(),
+                    LoginAttempts        = el.TryGetProperty("LoginAttempts", out var lat) ? lat.GetInt32() : 0,
+                    IsTwoFactorEnabled   = el.TryGetProperty("IsTwoFactorEnabled", out var itfe) && itfe.GetBoolean(),
+                    MustChangePassword   = el.TryGetProperty("MustChangePassword", out var mcp) && mcp.GetBoolean(),
+                    CreatedAt            = el.TryGetProperty("CreatedAt", out var cat) && cat.ValueKind != JsonValueKind.Null
+                                               ? cat.GetDateTime() : DateTime.UtcNow,
+                    LastLoginAt          = GetNullableDateTime(el, "LastLoginAt"),
+                };
+
+                // ── Determine role ──────────────────────────────────────
+                if (!userIdToRoleName.TryGetValue(userId, out var role))
+                {
+                    role = "Customer";
+                }
+
+                // ── Create via UserManager (handles password hashing + stores user) ──
+                var result = await userManager.CreateAsync(user, SeedPassword);
+                if (!result.Succeeded)
+                {
+                    Console.WriteLine($"[JsonSeedLoader] WARNING: Could not seed user '{email}': " +
+                        string.Join(", ", result.Errors.Select(e => e.Description)));
+                    skipped++;
+                    continue;
+                }
+
+                await userManager.AddToRoleAsync(user, role);
+                inserted++;
+            }
+
+            Console.WriteLine($"[JsonSeedLoader] AspNetUsers → {inserted} users inserted, {skipped} skipped.");
+
+            // ── 3. Seed BusinessOwnerProfile ───────────────────────────
+            var profileInserted = 0;
+            var profileSkipped = 0;
+
+            foreach (var el in profilesElement.EnumerateArray())
+            {
+                var userId = el.GetProperty("UserId").GetString();
+                if (string.IsNullOrEmpty(userId)) { profileSkipped++; continue; }
+
+                // Skip if profile already exists in DB
+                if (await ctx.BusinessOwnerProfiles.AnyAsync(p => p.UserId == userId))
+                {
+                    profileSkipped++;
+                    continue;
+                }
+
+                // Verify user actually exists in AspNetUsers before inserting profile to avoid FK violation
+                if (!await ctx.Users.AnyAsync(u => u.Id == userId))
+                {
+                    profileSkipped++;
+                    continue;
+                }
+
+                var profile = new BusinessOwnerProfile
+                {
+                    UserId                 = userId,
+                    BusinessName           = el.GetProperty("BusinessName").GetString() ?? string.Empty,
+                    BusinessDescription    = el.GetProperty("BusinessDescription").GetString() ?? string.Empty,
+                    BusinessCategory       = el.GetProperty("BusinessCategory").GetString() ?? string.Empty,
+                    BusinessAddress        = GetNullableString(el, "BusinessAddress"),
+                    TaxId                  = GetNullableString(el, "TaxId"),
+                    FacebookLink           = GetNullableString(el, "FacebookLink"),
+                    InstagramLink          = GetNullableString(el, "InstagramLink"),
+                    WebsiteLink            = GetNullableString(el, "WebsiteLink"),
+                    ProfilePhotoUrl        = GetNullableString(el, "ProfilePhotoUrl"),
+                    BusinessLogoUrl        = GetNullableString(el, "BusinessLogoUrl"),
+                    PhoneNumber            = GetNullableString(el, "PhoneNumber"),
+                    ProfileCompletenessPct = el.TryGetProperty("ProfileCompletenessPct", out var pcp) ? (byte)pcp.GetInt32() : (byte)0,
+                    Status                 = el.TryGetProperty("Status", out var st) ? (ApprovalStatus)st.GetInt32() : ApprovalStatus.Pending,
+                    ApprovedAt             = GetNullableDateTime(el, "ApprovedAt"),
+                    ApprovedBy             = GetNullableString(el, "ApprovedBy"),
+                    RejectionReason        = GetNullableString(el, "RejectionReason"),
+                    AutoApprovalDeadline   = GetNullableDateTime(el, "AutoApprovalDeadline"),
+                    IsDeleted              = el.TryGetProperty("IsDeleted", out var isDel) && isDel.GetBoolean(),
+                    DeletedAt              = GetNullableDateTime(el, "DeletedAt"),
+                    DeletedBy              = GetNullableString(el, "DeletedBy"),
+                    TargetAudience         = GetNullableString(el, "TargetAudience"),
+                    BrandTone              = GetNullableString(el, "BrandTone"),
+                    CreatedAt              = el.TryGetProperty("CreatedAt", out var cat) && cat.ValueKind != JsonValueKind.Null ? cat.GetDateTime() : DateTime.UtcNow,
+                    UpdatedAt              = GetNullableDateTime(el, "UpdatedAt"),
+                    CreatedBy              = el.TryGetProperty("CreatedBy", out var cb) && cb.ValueKind != JsonValueKind.Null ? cb.GetString() : "SystemSeeder",
+                    UpdatedBy              = el.TryGetProperty("UpdatedBy", out var ub) && ub.ValueKind != JsonValueKind.Null ? ub.GetString() : "SystemSeeder"
+                };
+
+                ctx.BusinessOwnerProfiles.Add(profile);
+                profileInserted++;
+            }
+
+            if (profileInserted > 0)
+            {
+                await ctx.SaveChangesAsync();
+            }
+
+            Console.WriteLine($"[JsonSeedLoader] BusinessOwnerProfile → {profileInserted} profiles inserted, {profileSkipped} skipped.");
         }
 
         // ──────────────────────────────────────────────────────────────
