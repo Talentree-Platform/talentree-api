@@ -113,6 +113,14 @@ namespace Talentree.API.Controllers
             {
                 permissions.AddRange(new[] { "ManageContent", "ManageProducts" });
             }
+            else if (role == "BusinessOwner")
+            {
+                permissions.AddRange(new[] { "ManageOwnProducts", "PurchaseRawMaterials", "CreateProductionRequests", "ViewEarnings", "RequestPayouts", "AccessAiDashboard", "UseAiChatbot", "ManageProfile" });
+            }
+            else if (role == "Customer")
+            {
+                permissions.AddRange(new[] { "BrowseCatalog", "ManageCart", "ManageWishlist", "PlaceOrders", "ViewOrders", "CreateProductReviews", "CreateSupportTickets", "ManageProfile" });
+            }
 
             var permissionsDto = new UserPermissionsDto
             {
