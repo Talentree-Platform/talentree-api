@@ -13,7 +13,7 @@ namespace Talentree.Repository
     /// <remarks>
     /// Order of operations: WHERE → INCLUDE → STRING INCLUDES → ORDER BY → SKIP/TAKE
     /// </remarks>
-    internal static class SpecificationsEvaluator<TEntity> where TEntity : class
+    public static class SpecificationsEvaluator<TEntity> where TEntity : class
     {
         /// <summary>
         /// Builds a complete IQueryable by applying all specification criteria
