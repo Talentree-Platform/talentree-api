@@ -109,10 +109,14 @@ namespace Talentree.API.Controllers
 
         // POST: api/business-owner-settings/security/revoke-other-sessions
         [HttpPost("security/revoke-other-sessions")]
-        public async Task<ActionResult<ApiResponse<object>>> RevokeOtherSessions(
-            [FromBody] RevokeSessionsDto dto)
+        public async Task<ActionResult<ApiResponse<object>>> RevokeOtherSessions()
         {
-            await _accountSettingsService.RevokeAllOtherSessionsAsync(GetUserId(), dto.CurrentRefreshToken);
+            var currentRefreshToken = Request.Cookies["refreshToken"];
+            if (string.IsNullOrEmpty(currentRefreshToken))
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse("Refresh token is missing from cookies"));
+            }
+            await _accountSettingsService.RevokeAllOtherSessionsAsync(GetUserId(), currentRefreshToken);
             return Ok(ApiResponse<object>.SuccessResponse(message: "All other sessions have been logged out"));
         }
 

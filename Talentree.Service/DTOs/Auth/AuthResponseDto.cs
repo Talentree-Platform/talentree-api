@@ -14,11 +14,6 @@ namespace Talentree.Service.DTOs.Auth
         /// </summary>
         public string AccessToken { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Refresh token (long-lived, typically 7-30 days)
-        /// Store securely, use to get new access tokens
-        /// </summary>
-        public string RefreshToken { get; set; } = string.Empty;
 
         /// <summary>
         /// When access token expires (UTC)

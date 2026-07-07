@@ -73,16 +73,16 @@ namespace Talentree.API.Controllers
         }
 
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto refreshTokenDto)
+        public async Task<IActionResult> RefreshToken()
         {
-            var authResponse = await _authService.RefreshTokenAsync(refreshTokenDto);
+            var authResponse = await _authService.RefreshTokenAsync();
             return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(authResponse));
         }
 
         [HttpPost("logout")]
-        public async Task<IActionResult> Logout([FromBody] RefreshTokenDto refreshTokenDto)
+        public async Task<IActionResult> Logout()
         {
-            await _authService.LogoutAsync(refreshTokenDto.RefreshToken);
+            await _authService.LogoutAsync();
             return Ok(ApiResponse<string>.SuccessResponse("Logged out successfully"));
         }
 

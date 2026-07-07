@@ -450,11 +450,12 @@ namespace Talentree.Service.Services
                 _logger.LogError(ex, "Failed to publish AI churn event for user {UserId}. Login will continue.", user.Id);
             }
 
+            SetRefreshTokenCookie(refreshToken);
+
             // Return auth response
             return new AuthResponseDto
             {
                 AccessToken = accessToken,
-                RefreshToken = refreshToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetAccessTokenExpiryMinutes()),
                 User = userInfo
             };
@@ -555,10 +556,11 @@ namespace Talentree.Service.Services
             var userInfo = _mapper.Map<UserInfoDto>(user);
             userInfo.Roles = roles.ToList();
 
+            SetRefreshTokenCookie(refreshToken);
+
             return new AuthResponseDto
             {
                 AccessToken = accessToken,
-                RefreshToken = refreshToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetAccessTokenExpiryMinutes()),
                 User = userInfo
             };
@@ -625,10 +627,11 @@ namespace Talentree.Service.Services
             var userInfo = _mapper.Map<UserInfoDto>(user);
             userInfo.Roles = roles.ToList();
 
+            SetRefreshTokenCookie(refreshToken);
+
             return new AuthResponseDto
             {
                 AccessToken = accessToken,
-                RefreshToken = refreshToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetAccessTokenExpiryMinutes()),
                 User = userInfo
             };
@@ -681,10 +684,14 @@ namespace Talentree.Service.Services
         // REFRESH TOKEN
         // ═══════════════════════════════════════════════════════════
 
-        public async Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenDto refreshTokenDto)
+        public async Task<AuthResponseDto> RefreshTokenAsync()
         {
+            var refreshToken = GetRefreshTokenFromCookie();
+            if (string.IsNullOrEmpty(refreshToken))
+                throw new BadRequestException("Refresh token is missing from cookies");
+
             // Hash the incoming refresh token
-            var tokenHash = _tokenService.HashToken(refreshTokenDto.RefreshToken);
+            var tokenHash = _tokenService.HashToken(refreshToken);
 
             // Find refresh token in database using Specification Pattern
             var spec = new RefreshTokenWithUserSpecification(tokenHash);
@@ -726,6 +733,7 @@ namespace Talentree.Service.Services
 
             // Save new refresh token
             await SaveRefreshTokenAsync(user.Id.ToString(), newRefreshToken);
+            SetRefreshTokenCookie(newRefreshToken);
 
             // Save changes
             await _unitOfWork.CompleteAsync();
@@ -749,7 +757,6 @@ namespace Talentree.Service.Services
             return new AuthResponseDto
             {
                 AccessToken = newAccessToken,
-                RefreshToken = newRefreshToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetAccessTokenExpiryMinutes()),
                 User = userInfo
             };
@@ -759,26 +766,31 @@ namespace Talentree.Service.Services
         // LOGOUT
         // ═══════════════════════════════════════════════════════════
 
-        public async Task LogoutAsync(string refreshToken)
+        public async Task LogoutAsync()
         {
-            // Hash the refresh token
-            var tokenHash = _tokenService.HashToken(refreshToken);
+            var refreshToken = GetRefreshTokenFromCookie();
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                // Hash the refresh token
+                var tokenHash = _tokenService.HashToken(refreshToken);
 
-            // Find token in database
-            var spec = new RefreshTokenWithUserSpecification(tokenHash);
-            var storedToken = await _unitOfWork.Repository<RefreshToken>()
-                           .GetByIdWithSpecificationsAsync(spec);
+                // Find token in database
+                var spec = new RefreshTokenWithUserSpecification(tokenHash);
+                var storedToken = await _unitOfWork.Repository<RefreshToken>()
+                               .GetByIdWithSpecificationsAsync(spec);
 
-            if (storedToken == null)
-                throw new Exception("Invalid refresh token");
+                if (storedToken != null)
+                {
+                    // Revoke token
+                    storedToken.RevokedAt = DateTime.UtcNow;
+                    _unitOfWork.Repository<RefreshToken>().Update(storedToken);
 
-            // Revoke token
-            storedToken.RevokedAt = DateTime.UtcNow;
-            _unitOfWork.Repository<RefreshToken>().Update(storedToken);
+                    // Save changes
+                    await _unitOfWork.CompleteAsync();
+                }
+            }
 
-            // Save changes
-            await _unitOfWork.CompleteAsync();
-
+            DeleteRefreshTokenCookie();
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -826,10 +838,11 @@ namespace Talentree.Service.Services
             var userInfo = _mapper.Map<UserInfoDto>(user);
             userInfo.Roles = roles.ToList();
 
+            SetRefreshTokenCookie(refreshToken);
+
             return new AuthResponseDto
             {
                 AccessToken = accessToken,
-                RefreshToken = refreshToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetAccessTokenExpiryMinutes()),
                 User = userInfo
             };
@@ -1008,10 +1021,11 @@ namespace Talentree.Service.Services
             var userInfo = _mapper.Map<UserInfoDto>(user);
             userInfo.Roles = roles.ToList();
 
+            SetRefreshTokenCookie(refreshToken);
+
             return new AuthResponseDto
             {
                 AccessToken = accessToken,
-                RefreshToken = refreshToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetAccessTokenExpiryMinutes()),
                 User = userInfo
             };
@@ -1097,10 +1111,11 @@ namespace Talentree.Service.Services
             var userInfo = _mapper.Map<UserInfoDto>(user);
             userInfo.Roles = roles.ToList();
 
+            SetRefreshTokenCookie(refreshToken);
+
             return new AuthResponseDto
             {
                 AccessToken = accessToken,
-                RefreshToken = refreshToken,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetAccessTokenExpiryMinutes()),
                 User = userInfo
             };
@@ -1129,6 +1144,35 @@ namespace Talentree.Service.Services
 
 
         // Helpers methods
+
+        private void SetRefreshTokenCookie(string refreshToken)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.UtcNow.AddDays(_tokenService.GetRefreshTokenExpiryDays())
+            };
+            _httpContextAccessor.HttpContext?.Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
+        }
+
+        private void DeleteRefreshTokenCookie()
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.UtcNow.AddDays(-1)
+            };
+            _httpContextAccessor.HttpContext?.Response.Cookies.Delete("refreshToken", cookieOptions);
+        }
+
+        private string? GetRefreshTokenFromCookie()
+        {
+            return _httpContextAccessor.HttpContext?.Request.Cookies["refreshToken"];
+        }
 
         private string GenerateOtpCode()
         {

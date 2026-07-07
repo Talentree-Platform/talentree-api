@@ -28,13 +28,13 @@ namespace Talentree.Service.Contracts
         /// Generates new access token using refresh token
         /// Implements token rotation (revokes old, creates new)
         /// </summary>
-        Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenDto refreshTokenDto);
+        Task<AuthResponseDto> RefreshTokenAsync();
 
         /// <summary>
         /// Revokes refresh token (logout)
         /// Marks token as revoked in database
         /// </summary>
-        Task LogoutAsync(string refreshToken);
+        Task LogoutAsync();
 
         /// <summary>
         /// Verifies user email using OTP code
