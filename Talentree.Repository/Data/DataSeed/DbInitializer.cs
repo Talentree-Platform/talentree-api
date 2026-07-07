@@ -81,7 +81,7 @@ namespace Talentree.Repository.Data.DataSeed
             //        Each section is idempotent — it checks Any() before inserting.
             var jsonSeedFolder = ResolveJsonSeedFolderPath();
             if (jsonSeedFolder != null)
-                await JsonSeedLoader.SeedAsync(context, jsonSeedFolder, seedInteractions);
+                await JsonSeedLoader.SeedAsync(context, jsonSeedFolder, seedInteractions, userManager);
             else
                 logger.LogWarning("[JsonSeedLoader] jsonSeed/ folder not found — skipping bulk import.");
 
