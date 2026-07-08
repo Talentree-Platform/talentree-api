@@ -2,6 +2,7 @@ using AutoMapper;
 using Talentree.Core;
 using Talentree.Core.Entities;
 using Talentree.Core.Enums;
+using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.PlatformSettings;
@@ -47,7 +48,7 @@ namespace Talentree.Service.Services
 
             var published = all.FirstOrDefault(p => p.IsPublished)
                 ?? all.OrderByDescending(p => p.VersionNumber).FirstOrDefault()
-                ?? throw new KeyNotFoundException($"No policy document found for type '{type}'.");
+                ?? throw new NotFoundException($"No policy document found for type '{type}'.");
 
             return _mapper.Map<PolicyDocumentDto>(published);
         }
