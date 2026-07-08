@@ -108,6 +108,11 @@ public class GlobalExceptionHandlingMiddleware
                 ApiResponse<object>.ValidationErrorResponse(validationEx.Errors)
             ),
 
+            KeyNotFoundException keyNotFoundEx => (
+                HttpStatusCode.NotFound,
+                ApiResponse<object>.ErrorResponse(keyNotFoundEx.Message)
+            ),
+
             _ => (
                 HttpStatusCode.InternalServerError,
                 ApiResponse<object>.ErrorResponse(

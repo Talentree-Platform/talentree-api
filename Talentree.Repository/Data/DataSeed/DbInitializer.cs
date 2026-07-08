@@ -72,6 +72,11 @@ namespace Talentree.Repository.Data.DataSeed
             // ── 11: FAQs ─────────────────────────────────────────────────────────────
             await FAQSeeder.SeedFAQsAsync(context);
 
+            // ── 11b: Platform policies (Terms, Privacy, Refund, Seller, Community) ─
+            //         Seeds one published v1 for each PolicyDocumentType.
+            //         Idempotent — skips if any rows already exist.
+            await PlatformPolicySeed.SeedAsync(context);
+
             // ── 12: JSON seed folder (jsonSeed/) ─────────────────────────────────────
             //        Bulk-loads Transactions, LoginHistories, ProductReviews,
             //        SupportTickets, TicketMessages, OnboardingProgress,
