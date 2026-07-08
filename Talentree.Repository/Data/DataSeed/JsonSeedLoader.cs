@@ -99,8 +99,13 @@ namespace Talentree.Repository.Data.DataSeed
         private static async Task SeedTransactionsAsync(TalentreeDbContext ctx, string filePath)
         {
             if (!File.Exists(filePath)) { Console.WriteLine($"[JsonSeedLoader] {Path.GetFileName(filePath)} not found — skipping."); return; }
-            if (await ctx.Set<Transaction>().AnyAsync(t => t.StripePaymentIntentId == "pi_vbdivuzzpqk51fpkh1dnmmjb"))
-            { Console.WriteLine("[JsonSeedLoader] Transactions JSON already seeded — skipping."); return; }
+
+            var existingTransactions = await ctx.Set<Transaction>()
+                .Select(t => new { t.BusinessOwnerId, t.Amount, t.CreatedAt })
+                .ToListAsync();
+            var existingKeysSet = existingTransactions
+                .Select(t => (t.BusinessOwnerId, t.Amount, t.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")))
+                .ToHashSet();
 
             using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(filePath));
             var validUserIds = ctx.Set<AppUser>().Select(u => u.Id).ToHashSet();
@@ -111,28 +116,42 @@ namespace Talentree.Repository.Data.DataSeed
                 var boId = el.GetProperty("BusinessOwnerId").GetString()!;
                 if (!validUserIds.Contains(boId)) continue;
 
+                var amount = el.GetProperty("Amount").GetDecimal();
+                var createdAt = el.GetProperty("CreatedAt").GetDateTime();
+                var createdAtStr = createdAt.ToString("yyyy-MM-dd HH:mm:ss");
+
+                if (existingKeysSet.Contains((boId, amount, createdAtStr)))
+                    continue;
+
                 list.Add(new Transaction
                 {
                     BusinessOwnerId       = boId,
-                    Type                  = ParseEnum<TransactionType>(el.GetProperty("Type").GetString() ?? "Sale"),
-                    Description           = el.GetProperty("Description").GetString() ?? string.Empty,
-                    Amount                = el.GetProperty("Amount").GetDecimal(),
-                    BalanceAfter          = el.GetProperty("BalanceAfter").GetDecimal(),
+                    Type                  = el.TryGetProperty("Type", out var tProp) ? ParseEnum<TransactionType>(tProp.GetString() ?? "Sale") : TransactionType.Sale,
+                    Description           = el.TryGetProperty("Description", out var descProp) ? descProp.GetString() ?? string.Empty : string.Empty,
+                    Amount                = amount,
+                    BalanceAfter          = el.TryGetProperty("BalanceAfter", out var balProp) && balProp.ValueKind != JsonValueKind.Null ? balProp.GetDecimal() : 0m,
                     ReferenceId           = GetNullableInt(el, "ReferenceId"),
                     ReferenceType         = GetNullableString(el, "ReferenceType"),
                     StripePaymentIntentId = GetNullableString(el, "StripePaymentIntentId"),
-                    AnomalyFlag           = el.GetProperty("AnomalyFlag").GetInt32() != 0,
+                    AnomalyFlag           = el.TryGetProperty("AnomalyFlag", out var af) && af.ValueKind != JsonValueKind.Null && (af.ValueKind == JsonValueKind.True || (af.ValueKind == JsonValueKind.Number && af.GetInt32() != 0)),
                     AnomalyScore          = GetNullableFloat(el, "AnomalyScore"),
-                    CreatedAt             = el.GetProperty("CreatedAt").GetDateTime(),
-                    UpdatedAt             = el.GetProperty("UpdatedAt").GetDateTime(),
-                    CreatedBy             = el.GetProperty("CreatedBy").GetString() ?? boId,
-                    UpdatedBy             = el.GetProperty("UpdatedBy").GetString() ?? boId,
+                    CreatedAt             = createdAt,
+                    UpdatedAt             = el.TryGetProperty("UpdatedAt", out var uaProp) && uaProp.ValueKind != JsonValueKind.Null ? uaProp.GetDateTime() : createdAt,
+                    CreatedBy             = el.TryGetProperty("CreatedBy", out var cbProp) && cbProp.ValueKind != JsonValueKind.Null ? cbProp.GetString() ?? boId : boId,
+                    UpdatedBy             = el.TryGetProperty("UpdatedBy", out var ubProp) && ubProp.ValueKind != JsonValueKind.Null ? ubProp.GetString() ?? boId : boId,
                 });
             }
 
-            ctx.Set<Transaction>().AddRange(list);
-            await ctx.SaveChangesAsync();
-            Console.WriteLine($"[JsonSeedLoader] Transactions → {list.Count} rows inserted.");
+            if (list.Count > 0)
+            {
+                ctx.Set<Transaction>().AddRange(list);
+                await ctx.SaveChangesAsync();
+                Console.WriteLine($"[JsonSeedLoader] Transactions → {list.Count} rows inserted.");
+            }
+            else
+            {
+                Console.WriteLine("[JsonSeedLoader] Transactions → No new transactions to seed.");
+            }
         }
 
         // ──────────────────────────────────────────────────────────────
@@ -141,8 +160,13 @@ namespace Talentree.Repository.Data.DataSeed
         private static async Task SeedLoginHistoriesAsync(TalentreeDbContext ctx, string filePath)
         {
             if (!File.Exists(filePath)) { Console.WriteLine($"[JsonSeedLoader] {Path.GetFileName(filePath)} not found — skipping."); return; }
-            if (await ctx.Set<LoginHistory>().AnyAsync(l => l.IpAddress == "192.168.200.189" && l.DeviceInfo == "Dell XPS"))
-            { Console.WriteLine("[JsonSeedLoader] LoginHistories JSON already seeded — skipping."); return; }
+
+            var existingLogins = await ctx.Set<LoginHistory>()
+                .Select(l => new { l.UserId, l.LoginAt })
+                .ToListAsync();
+            var existingKeysSet = existingLogins
+                .Select(l => (l.UserId, l.LoginAt.ToString("yyyy-MM-dd HH:mm:ss")))
+                .ToHashSet();
 
             using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(filePath));
             var validUserIds = ctx.Set<AppUser>().Select(u => u.Id).ToHashSet();
@@ -153,20 +177,33 @@ namespace Talentree.Repository.Data.DataSeed
                 var userId = el.GetProperty("UserId").GetString()!;
                 if (!validUserIds.Contains(userId)) continue;
 
+                var loginAt = el.GetProperty("LoginAt").GetDateTime();
+                var loginAtStr = loginAt.ToString("yyyy-MM-dd HH:mm:ss");
+
+                if (existingKeysSet.Contains((userId, loginAtStr)))
+                    continue;
+
                 list.Add(new LoginHistory
                 {
                     UserId       = userId,
                     IpAddress    = el.GetProperty("IpAddress").GetString() ?? string.Empty,
                     DeviceInfo   = GetNullableString(el, "DeviceInfo"),
                     Location     = GetNullableString(el, "Location"),
-                    LoginAt      = el.GetProperty("LoginAt").GetDateTime(),
-                    IsSuccessful = el.GetProperty("IsSuccessful").GetInt32() != 0,
+                    LoginAt      = loginAt,
+                    IsSuccessful = el.TryGetProperty("IsSuccessful", out var isSucc) && isSucc.ValueKind != JsonValueKind.Null && (isSucc.ValueKind == JsonValueKind.True || (isSucc.ValueKind == JsonValueKind.Number && isSucc.GetInt32() != 0)),
                 });
             }
 
-            ctx.Set<LoginHistory>().AddRange(list);
-            await ctx.SaveChangesAsync();
-            Console.WriteLine($"[JsonSeedLoader] LoginHistories → {list.Count} rows inserted.");
+            if (list.Count > 0)
+            {
+                ctx.Set<LoginHistory>().AddRange(list);
+                await ctx.SaveChangesAsync();
+                Console.WriteLine($"[JsonSeedLoader] LoginHistories → {list.Count} rows inserted.");
+            }
+            else
+            {
+                Console.WriteLine("[JsonSeedLoader] LoginHistories → No new logins to seed.");
+            }
         }
 
         // ──────────────────────────────────────────────────────────────
@@ -175,8 +212,13 @@ namespace Talentree.Repository.Data.DataSeed
         private static async Task SeedProductReviewsAsync(TalentreeDbContext ctx, string filePath, Dictionary<int, int> productIdMap)
         {
             if (!File.Exists(filePath)) { Console.WriteLine($"[JsonSeedLoader] {Path.GetFileName(filePath)} not found — skipping."); return; }
-            if (await ctx.Set<ProductReview>().AnyAsync(r => r.CustomerName == "User b140"))
-            { Console.WriteLine("[JsonSeedLoader] ProductReviews JSON already seeded — skipping."); return; }
+
+            var existingReviews = await ctx.Set<ProductReview>()
+                .Select(r => new { r.CustomerUserId, r.ProductId, r.CreatedAt })
+                .ToListAsync();
+            var existingKeysSet = existingReviews
+                .Select(r => (r.CustomerUserId, r.ProductId, r.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")))
+                .ToHashSet();
 
             using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(filePath));
             var validProductIds = ctx.Set<Product>().Select(p => p.Id).ToHashSet();
@@ -185,7 +227,9 @@ namespace Talentree.Repository.Data.DataSeed
 
             foreach (var el in doc.RootElement.EnumerateArray())
             {
-                var jsonProductId = el.GetProperty("ProductId").GetInt32();
+                var jsonProductId = el.TryGetProperty("ProductId", out var pIdProp) ? pIdProp.GetInt32() : 0;
+                if (jsonProductId == 0) continue;
+
                 if (!productIdMap.TryGetValue(jsonProductId, out var productId))
                 {
                     productId = jsonProductId;
@@ -193,15 +237,21 @@ namespace Talentree.Repository.Data.DataSeed
 
                 if (!validProductIds.Contains(productId)) continue;
 
-                var customerUserId = el.GetProperty("CustomerUserId").GetString()!;
-                if (!validUserIds.Contains(customerUserId)) continue;
+                var customerUserId = el.TryGetProperty("CustomerUserId", out var cuProp) ? cuProp.GetString() : null;
+                if (string.IsNullOrEmpty(customerUserId) || !validUserIds.Contains(customerUserId)) continue;
+
+                var createdAt = el.TryGetProperty("CreatedAt", out var caProp) && caProp.ValueKind != JsonValueKind.Null ? caProp.GetDateTime() : DateTime.UtcNow;
+                var createdAtStr = createdAt.ToString("yyyy-MM-dd HH:mm:ss");
+
+                if (existingKeysSet.Contains((customerUserId, productId, createdAtStr)))
+                    continue;
 
                 list.Add(new ProductReview
                 {
                     ProductId      = productId,
                     CustomerUserId = customerUserId,
-                    CustomerName   = el.GetProperty("CustomerName").GetString() ?? string.Empty,
-                    Rating         = (byte)el.GetProperty("Rating").GetInt32(),
+                    CustomerName   = el.TryGetProperty("CustomerName", out var cn) ? cn.GetString() ?? string.Empty : string.Empty,
+                    Rating         = el.TryGetProperty("Rating", out var rat) && rat.ValueKind != JsonValueKind.Null ? (byte)rat.GetInt32() : (byte)5,
                     ReviewText     = GetNullableString(el, "ReviewText"),
                     IsAnonymous    = GetIntBool(el, "IsAnonymous"),
                     OwnerResponse  = GetNullableString(el, "OwnerResponse"),
@@ -209,16 +259,23 @@ namespace Talentree.Repository.Data.DataSeed
                     SentimentScore = GetNullableFloat(el, "SentimentScore"),
                     SentimentLabel = GetNullableString(el, "SentimentLabel"),
                     FlaggedToxic   = GetIntBool(el, "FlaggedToxic"),
-                    CreatedAt      = el.GetProperty("CreatedAt").GetDateTime(),
-                    UpdatedAt      = el.GetProperty("UpdatedAt").GetDateTime(),
-                    CreatedBy      = el.GetProperty("CreatedBy").GetString() ?? customerUserId,
-                    UpdatedBy      = el.GetProperty("UpdatedBy").GetString() ?? customerUserId,
+                    CreatedAt      = createdAt,
+                    UpdatedAt      = el.TryGetProperty("UpdatedAt", out var uaProp) && uaProp.ValueKind != JsonValueKind.Null ? uaProp.GetDateTime() : createdAt,
+                    CreatedBy      = el.TryGetProperty("CreatedBy", out var cbProp) && cbProp.ValueKind != JsonValueKind.Null ? cbProp.GetString() ?? customerUserId : customerUserId,
+                    UpdatedBy      = el.TryGetProperty("UpdatedBy", out var ubProp) && ubProp.ValueKind != JsonValueKind.Null ? ubProp.GetString() ?? customerUserId : customerUserId,
                 });
             }
 
-            ctx.Set<ProductReview>().AddRange(list);
-            await ctx.SaveChangesAsync();
-            Console.WriteLine($"[JsonSeedLoader] ProductReviews → {list.Count} rows inserted.");
+            if (list.Count > 0)
+            {
+                ctx.Set<ProductReview>().AddRange(list);
+                await ctx.SaveChangesAsync();
+                Console.WriteLine($"[JsonSeedLoader] ProductReviews → {list.Count} rows inserted.");
+            }
+            else
+            {
+                Console.WriteLine("[JsonSeedLoader] ProductReviews → No new reviews to seed.");
+            }
         }
 
         // ──────────────────────────────────────────────────────────────
@@ -230,45 +287,72 @@ namespace Talentree.Repository.Data.DataSeed
         {
             if (!File.Exists(filePath)) { Console.WriteLine($"[JsonSeedLoader] {Path.GetFileName(filePath)} not found — skipping."); return new List<int>(); }
 
-            // If tickets from JSON already exist, read their IDs in creation order for TicketMessages
-            if (await ctx.Set<SupportTicket>().AnyAsync(t => t.TicketNumber == "TKT-15847"))
-            {
-                Console.WriteLine("[JsonSeedLoader] SupportTickets JSON already seeded — reading existing IDs.");
-                return await ctx.Set<SupportTicket>().OrderBy(t => t.Id).Select(t => t.Id).ToListAsync();
-            }
+            var dbTickets = await ctx.Set<SupportTicket>()
+                .ToDictionaryAsync(t => t.TicketNumber, t => t.Id);
 
+            var insertedTicketIds = new List<int>();
             using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(filePath));
             var validUserIds = ctx.Set<AppUser>().Select(u => u.Id).ToHashSet();
-            var list = new List<SupportTicket>();
+
+            var ticketsToInsert = new List<(SupportTicket Ticket, int JsonIndex)>();
+            var index = 0;
 
             foreach (var el in doc.RootElement.EnumerateArray())
             {
+                var ticketNumber = el.GetProperty("TicketNumber").GetString() ?? string.Empty;
                 var boUserId = el.GetProperty("BusinessOwnerUserId").GetString()!;
-                if (!validUserIds.Contains(boUserId)) continue;
-
-                list.Add(new SupportTicket
+                if (!validUserIds.Contains(boUserId))
                 {
-                    BusinessOwnerUserId = boUserId,
-                    Category            = (TicketCategory)el.GetProperty("Category").GetInt32(),
-                    Subject             = el.GetProperty("Subject").GetString() ?? string.Empty,
-                    Description         = el.GetProperty("Description").GetString() ?? string.Empty,
-                    Status              = (TicketStatus)el.GetProperty("Status").GetInt32(),
-                    Priority            = (TicketPriority)el.GetProperty("Priority").GetInt32(),
-                    TicketNumber        = el.GetProperty("TicketNumber").GetString() ?? string.Empty,
-                    IsDeleted           = GetIntBool(el, "IsDeleted"),
-                    CreatedAt           = el.GetProperty("CreatedAt").GetDateTime(),
-                    UpdatedAt           = el.GetProperty("UpdatedAt").GetDateTime(),
-                    CreatedBy           = el.GetProperty("CreatedBy").GetString() ?? boUserId,
-                    UpdatedBy           = el.GetProperty("UpdatedBy").GetString() ?? boUserId,
-                });
+                    insertedTicketIds.Add(0);
+                    index++;
+                    continue;
+                }
+
+                if (dbTickets.TryGetValue(ticketNumber, out var existingId))
+                {
+                    insertedTicketIds.Add(existingId);
+                }
+                else
+                {
+                    var ticket = new SupportTicket
+                    {
+                        BusinessOwnerUserId = boUserId,
+                        Category            = el.TryGetProperty("Category", out var catProp) ? (TicketCategory)catProp.GetInt32() : TicketCategory.Other,
+                        Subject             = el.TryGetProperty("Subject", out var subjProp) ? subjProp.GetString() ?? string.Empty : string.Empty,
+                        Description         = el.TryGetProperty("Description", out var descProp) ? descProp.GetString() ?? string.Empty : string.Empty,
+                        Status              = el.TryGetProperty("Status", out var statProp) ? (TicketStatus)statProp.GetInt32() : TicketStatus.Open,
+                        Priority            = el.TryGetProperty("Priority", out var prioProp) ? (TicketPriority)prioProp.GetInt32() : TicketPriority.Normal,
+                        TicketNumber        = ticketNumber,
+                        IsDeleted           = GetIntBool(el, "IsDeleted"),
+                        CreatedAt           = el.TryGetProperty("CreatedAt", out var crAt) ? crAt.GetDateTime() : DateTime.UtcNow,
+                        UpdatedAt           = el.TryGetProperty("UpdatedAt", out var upAt) ? upAt.GetDateTime() : DateTime.UtcNow,
+                        CreatedBy           = el.TryGetProperty("CreatedBy", out var cbProp) ? cbProp.GetString() ?? boUserId : boUserId,
+                        UpdatedBy           = el.TryGetProperty("UpdatedBy", out var ubProp) ? ubProp.GetString() ?? boUserId : boUserId,
+                    };
+
+                    ticketsToInsert.Add((ticket, index));
+                    insertedTicketIds.Add(0);
+                }
+                index++;
             }
 
-            ctx.Set<SupportTicket>().AddRange(list);
-            await ctx.SaveChangesAsync();
-            Console.WriteLine($"[JsonSeedLoader] SupportTickets → {list.Count} rows inserted.");
+            if (ticketsToInsert.Count > 0)
+            {
+                await ctx.Set<SupportTicket>().AddRangeAsync(ticketsToInsert.Select(t => t.Ticket));
+                await ctx.SaveChangesAsync();
 
-            // Return IDs in insertion order (EF populates Id after SaveChanges)
-            return list.Select(t => t.Id).ToList();
+                foreach (var (ticket, jsonIdx) in ticketsToInsert)
+                {
+                    insertedTicketIds[jsonIdx] = ticket.Id;
+                }
+                Console.WriteLine($"[JsonSeedLoader] SupportTickets → {ticketsToInsert.Count} rows inserted.");
+            }
+            else
+            {
+                Console.WriteLine("[JsonSeedLoader] SupportTickets → No new support tickets to seed.");
+            }
+
+            return insertedTicketIds;
         }
 
         // ──────────────────────────────────────────────────────────────
@@ -279,9 +363,14 @@ namespace Talentree.Repository.Data.DataSeed
         private static async Task SeedTicketMessagesAsync(TalentreeDbContext ctx, string filePath, List<int> ticketIds)
         {
             if (!File.Exists(filePath)) { Console.WriteLine($"[JsonSeedLoader] {Path.GetFileName(filePath)} not found — skipping."); return; }
-            if (await ctx.Set<TicketMessage>().AnyAsync(m => m.Content == "Please see details."))
-            { Console.WriteLine("[JsonSeedLoader] TicketMessages JSON already seeded — skipping."); return; }
             if (ticketIds.Count == 0) { Console.WriteLine("[JsonSeedLoader] No ticket IDs available — skipping TicketMessages."); return; }
+
+            var existingMessages = await ctx.Set<TicketMessage>()
+                .Select(m => new { m.TicketId, m.SenderId, m.CreatedAt })
+                .ToListAsync();
+            var existingKeysSet = existingMessages
+                .Select(m => (m.TicketId, m.SenderId, m.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")))
+                .ToHashSet();
 
             using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(filePath));
             var validUserIds = ctx.Set<AppUser>().Select(u => u.Id).ToHashSet();
@@ -310,21 +399,34 @@ namespace Talentree.Repository.Data.DataSeed
                 var senderId = el.GetProperty("SenderId").GetString()!;
                 if (!validUserIds.Contains(senderId)) { skipped++; continue; }
 
+                var createdAt = el.GetProperty("CreatedAt").GetDateTime();
+                var createdAtStr = createdAt.ToString("yyyy-MM-dd HH:mm:ss");
+
+                if (existingKeysSet.Contains((resolvedTicketId, senderId, createdAtStr)))
+                    continue;
+
                 list.Add(new TicketMessage
                 {
                     TicketId       = resolvedTicketId,
                     SenderId       = senderId,
-                    Content        = el.GetProperty("Content").GetString() ?? string.Empty,
+                    Content        = el.TryGetProperty("Content", out var contProp) ? contProp.GetString() ?? string.Empty : string.Empty,
                     IsAdminMessage = GetIntBool(el, "IsAdminMessage"),
                     EmailSent      = GetIntBool(el, "EmailSent"),
-                    CreatedAt      = el.GetProperty("CreatedAt").GetDateTime(),
-                    UpdatedAt      = el.GetProperty("UpdatedAt").GetDateTime(),
+                    CreatedAt      = createdAt,
+                    UpdatedAt      = el.TryGetProperty("UpdatedAt", out var upAtProp) ? upAtProp.GetDateTime() : createdAt,
                 });
             }
 
-            ctx.Set<TicketMessage>().AddRange(list);
-            await ctx.SaveChangesAsync();
-            Console.WriteLine($"[JsonSeedLoader] TicketMessages → {list.Count} rows inserted ({skipped} skipped).");
+            if (list.Count > 0)
+            {
+                ctx.Set<TicketMessage>().AddRange(list);
+                await ctx.SaveChangesAsync();
+                Console.WriteLine($"[JsonSeedLoader] TicketMessages → {list.Count} rows inserted ({skipped} skipped).");
+            }
+            else
+            {
+                Console.WriteLine("[JsonSeedLoader] TicketMessages → No new ticket messages to seed.");
+            }
         }
 
         // ──────────────────────────────────────────────────────────────
@@ -333,8 +435,11 @@ namespace Talentree.Repository.Data.DataSeed
         private static async Task SeedOnboardingProgressAsync(TalentreeDbContext ctx, string filePath)
         {
             if (!File.Exists(filePath)) { Console.WriteLine($"[JsonSeedLoader] {Path.GetFileName(filePath)} not found — skipping."); return; }
-            if (await ctx.Set<OnboardingProgress>().AnyAsync(o => o.BusinessOwnerId == "11111111-1111-1111-1111-111111111101"))
-            { Console.WriteLine("[JsonSeedLoader] OnboardingProgress JSON already seeded — skipping."); return; }
+
+            var existingKeysSet = (await ctx.Set<OnboardingProgress>()
+                .Select(o => o.BusinessOwnerId)
+                .ToListAsync())
+                .ToHashSet();
 
             using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(filePath));
             var validUserIds = ctx.Set<AppUser>().Select(u => u.Id).ToHashSet();
@@ -344,6 +449,9 @@ namespace Talentree.Repository.Data.DataSeed
             {
                 var boId = el.GetProperty("BusinessOwnerId").GetString()!;
                 if (!validUserIds.Contains(boId)) continue;
+
+                if (existingKeysSet.Contains(boId))
+                    continue;
 
                 list.Add(new OnboardingProgress
                 {
@@ -355,9 +463,16 @@ namespace Talentree.Repository.Data.DataSeed
                 });
             }
 
-            ctx.Set<OnboardingProgress>().AddRange(list);
-            await ctx.SaveChangesAsync();
-            Console.WriteLine($"[JsonSeedLoader] OnboardingProgress → {list.Count} rows inserted.");
+            if (list.Count > 0)
+            {
+                ctx.Set<OnboardingProgress>().AddRange(list);
+                await ctx.SaveChangesAsync();
+                Console.WriteLine($"[JsonSeedLoader] OnboardingProgress → {list.Count} rows inserted.");
+            }
+            else
+            {
+                Console.WriteLine("[JsonSeedLoader] OnboardingProgress → No new onboarding progress to seed.");
+            }
         }
 
         // ──────────────────────────────────────────────────────────────
@@ -366,8 +481,18 @@ namespace Talentree.Repository.Data.DataSeed
         private static async Task SeedPayoutRequestsAsync(TalentreeDbContext ctx, string filePath)
         {
             if (!File.Exists(filePath)) { Console.WriteLine($"[JsonSeedLoader] {Path.GetFileName(filePath)} not found — skipping."); return; }
-            if (await ctx.Set<PayoutRequest>().AnyAsync(p => p.AccountIdentifierEnc == "ENC_986996619"))
-            { Console.WriteLine("[JsonSeedLoader] PayoutRequests JSON already seeded — skipping."); return; }
+
+            var existingPayouts = await ctx.Set<PayoutRequest>()
+                .Select(p => new { p.BusinessOwnerId, p.Status, p.CreatedAt })
+                .ToListAsync();
+            var existingKeysSet = existingPayouts
+                .Select(k => (k.BusinessOwnerId, k.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")))
+                .ToHashSet();
+
+            var existingPendingBoIds = existingPayouts
+                .Where(p => p.Status == PayoutStatus.Pending)
+                .Select(p => p.BusinessOwnerId)
+                .ToHashSet();
 
             using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(filePath));
             var validUserIds = ctx.Set<AppUser>().Select(u => u.Id).ToHashSet();
@@ -378,12 +503,27 @@ namespace Talentree.Repository.Data.DataSeed
                 var boId = el.GetProperty("BusinessOwnerId").GetString()!;
                 if (!validUserIds.Contains(boId)) continue;
 
+                var createdAt = el.GetProperty("CreatedAt").GetDateTime();
+                var createdAtStr = createdAt.ToString("yyyy-MM-dd HH:mm:ss");
+
+                if (existingKeysSet.Contains((boId, createdAtStr)))
+                    continue;
+
+                var status = ParseEnum<PayoutStatus>(el.GetProperty("Status").GetString() ?? "Pending");
+
+                // Enforce unique index: only one Pending payout request per BO
+                if (status == PayoutStatus.Pending && existingPendingBoIds.Contains(boId))
+                {
+                    Console.WriteLine($"[JsonSeedLoader] Skipping Pending payout request for BusinessOwner {boId} because one already exists in the database.");
+                    continue;
+                }
+
                 list.Add(new PayoutRequest
                 {
                     BusinessOwnerId      = boId,
-                    Amount               = el.GetProperty("Amount").GetDecimal(),
-                    Currency             = el.GetProperty("Currency").GetString() ?? "EGP",
-                    Status               = ParseEnum<PayoutStatus>(el.GetProperty("Status").GetString() ?? "Pending"),
+                    Amount               = el.TryGetProperty("Amount", out var amtProp) ? amtProp.GetDecimal() : 0m,
+                    Currency             = el.TryGetProperty("Currency", out var currProp) ? currProp.GetString() ?? "EGP" : "EGP",
+                    Status               = status,
                     BankName             = GetNullableString(el, "BankName"),
                     AccountHolderName    = GetNullableString(el, "AccountHolderName"),
                     AccountIdentifierEnc = GetNullableString(el, "AccountIdentifierEnc"),
@@ -391,16 +531,23 @@ namespace Talentree.Repository.Data.DataSeed
                     RejectionReason      = GetNullableString(el, "RejectionReason"),
                     ProcessedAt          = GetNullableDateTime(el, "ProcessedAt"),
                     ProcessedBy          = GetNullableString(el, "ProcessedBy"),
-                    CreatedAt            = el.GetProperty("CreatedAt").GetDateTime(),
-                    UpdatedAt            = el.GetProperty("UpdatedAt").GetDateTime(),
-                    CreatedBy            = el.GetProperty("CreatedBy").GetString() ?? boId,
-                    UpdatedBy            = el.GetProperty("UpdatedBy").GetString() ?? boId,
+                    CreatedAt            = createdAt,
+                    UpdatedAt            = el.TryGetProperty("UpdatedAt", out var upAtProp) ? upAtProp.GetDateTime() : createdAt,
+                    CreatedBy            = el.TryGetProperty("CreatedBy", out var cbProp) ? cbProp.GetString() ?? boId : boId,
+                    UpdatedBy            = el.TryGetProperty("UpdatedBy", out var ubProp) ? ubProp.GetString() ?? boId : boId,
                 });
             }
 
-            ctx.Set<PayoutRequest>().AddRange(list);
-            await ctx.SaveChangesAsync();
-            Console.WriteLine($"[JsonSeedLoader] PayoutRequests → {list.Count} rows inserted.");
+            if (list.Count > 0)
+            {
+                ctx.Set<PayoutRequest>().AddRange(list);
+                await ctx.SaveChangesAsync();
+                Console.WriteLine($"[JsonSeedLoader] PayoutRequests → {list.Count} rows inserted.");
+            }
+            else
+            {
+                Console.WriteLine("[JsonSeedLoader] PayoutRequests → No new payout requests to seed.");
+            }
         }
 
         // ──────────────────────────────────────────────────────────────
@@ -409,8 +556,13 @@ namespace Talentree.Repository.Data.DataSeed
         private static async Task SeedBoProductionRequestsAsync(TalentreeDbContext ctx, string filePath)
         {
             if (!File.Exists(filePath)) { Console.WriteLine($"[JsonSeedLoader] {Path.GetFileName(filePath)} not found — skipping."); return; }
-            if (await ctx.Set<BoProductionRequest>().AnyAsync(r => r.Title == "Request 0"))
-            { Console.WriteLine("[JsonSeedLoader] BoProductionRequests JSON already seeded — skipping."); return; }
+
+            var existingRequests = await ctx.Set<BoProductionRequest>()
+                .Select(r => new { r.BusinessOwnerId, r.Title, r.CreatedAt })
+                .ToListAsync();
+            var existingKeysSet = existingRequests
+                .Select(k => (k.BusinessOwnerId, k.Title, k.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")))
+                .ToHashSet();
 
             using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(filePath));
             var validUserIds = ctx.Set<AppUser>().Select(u => u.Id).ToHashSet();
@@ -421,31 +573,45 @@ namespace Talentree.Repository.Data.DataSeed
                 var boId = el.GetProperty("BusinessOwnerId").GetString()!;
                 if (!validUserIds.Contains(boId)) continue;
 
+                var title = el.GetProperty("Title").GetString() ?? string.Empty;
+                var createdAt = el.GetProperty("CreatedAt").GetDateTime();
+                var createdAtStr = createdAt.ToString("yyyy-MM-dd HH:mm:ss");
+
+                if (existingKeysSet.Contains((boId, title, createdAtStr)))
+                    continue;
+
                 list.Add(new BoProductionRequest
                 {
                     BusinessOwnerId         = boId,
-                    Title                   = el.GetProperty("Title").GetString() ?? string.Empty,
+                    Title                   = title,
                     Notes                   = GetNullableString(el, "Notes"),
-                    Status                  = ParseEnum<BoProductionRequestStatus>(el.GetProperty("Status").GetString() ?? "Submitted"),
-                    QuotedPrice             = el.GetProperty("QuotedPrice").GetDecimal(),
+                    Status                  = el.TryGetProperty("Status", out var statProp) ? ParseEnum<BoProductionRequestStatus>(statProp.GetString() ?? "Submitted") : BoProductionRequestStatus.Submitted,
+                    QuotedPrice             = el.TryGetProperty("QuotedPrice", out var priceProp) ? priceProp.GetDecimal() : 0m,
                     AdminNotes              = GetNullableString(el, "AdminNotes"),
                     EstimatedCompletionDate = GetNullableDateTime(el, "EstimatedCompletionDate"),
                     CompletedAt             = GetNullableDateTime(el, "CompletedAt"),
                     FraudScore              = GetNullableFloat(el, "FraudScore"),
                     FulfillmentTimeHours    = GetNullableInt(el, "FulfillmentTimeHours"),
                     IsFraudFlag             = GetIntBool(el, "IsFraudFlag"),
-                    PaymentStatus           = ParseEnum<PaymentStatus>(el.GetProperty("PaymentStatus").GetString() ?? "Unpaid"),
+                    PaymentStatus           = el.TryGetProperty("PaymentStatus", out var psProp) ? ParseEnum<PaymentStatus>(psProp.GetString() ?? "Unpaid") : PaymentStatus.Unpaid,
                     StripePaymentIntentId   = GetNullableString(el, "StripePaymentIntentId"),
-                    CreatedAt               = el.GetProperty("CreatedAt").GetDateTime(),
-                    UpdatedAt               = el.GetProperty("UpdatedAt").GetDateTime(),
-                    CreatedBy               = el.GetProperty("CreatedBy").GetString() ?? boId,
-                    UpdatedBy               = el.GetProperty("UpdatedBy").GetString() ?? boId,
+                    CreatedAt               = createdAt,
+                    UpdatedAt               = el.TryGetProperty("UpdatedAt", out var upAtProp) ? upAtProp.GetDateTime() : createdAt,
+                    CreatedBy               = el.TryGetProperty("CreatedBy", out var cbProp) ? cbProp.GetString() ?? boId : boId,
+                    UpdatedBy               = el.TryGetProperty("UpdatedBy", out var ubProp) ? ubProp.GetString() ?? boId : boId,
                 });
             }
 
-            ctx.Set<BoProductionRequest>().AddRange(list);
-            await ctx.SaveChangesAsync();
-            Console.WriteLine($"[JsonSeedLoader] BoProductionRequests → {list.Count} rows inserted.");
+            if (list.Count > 0)
+            {
+                ctx.Set<BoProductionRequest>().AddRange(list);
+                await ctx.SaveChangesAsync();
+                Console.WriteLine($"[JsonSeedLoader] BoProductionRequests → {list.Count} rows inserted.");
+            }
+            else
+            {
+                Console.WriteLine("[JsonSeedLoader] BoProductionRequests → No new production requests to seed.");
+            }
         }
 
         // ──────────────────────────────────────────────────────────────
@@ -521,12 +687,6 @@ namespace Talentree.Repository.Data.DataSeed
             // Idempotency check — sentinel is the first seeded user's e-mail.
             const string SeedPassword = "Seed@Talentree2026";
             const string SentinelEmail = "customer001@seed.talentree.test";
-
-            if (await ctx.Users.AnyAsync(u => u.Email == SentinelEmail))
-            {
-                Console.WriteLine("[JsonSeedLoader] UsersData already seeded — skipping.");
-                return;
-            }
 
             using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(filePath));
             var tablesElement = doc.RootElement.GetProperty("tables");
@@ -699,9 +859,16 @@ namespace Talentree.Repository.Data.DataSeed
         private static T ParseEnum<T>(string value) where T : struct, Enum
             => Enum.TryParse<T>(value, ignoreCase: true, out var r) ? r : default;
 
-        /// <summary>Reads a JSON int field as bool (0 = false, non-zero = true).</summary>
+        /// <summary>Reads a JSON int or bool field as bool.</summary>
         private static bool GetIntBool(JsonElement el, string prop)
-            => el.TryGetProperty(prop, out var v) && v.ValueKind != JsonValueKind.Null && v.GetInt32() != 0;
+        {
+            if (!el.TryGetProperty(prop, out var v) || v.ValueKind == JsonValueKind.Null)
+                return false;
+            if (v.ValueKind == JsonValueKind.True) return true;
+            if (v.ValueKind == JsonValueKind.False) return false;
+            if (v.ValueKind == JsonValueKind.Number) return v.GetInt32() != 0;
+            return false;
+        }
 
         private static string? GetNullableString(JsonElement el, string prop)
             => el.TryGetProperty(prop, out var v) && v.ValueKind != JsonValueKind.Null ? v.GetString() : null;
