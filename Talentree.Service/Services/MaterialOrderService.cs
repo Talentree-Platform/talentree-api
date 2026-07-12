@@ -157,7 +157,9 @@ namespace Talentree.Service.Services
                 RelatedEntityId = order.Id
             });
 
-            // ✅ NOTIFY SUPPLIERS 
+            // ℹ️ Suppliers are admin-managed entities without user accounts,
+            //    so they cannot receive in-app notifications (Notification.UserId
+            //    has a FK to AspNetUsers.Id). Log affected suppliers instead.
             var supplierIds = order.Items
                 .Select(i => i.RawMaterial?.SupplierId)
                 .Where(id => id.HasValue)
@@ -165,25 +167,12 @@ namespace Talentree.Service.Services
                 .Distinct()
                 .ToList();
 
-            foreach (var supplierId in supplierIds)
+            if (supplierIds.Any())
             {
-                var supplier = await _unitOfWork.Repository<Supplier>().GetByIdAsync(supplierId);
-                if (supplier?.Id != null)
-                {
-                    await _notificationService.CreateNotificationAsync(new CreateNotificationDto
-                    {
-                        UserId = supplier.Id.ToString(),
-                        Type = NotificationType.MaterialOrder,
-                        Title = "New Material Order Received 📦",
-                        Message = $"New material order #{order.Id} for {order.Items.Count} item(s).",
-                        ActionUrl = $"/supplier/material-orders/{order.Id}",
-                        ActionText = "View Order Details",
-                        Priority = NotificationPriority.High,
-                        SendEmail = true,
-                        RelatedEntityType = "MaterialOrder",
-                        RelatedEntityId = order.Id
-                    });
-                }
+                _logger.LogInformation(
+                    "Material order {OrderId} involves supplier(s): {SupplierIds}. " +
+                    "Supplier notification skipped (no user accounts).",
+                    order.Id, string.Join(", ", supplierIds));
             }
 
             _logger.LogInformation(
