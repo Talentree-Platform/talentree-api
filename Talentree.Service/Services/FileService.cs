@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Hosting;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Http;
 using Talentree.Core.Exceptions;
 using Talentree.Service.Contracts;
@@ -7,11 +8,11 @@ namespace Talentree.Service.Services
 {
     public class FileService : IFileService
     {
-        private readonly IWebHostEnvironment _environment;
+        private readonly Cloudinary _cloudinary;
 
-        public FileService(IWebHostEnvironment environment)
+        public FileService(Cloudinary cloudinary)
         {
-            _environment = environment;
+            _cloudinary = cloudinary;
         }
 
         public async Task<string> UploadFileAsync(IFormFile file, string folder)
@@ -19,41 +20,81 @@ namespace Talentree.Service.Services
             if (file == null || file.Length == 0)
                 throw new BadRequestException("No file provided");
 
-            var uploadsPath = Path.Combine(_environment.WebRootPath, "uploads", folder);
-            Directory.CreateDirectory(uploadsPath);
+            using var stream = file.OpenReadStream();
 
-            var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
-            var filePath = Path.Combine(uploadsPath, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            var uploadParams = new RawUploadParams
             {
-                await file.CopyToAsync(stream);
-            }
+                File = new FileDescription(file.FileName, stream),
+                Folder = $"talentree/{folder}"
+            };
 
-            return $"/uploads/{folder}/{fileName}";
+            var result = await _cloudinary.UploadAsync(uploadParams);
+
+            if (result.Error != null)
+                throw new Exception($"Cloudinary upload failed: {result.Error.Message}");
+
+            return result.SecureUrl.ToString();
         }
 
-        public Task<bool> DeleteFileAsync(string fileUrl)
+        public async Task<bool> DeleteFileAsync(string fileUrl)
         {
+            if (string.IsNullOrEmpty(fileUrl))
+                return false;
+
+            // Only process Cloudinary URLs
+            if (!fileUrl.Contains("cloudinary.com"))
+                return false;
+
             try
             {
-                var filePath = Path.Combine(_environment.WebRootPath, fileUrl.TrimStart('/'));
-                if (File.Exists(filePath))
+                var publicId = ExtractPublicId(fileUrl);
+                if (string.IsNullOrEmpty(publicId))
+                    return false;
+
+                var result = await _cloudinary.DestroyAsync(new DeletionParams(publicId)
                 {
-                    File.Delete(filePath);
-                    return Task.FromResult(true);
-                }
-                return Task.FromResult(false);
+                    ResourceType = ResourceType.Raw
+                });
+
+                return result.Result == "ok";
             }
             catch
             {
-                return Task.FromResult(false);
+                return false;
             }
         }
 
         public string GetFileSizeMB(long bytes)
         {
             return $"{bytes / 1024.0 / 1024.0:F2} MB";
+        }
+
+        /// <summary>
+        /// Extracts the Cloudinary public ID from a full URL for raw files.
+        /// </summary>
+        private static string? ExtractPublicId(string fileUrl)
+        {
+            try
+            {
+                var uri = new Uri(fileUrl);
+                var path = uri.AbsolutePath;
+
+                var uploadIndex = path.IndexOf("/upload/");
+                if (uploadIndex < 0) return null;
+
+                var afterUpload = path[(uploadIndex + 8)..];
+
+                // Skip the version segment (v123/)
+                var slashIndex = afterUpload.IndexOf('/');
+                if (slashIndex < 0) return null;
+
+                // For raw files, keep the extension in the public ID
+                return afterUpload[(slashIndex + 1)..];
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }
