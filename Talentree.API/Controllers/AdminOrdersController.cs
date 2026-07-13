@@ -26,6 +26,13 @@ namespace Talentree.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("materials")]
+        public async Task<IActionResult> GetMaterialOrders([FromQuery] AdminMaterialOrderFilterDto filter)
+        {
+            var result = await _orderService.GetMaterialOrdersAsync(filter);
+            return Ok(result);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetOrderById(int id)
         {

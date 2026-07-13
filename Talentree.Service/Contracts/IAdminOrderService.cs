@@ -7,6 +7,7 @@ namespace Talentree.Service.Contracts
     public interface IAdminOrderService
     {
         Task<Pagination<AdminOrderSummaryDto>> GetOrdersAsync(AdminOrderFilterDto filter);
+        Task<Pagination<AdminMaterialOrderSummaryDto>> GetMaterialOrdersAsync(AdminMaterialOrderFilterDto filter);
         Task<AdminOrderDetailDto> GetOrderByIdAsync(int orderId);
         Task<AdminOrderStatsDto> GetOrderStatsAsync();
         Task<AdminOrderDetailDto> UpdateOrderStatusAsync(int orderId, UpdateOrderStatusDto dto, string adminId);

@@ -1,4 +1,6 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -7,9 +9,11 @@ using System.Text;
 using System.Threading.Tasks;
 using Talentree.Core;
 using Talentree.Core.Entities;
+using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 using Talentree.Core.Exceptions;
 using Talentree.Core.Specifications.OrderSpecifications;
+using Talentree.Core.Specifications.MaterialOrders;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.Admin.Orders;
 using Talentree.Service.DTOs.Common;
@@ -24,19 +28,22 @@ namespace Talentree.Service.Services
         private readonly INotificationService _notificationService;
         private readonly ILogger<AdminOrderService> _logger;
         private readonly IAuditLogService _auditLogService;
+        private readonly UserManager<AppUser> _userManager;
 
         public AdminOrderService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             INotificationService notificationService,
             ILogger<AdminOrderService> logger,
-            IAuditLogService auditLogService)
+            IAuditLogService auditLogService,
+            UserManager<AppUser> userManager)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationService = notificationService;
             _logger = logger;
             _auditLogService = auditLogService;
+            _userManager = userManager;
         }
 
         public async Task<Pagination<AdminOrderSummaryDto>> GetOrdersAsync(AdminOrderFilterDto filter)
@@ -50,6 +57,51 @@ namespace Talentree.Service.Services
             var dtos = _mapper.Map<List<AdminOrderSummaryDto>>(orders);
 
             return new Pagination<AdminOrderSummaryDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
+        }
+
+        public async Task<Pagination<AdminMaterialOrderSummaryDto>> GetMaterialOrdersAsync(AdminMaterialOrderFilterDto filter)
+        {
+            List<string>? matchingBoIds = null;
+            if (!string.IsNullOrEmpty(filter.Search))
+            {
+                matchingBoIds = await _userManager.Users
+                    .Where(u => (u.DisplayName != null && u.DisplayName.Contains(filter.Search)) || (u.Email != null && u.Email.Contains(filter.Search)))
+                    .Select(u => u.Id)
+                    .ToListAsync();
+            }
+
+            var countSpec = new AdminMaterialOrderCountSpecification(
+                matchingBoIds, filter.Status, filter.PaymentStatus, filter.DateFrom, filter.DateTo);
+            var totalCount = await _unitOfWork.Repository<MaterialOrder>().GetCountWithSpecificationsAsync(countSpec);
+
+            var spec = new AdminMaterialOrdersSpecification(
+                matchingBoIds, filter.Status, filter.PaymentStatus, filter.DateFrom, filter.DateTo,
+                filter.SortBy, filter.SortDesc, filter.PageIndex, filter.PageSize);
+            var orders = await _unitOfWork.Repository<MaterialOrder>().GetAllWithSpecificationsAsync(spec);
+
+            var dtos = _mapper.Map<List<AdminMaterialOrderSummaryDto>>(orders);
+
+            if (dtos.Any())
+            {
+                var boIds = dtos.Select(d => d.BusinessOwnerId).Distinct().ToList();
+                var owners = await _userManager.Users
+                    .Where(u => boIds.Contains(u.Id))
+                    .Select(u => new { u.Id, u.DisplayName, u.Email })
+                    .ToListAsync();
+
+                var ownersMap = owners.ToDictionary(o => o.Id);
+
+                foreach (var dto in dtos)
+                {
+                    if (ownersMap.TryGetValue(dto.BusinessOwnerId, out var owner))
+                    {
+                        dto.BusinessOwnerName = owner.DisplayName ?? string.Empty;
+                        dto.BusinessOwnerEmail = owner.Email ?? string.Empty;
+                    }
+                }
+            }
+
+            return new Pagination<AdminMaterialOrderSummaryDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
         }
 
         public async Task<AdminOrderDetailDto> GetOrderByIdAsync(int orderId)

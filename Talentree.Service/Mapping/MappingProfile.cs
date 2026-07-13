@@ -903,6 +903,15 @@ namespace Talentree.Service.Mapping
                 .IncludeBase<CustomerOrder, AdminOrderSummaryDto>()
                 .ForMember(d => d.PaymentMethod, o => o.MapFrom(s => s.PaymentMethod.ToString()));
 
+            CreateMap<MaterialOrder, AdminMaterialOrderSummaryDto>()
+                .ForMember(d => d.ItemCount, o => o.MapFrom(s => s.Items.Count))
+                .ForMember(d => d.DeliveryLocation, o => o.MapFrom(s => $"{s.DeliveryCity}, {s.DeliveryCountry}"))
+                .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
+                .ForMember(d => d.PaymentStatus, o => o.MapFrom(s => s.PaymentStatus.ToString()))
+                .ForMember(d => d.BusinessOwnerId, o => o.MapFrom(s => s.BusinessOwnerId))
+                .ForMember(d => d.BusinessOwnerName, o => o.Ignore())
+                .ForMember(d => d.BusinessOwnerEmail, o => o.Ignore());
+
             CreateMap<RefundRequest, RefundRequestDto>()
                 .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()))
                 .ForMember(d => d.CustomerName, o => o.MapFrom(s => s.Order.Customer.DisplayName))
