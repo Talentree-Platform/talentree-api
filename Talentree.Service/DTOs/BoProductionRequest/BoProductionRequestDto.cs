@@ -97,6 +97,12 @@ namespace Talentree.Service.DTOs.BoProductionRequest
 
         /// <summary>Number of distinct production item lines in this request.</summary>
         public int ItemCount { get; set; }
+
+        /// <summary>Name of the requesting business.</summary>
+        public string? BusinessName { get; set; }
+
+        /// <summary>Full name of the requesting business owner.</summary>
+        public string? BusinessOwnerName { get; set; }
     }
 
     /// <summary>
@@ -113,6 +119,12 @@ namespace Talentree.Service.DTOs.BoProductionRequest
 
         /// <summary>Optional notes provided by the BO at submission.</summary>
         public string? Notes { get; set; }
+
+        /// <summary>Name of the requesting business.</summary>
+        public string? BusinessName { get; set; }
+
+        /// <summary>Full name of the requesting business owner.</summary>
+        public string? BusinessOwnerName { get; set; }
 
         /// <summary>Current lifecycle status.</summary>
         public BoProductionRequestStatus Status { get; set; }

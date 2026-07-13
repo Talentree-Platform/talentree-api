@@ -7,6 +7,7 @@ using Talentree.Core.Specifications.BoProductionRequests;
 using Talentree.Service.Contracts;
 using Talentree.Service.DTOs.BoProductionRequest;
 using Talentree.Service.DTOs.Common;
+using Talentree.Core.Entities.Identity;
 using Talentree.Service.Messaging;
 using Talentree.Service.Messaging.Contracts;
 
@@ -47,6 +48,7 @@ namespace Talentree.Service.Services
                 .GetCountWithSpecificationsAsync(countSpec);
 
             var dtos = _mapper.Map<List<ProductionRequestSummaryDto>>(requests);
+            await EnrichSummaryDtosAsync(dtos, requests);
             return new Pagination<ProductionRequestSummaryDto>(pageIndex, pageSize, total, dtos);
         }
 
@@ -58,7 +60,9 @@ namespace Talentree.Service.Services
                 .GetByIdWithSpecificationsAsync(spec)
                 ?? throw new KeyNotFoundException($"Production request #{requestId} not found.");
 
-            return _mapper.Map<ProductionRequestDetailDto>(request);
+            var dto = _mapper.Map<ProductionRequestDetailDto>(request);
+            await EnrichDetailDtoAsync(dto, request.BusinessOwnerId);
+            return dto;
         }
 
         /// <inheritdoc/>
@@ -273,6 +277,50 @@ namespace Talentree.Service.Services
             _logger.LogInformation("Note added to production request {RequestId} by admin {AdminId}.", requestId, adminId);
 
             return await GetRequestByIdAsync(requestId);
+        }
+
+        private async Task EnrichDetailDtoAsync(ProductionRequestDetailDto dto, string businessOwnerId)
+        {
+            var user = await _unitOfWork.Repository<AppUser>().GetByIdAsync(businessOwnerId);
+            if (user != null)
+            {
+                dto.BusinessOwnerName = user.DisplayName;
+                var profiles = await _unitOfWork.Repository<BusinessOwnerProfile>()
+                    .FindAsync(p => p.UserId == businessOwnerId);
+                var profile = profiles.FirstOrDefault();
+                if (profile != null)
+                {
+                    dto.BusinessName = profile.BusinessName;
+                }
+            }
+        }
+
+        private async Task EnrichSummaryDtosAsync(List<ProductionRequestSummaryDto> dtos, IReadOnlyList<BoProductionRequest> requests)
+        {
+            var distinctIds = requests.Select(r => r.BusinessOwnerId).Distinct().ToList();
+            if (!distinctIds.Any()) return;
+
+            var users = await _unitOfWork.Repository<AppUser>().FindAsync(u => distinctIds.Contains(u.Id));
+            var profiles = await _unitOfWork.Repository<BusinessOwnerProfile>().FindAsync(p => distinctIds.Contains(p.UserId));
+
+            var userMap = users.ToDictionary(u => u.Id, u => u.DisplayName);
+            var profileMap = profiles.ToDictionary(p => p.UserId, p => p.BusinessName);
+
+            for (int i = 0; i < dtos.Count; i++)
+            {
+                var request = requests[i];
+                var dto = dtos[i];
+
+                if (userMap.TryGetValue(request.BusinessOwnerId, out var displayName))
+                {
+                    dto.BusinessOwnerName = displayName;
+                }
+
+                if (profileMap.TryGetValue(request.BusinessOwnerId, out var businessName))
+                {
+                    dto.BusinessName = businessName;
+                }
+            }
         }
     }
 }
