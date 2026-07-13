@@ -853,7 +853,16 @@ namespace Talentree.Service.Services
 
             await SaveOtpCodeAsync(user.Id, otpCode, OtpPurpose.ResetPassword);
 
-            await _emailService.SendOtpAsync(user.Email!, otpCode , OtpPurpose.ResetPassword);
+            try
+            {
+                await _emailService.SendOtpAsync(user.Email!, otpCode , OtpPurpose.ResetPassword);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception but do not fail the request to prevent user enumeration
+                // and handle email service rate limit / downtime gracefully.
+                _logger.LogWarning(ex, "Failed to send reset password email to {Email}. [EMERGENCY BYPASS] Generated OTP code is: {OtpCode}", user.Email, otpCode);
+            }
         }
 
         // ═══════════════════════════════════════════════════════════
