@@ -1,25 +1,19 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
+using Microsoft.AspNetCore.Http;
 using Talentree.Service.Contracts;
 
 namespace Talentree.Service.Services
 {
     public class ImageService : IImageService
     {
-        private readonly string _baseUploadPath;
-        private readonly string _baseUrl;
+        private readonly Cloudinary _cloudinary;
         private readonly long _maxFileSize = 5 * 1024 * 1024; // 5MB
         private readonly string[] _allowedTypes = { "image/jpeg", "image/png", "image/jpg" };
 
-        public ImageService(IConfiguration configuration)
+        public ImageService(Cloudinary cloudinary)
         {
-            _baseUploadPath = configuration["ImageStorage:LocalPath"] ?? "wwwroot/uploads";
-            _baseUrl = configuration["ImageStorage:BaseUrl"] ?? "/uploads";
+            _cloudinary = cloudinary;
         }
 
         public bool IsValidImage(IFormFile file)
@@ -31,27 +25,69 @@ namespace Talentree.Service.Services
 
         public async Task<string> UploadImageAsync(IFormFile file, string folder)
         {
-            var uploadPath = Path.Combine(_baseUploadPath, folder);
-            Directory.CreateDirectory(uploadPath);
+            using var stream = file.OpenReadStream();
 
-            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-            var filePath = Path.Combine(uploadPath, fileName);
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(file.FileName, stream),
+                Folder = $"talentree/{folder}",
+                Transformation = new Transformation().Quality("auto").FetchFormat("auto")
+            };
 
-            using var stream = new FileStream(filePath, FileMode.Create);
-            await file.CopyToAsync(stream);
+            var result = await _cloudinary.UploadAsync(uploadParams);
 
-            return $"{_baseUrl}/{folder}/{fileName}";
+            if (result.Error != null)
+                throw new Exception($"Cloudinary upload failed: {result.Error.Message}");
+
+            return result.SecureUrl.ToString();
         }
 
-        public Task DeleteImageAsync(string imageUrl)
+        public async Task DeleteImageAsync(string imageUrl)
         {
-            if (string.IsNullOrEmpty(imageUrl)) return Task.CompletedTask;
+            if (string.IsNullOrEmpty(imageUrl)) return;
 
-            var relativePath = imageUrl.Replace(_baseUrl, _baseUploadPath);
-            if (File.Exists(relativePath))
-                File.Delete(relativePath);
+            var publicId = ExtractPublicId(imageUrl);
+            if (string.IsNullOrEmpty(publicId)) return;
 
-            return Task.CompletedTask;
+            await _cloudinary.DestroyAsync(new DeletionParams(publicId));
+        }
+
+        /// <summary>
+        /// Extracts the Cloudinary public ID from a full URL.
+        /// e.g., "https://res.cloudinary.com/xxx/image/upload/v123/talentree/products/abc.jpg"
+        ///   -> "talentree/products/abc"
+        /// </summary>
+        private static string? ExtractPublicId(string imageUrl)
+        {
+            // Only process Cloudinary URLs
+            if (!imageUrl.Contains("cloudinary.com"))
+                return null;
+
+            try
+            {
+                var uri = new Uri(imageUrl);
+                var path = uri.AbsolutePath; // /image/upload/v123/talentree/products/abc.jpg
+
+                // Find the segment after "upload/vXXX/"
+                var uploadIndex = path.IndexOf("/upload/");
+                if (uploadIndex < 0) return null;
+
+                var afterUpload = path[(uploadIndex + 8)..]; // v123/talentree/products/abc.jpg
+
+                // Skip the version segment (v123/)
+                var slashIndex = afterUpload.IndexOf('/');
+                if (slashIndex < 0) return null;
+
+                var publicIdWithExt = afterUpload[(slashIndex + 1)..]; // talentree/products/abc.jpg
+
+                // Remove file extension
+                var lastDot = publicIdWithExt.LastIndexOf('.');
+                return lastDot > 0 ? publicIdWithExt[..lastDot] : publicIdWithExt;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

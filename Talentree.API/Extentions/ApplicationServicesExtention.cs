@@ -1,3 +1,4 @@
+using CloudinaryDotNet;
 using Stripe;
 using Talentree.API.Services;
 using Talentree.Core;
@@ -55,6 +56,15 @@ namespace Talentree.API.Extentions
             services.AddScoped<IAdminService, AdminService>();
             services.AddScoped<ISupplierService, SupplierService>();           
             services.AddScoped<IAdminRawMaterialService, AdminRawMaterialService>();
+
+            // ── Cloudinary ──────────────────────────────────────────────
+            var cloudinaryAccount = new CloudinaryDotNet.Account(
+                configuration["Cloudinary:CloudName"],
+                configuration["Cloudinary:ApiKey"],
+                configuration["Cloudinary:ApiSecret"]);
+            var cloudinary = new Cloudinary(cloudinaryAccount);
+            cloudinary.Api.Secure = true;
+            services.AddSingleton(cloudinary);
 
             // product service
             services.AddScoped<IProductService, Talentree.Service.Services.ProductService>();
