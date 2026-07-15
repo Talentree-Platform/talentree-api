@@ -8,6 +8,7 @@ using Talentree.Service.Messaging;
 using Talentree.Service.Messaging.Consumers;
 using Talentree.Service.Contracts;
 using Talentree.Service.Services;
+using StackExchange.Redis;
 
 namespace Talentree.API.Extentions
 {
@@ -16,6 +17,20 @@ namespace Talentree.API.Extentions
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddHttpClient();
+
+            // Register Redis Caching
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = configuration.GetConnectionString("Redis") ?? "localhost:6379";
+            });
+
+            services.AddSingleton<IConnectionMultiplexer>(sp =>
+            {
+                var connectionString = configuration.GetConnectionString("Redis") ?? "localhost:6379";
+                return ConnectionMultiplexer.Connect(connectionString);
+            });
+
+            services.AddScoped<ICacheService, CacheService>();
 
             services.AddSingleton<RabbitMQConnectionManager>();
             services.AddSingleton<IEventPublisher, RabbitMQEventPublisher>();
