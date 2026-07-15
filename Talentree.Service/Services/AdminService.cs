@@ -29,6 +29,7 @@ namespace Talentree.Service.Services
         private readonly INotificationHelperService _notificationHelper;
         private readonly ILogger<AdminService> _logger;
         private readonly IAuditLogService _auditLogService;
+        private readonly ICacheService _cacheService;
 
         public AdminService(
             IUnitOfWork unitOfWork,
@@ -38,7 +39,8 @@ namespace Talentree.Service.Services
             INotificationService notificationService,
             INotificationHelperService notificationHelper,
             ILogger<AdminService> logger,
-            IAuditLogService auditLogService
+            IAuditLogService auditLogService,
+            ICacheService cacheService
             )
         {
             _unitOfWork = unitOfWork;
@@ -49,6 +51,7 @@ namespace Talentree.Service.Services
             _notificationHelper = notificationHelper;
             _logger = logger;
             _auditLogService = auditLogService;
+            _cacheService = cacheService;
         }
 
         public async Task<Pagination<BusinessOwnerApplicationDto>> GetPendingBusinessOwnersAsync(
@@ -779,7 +782,7 @@ namespace Talentree.Service.Services
                 SendEmail = true
             });
 
-
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
 
             _logger.LogInformation("Product {ProductId} approved by admin {AdminId}. Owner: {OwnerId}",
                 dto.ProductId, adminId, product.BusinessOwner.UserId);
@@ -835,7 +838,7 @@ namespace Talentree.Service.Services
                 SendEmail = true
             });
 
-
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
 
             _logger.LogInformation("Product {ProductId} rejected by admin {AdminId}. Reason: {Reason}",
                 dto.ProductId, adminId, dto.Reason);

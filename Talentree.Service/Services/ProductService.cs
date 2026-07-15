@@ -32,6 +32,7 @@ namespace Talentree.Service.Services
         private readonly IAIService _aiService;
         private readonly IUserInteractionService _userInteractionService;
         private readonly IEventPublisher _eventPublisher;
+        private readonly ICacheService _cacheService;
         //_logger
         private readonly ILogger<ProductService> _logger;
         public ProductService(
@@ -42,7 +43,8 @@ namespace Talentree.Service.Services
             INotificationService notificationService,
             IAIService aiService,
             IUserInteractionService userInteractionService,
-            IEventPublisher eventPublisher)
+            IEventPublisher eventPublisher,
+            ICacheService cacheService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -52,6 +54,7 @@ namespace Talentree.Service.Services
             _userInteractionService = userInteractionService;
             _logger = logger;
             _eventPublisher = eventPublisher;
+            _cacheService = cacheService;
         }
         // ═══════════════════════════════════════════════════════════
         // PRIVATE HELPER: Get approved business owner profile by userId
@@ -201,6 +204,8 @@ namespace Talentree.Service.Services
                 _logger.LogError(ex, "Failed to publish AI product event for product {ProductId}. Product creation will continue.", productId);
             }
 
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
+
             return await GetProductByIdAsync(product.Id, businessOwnerUserId);
         }
 
@@ -293,6 +298,8 @@ namespace Talentree.Service.Services
                 _logger.LogError(ex, "Failed to publish AI product event for product {ProductId}. Product update will continue.", productId);
             }
 
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
+
             return await GetProductByIdAsync(product.Id, businessOwnerUserId);
         }
 
@@ -307,6 +314,8 @@ namespace Talentree.Service.Services
             // AuditInterceptor handles setting IsDeleted = true automatically
             _unitOfWork.Repository<Product>().Delete(product);
             await _unitOfWork.CompleteAsync();
+
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -315,6 +324,10 @@ namespace Talentree.Service.Services
 
         public async Task<HomepageDto> GetHomepageDataAsync()
         {
+            string cacheKey = "customer:homepage";
+            var cachedData = await _cacheService.GetCachedResponseAsync<HomepageDto>(cacheKey);
+            if (cachedData != null) return cachedData;
+
             // 1. Get Categories
             var categories = await _unitOfWork.Repository<Category>().GetAllAsync();
             var categoryDtos = _mapper.Map<List<CategoryDto>>(categories);
@@ -329,16 +342,23 @@ namespace Talentree.Service.Services
             var trendingProducts = await _unitOfWork.Repository<Product>().GetAllWithSpecificationsAsync(trendingSpec);
             var trendingDtos = _mapper.Map<List<CustomerProductDto>>(trendingProducts);
 
-            return new HomepageDto
+            var result = new HomepageDto
             {
                 Categories = categoryDtos,
                 FeaturedProducts = featuredDtos,
                 TrendingProducts = trendingDtos
             };
+
+            await _cacheService.CacheResponseAsync(cacheKey, result, TimeSpan.FromMinutes(10));
+            return result;
         }
 
         public async Task<Pagination<CustomerProductDto>> SearchProductsAsync(CustomerProductFilterDto filter)
         {
+            string cacheKey = $"customer:products:search:s={filter.Search}&c={filter.CategoryId}&b={filter.BrandId}&min={filter.MinPrice}&max={filter.MaxPrice}&sort={filter.SortBy}&p={filter.PageIndex}&sz={filter.PageSize}";
+            var cachedData = await _cacheService.GetCachedResponseAsync<Pagination<CustomerProductDto>>(cacheKey);
+            if (cachedData != null) return cachedData;
+
             var filterParams = new CustomerProductFilterParams
             {
                 Search = filter.Search,
@@ -361,36 +381,51 @@ namespace Talentree.Service.Services
 
             var dtos = _mapper.Map<List<CustomerProductDto>>(products);
 
-            return new Pagination<CustomerProductDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
+            var result = new Pagination<CustomerProductDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
+            await _cacheService.CacheResponseAsync(cacheKey, result, TimeSpan.FromMinutes(10));
+            return result;
         }
 
         public async Task<CustomerProductDetailDto> GetPublicProductByIdAsync(int productId, string? userId = null)
         {
-            var spec = new ProductByIdPublicSpecification(productId);
-            var product = await _unitOfWork.Repository<Product>()
-                .GetByIdWithSpecificationsAsync(spec);
+            string cacheKey = $"customer:products:detail:{productId}";
+            var cachedDto = await _cacheService.GetCachedResponseAsync<CustomerProductDetailDto>(cacheKey);
 
-            if (product == null)
-                throw new NotFoundException("Product not found or not active");
+            CustomerProductDetailDto dto;
+            if (cachedDto != null)
+            {
+                dto = cachedDto;
+            }
+            else
+            {
+                var spec = new ProductByIdPublicSpecification(productId);
+                var product = await _unitOfWork.Repository<Product>()
+                    .GetByIdWithSpecificationsAsync(spec);
 
-            // Increment view count for trending engagement scoring
-            product.ViewCount++;
-            _unitOfWork.Repository<Product>().Update(product);
-            await _unitOfWork.CompleteAsync();
+                if (product == null)
+                    throw new NotFoundException("Product not found or not active");
 
-            var dto = _mapper.Map<CustomerProductDetailDto>(product);
+                // Increment view count for trending engagement scoring
+                product.ViewCount++;
+                _unitOfWork.Repository<Product>().Update(product);
+                await _unitOfWork.CompleteAsync();
 
-            // Fetch similar products (same category, excluding current product, top 6)
-            var similarSpec = new SimilarProductsSpecification(product.CategoryId, product.Id);
-            var similarProducts = await _unitOfWork.Repository<Product>()
-                .GetAllWithSpecificationsAsync(similarSpec);
+                dto = _mapper.Map<CustomerProductDetailDto>(product);
 
-            dto.SimilarProducts = _mapper.Map<List<CustomerProductDto>>(similarProducts);
+                // Fetch similar products (same category, excluding current product, top 6)
+                var similarSpec = new SimilarProductsSpecification(product.CategoryId, product.Id);
+                var similarProducts = await _unitOfWork.Repository<Product>()
+                    .GetAllWithSpecificationsAsync(similarSpec);
+
+                dto.SimilarProducts = _mapper.Map<List<CustomerProductDto>>(similarProducts);
+
+                await _cacheService.CacheResponseAsync(cacheKey, dto, TimeSpan.FromMinutes(10));
+            }
 
             if (!string.IsNullOrEmpty(userId))
             {
-                var categoryName = product.Category?.Name ?? "Uncategorized";
-                var price = product.Price;
+                var categoryName = dto.CategoryName;
+                var price = dto.Price;
                 await _eventPublisher.PublishAsync("interaction.log", new InteractionLogMessage
                 {
                     UserId = userId,
@@ -403,7 +438,6 @@ namespace Talentree.Service.Services
                     Price = price
                 });
             }
-
 
             return dto;
         }
@@ -418,6 +452,10 @@ namespace Talentree.Service.Services
         {
             if (string.IsNullOrWhiteSpace(query))
                 return new List<string>();
+
+            string cacheKey = $"customer:products:autocomplete:{query.ToLower().Trim()}";
+            var cachedData = await _cacheService.GetCachedResponseAsync<List<string>>(cacheKey);
+            if (cachedData != null) return cachedData;
 
             var lowercaseQuery = query.ToLower();
 
@@ -437,11 +475,16 @@ namespace Talentree.Service.Services
                 .Take(10)
                 .ToList();
 
+            await _cacheService.CacheResponseAsync(cacheKey, suggestions, TimeSpan.FromMinutes(10));
             return suggestions;
         }
 
         public async Task<Pagination<BrandListDto>> GetBrandsAsync(BrandFilterDto filter)
         {
+            string cacheKey = $"customer:brands:list:s={filter.Search}&c={filter.Category}&sort={filter.SortBy}&p={filter.PageIndex}&sz={filter.PageSize}";
+            var cachedData = await _cacheService.GetCachedResponseAsync<Pagination<BrandListDto>>(cacheKey);
+            if (cachedData != null) return cachedData;
+
             var filterParams = new BrandFilterParams
             {
                 Search = filter.Search,
@@ -461,11 +504,17 @@ namespace Talentree.Service.Services
 
             var dtos = _mapper.Map<List<BrandListDto>>(brands);
 
-            return new Pagination<BrandListDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
+            var result = new Pagination<BrandListDto>(filter.PageIndex, filter.PageSize, totalCount, dtos);
+            await _cacheService.CacheResponseAsync(cacheKey, result, TimeSpan.FromMinutes(10));
+            return result;
         }
 
         public async Task<BrandDetailDto> GetBrandByIdAsync(int brandProfileId)
         {
+            string cacheKey = $"customer:brands:detail:{brandProfileId}";
+            var cachedData = await _cacheService.GetCachedResponseAsync<BrandDetailDto>(cacheKey);
+            if (cachedData != null) return cachedData;
+
             var spec = new BrandByIdSpecification(brandProfileId);
             var brand = await _unitOfWork.Repository<BusinessOwnerProfile>()
                 .GetByIdWithSpecificationsAsync(spec);
@@ -487,6 +536,7 @@ namespace Talentree.Service.Services
 
             dto.Products = _mapper.Map<List<CustomerProductDto>>(products);
 
+            await _cacheService.CacheResponseAsync(cacheKey, dto, TimeSpan.FromMinutes(10));
             return dto;
         }
 
@@ -498,8 +548,15 @@ namespace Talentree.Service.Services
 
         public async Task<IReadOnlyList<CategoryDto>> GetCategoriesAsync()
         {
+            string cacheKey = "customer:categories:list";
+            var cachedData = await _cacheService.GetCachedResponseAsync<List<CategoryDto>>(cacheKey);
+            if (cachedData != null) return cachedData;
+
             var categories = await _unitOfWork.Repository<Category>().GetAllAsync();
-            return _mapper.Map<List<CategoryDto>>(categories);
+            var dtos = _mapper.Map<List<CategoryDto>>(categories);
+
+            await _cacheService.CacheResponseAsync(cacheKey, dtos, TimeSpan.FromMinutes(30));
+            return dtos;
         }
     }
 }

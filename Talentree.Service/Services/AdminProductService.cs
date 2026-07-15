@@ -26,19 +26,22 @@ namespace Talentree.Service.Services
         private readonly INotificationService _notificationService;
         private readonly ILogger<AdminProductService> _logger;
         private readonly UserManager<AppUser> _userManager;
+        private readonly ICacheService _cacheService;
 
         public AdminProductService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             INotificationService notificationService,
             ILogger<AdminProductService> logger,
-            UserManager<AppUser> userManager)
+            UserManager<AppUser> userManager,
+            ICacheService cacheService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationService = notificationService;
             _logger = logger;
             _userManager = userManager;
+            _cacheService = cacheService;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -108,6 +111,7 @@ namespace Talentree.Service.Services
             }
 
             await _unitOfWork.CompleteAsync();
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
             _logger.LogInformation("Bulk approve: {Count} products approved by admin {AdminId}.", approved.Count, adminId);
         }
 
@@ -160,6 +164,7 @@ namespace Talentree.Service.Services
             }
 
             await _unitOfWork.CompleteAsync();
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
             _logger.LogInformation("Bulk reject: {Count} products rejected by admin {AdminId}.", dto.ProductIds.Count, adminId);
         }
 
@@ -185,6 +190,7 @@ namespace Talentree.Service.Services
 
             _unitOfWork.Repository<Product>().Update(product);
             await _unitOfWork.CompleteAsync();
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
 
             await _notificationService.CreateNotificationAsync(new CreateNotificationDto
             {
@@ -261,6 +267,7 @@ namespace Talentree.Service.Services
             product.UpdatedBy = adminId;
             _unitOfWork.Repository<Product>().Update(product);
             await _unitOfWork.CompleteAsync();
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
 
             await _notificationService.CreateNotificationAsync(new CreateNotificationDto
             {
@@ -290,6 +297,7 @@ namespace Talentree.Service.Services
             product.UpdatedBy = adminId;
             _unitOfWork.Repository<Product>().Update(product);
             await _unitOfWork.CompleteAsync();
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
 
             await _notificationService.CreateNotificationAsync(new CreateNotificationDto
             {
@@ -319,6 +327,7 @@ namespace Talentree.Service.Services
             product.UpdatedBy = adminId;
             _unitOfWork.Repository<Product>().Update(product);
             await _unitOfWork.CompleteAsync();
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
 
             _logger.LogInformation("Product {ProductId} featured by admin {AdminId}.", productId, adminId);
         }
@@ -334,6 +343,7 @@ namespace Talentree.Service.Services
             product.UpdatedBy = adminId;
             _unitOfWork.Repository<Product>().Update(product);
             await _unitOfWork.CompleteAsync();
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
 
             _logger.LogInformation("Product {ProductId} unfeatured by admin {AdminId}.", productId, adminId);
         }
@@ -356,6 +366,7 @@ namespace Talentree.Service.Services
             product.UpdatedBy = adminId;
             _unitOfWork.Repository<Product>().Update(product);
             await _unitOfWork.CompleteAsync();
+            await _cacheService.RemoveCacheByPatternAsync("customer:*");
 
             _logger.LogInformation("Product {ProductId} category changed to {CategoryId} by admin {AdminId}.",
                 dto.ProductId, dto.NewCategoryId, adminId);
