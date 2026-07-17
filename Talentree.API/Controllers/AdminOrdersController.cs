@@ -63,6 +63,22 @@ namespace Talentree.API.Controllers
             return Ok(result);
         }
 
+        [HttpPut("materials/{id}/status")]
+        public async Task<IActionResult> UpdateMaterialOrderStatus(int id, [FromBody] UpdateMaterialOrderStatusDto dto)
+        {
+            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result = await _orderService.UpdateMaterialOrderStatusAsync(id, dto, adminId);
+            return Ok(result);
+        }
+
+        [HttpPost("materials/{id}/notes")]
+        public async Task<IActionResult> AddMaterialOrderNote(int id, [FromBody] string note)
+        {
+            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result = await _orderService.AddMaterialOrderNoteAsync(id, note, adminId);
+            return Ok(result);
+        }
+
         [HttpGet("export")]
         public async Task<IActionResult> ExportOrders([FromQuery] AdminOrderFilterDto filter)
         {

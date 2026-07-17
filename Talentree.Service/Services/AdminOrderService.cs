@@ -226,6 +226,101 @@ namespace Talentree.Service.Services
             return _mapper.Map<AdminOrderDetailDto>(order);
         }
 
+        public async Task<AdminMaterialOrderSummaryDto> UpdateMaterialOrderStatusAsync(int orderId, UpdateMaterialOrderStatusDto dto, string adminId)
+        {
+            var spec = new MaterialOrderByIdSpecification(orderId);
+            var order = await _unitOfWork.Repository<MaterialOrder>().GetByIdWithSpecificationsAsync(spec);
+            
+            if (order == null)
+                throw new NotFoundException($"Material Order #{orderId} not found.");
+
+            if (order.Status == dto.NewStatus)
+                throw new BadRequestException($"Material Order is already in {dto.NewStatus} status.");
+
+            // Business rule: Can't move backwards from Delivered
+            if (order.Status == MaterialOrderStatus.Delivered && dto.NewStatus != MaterialOrderStatus.Refunded)
+                throw new BadRequestException("Cannot change status of a Delivered order unless it is being Refunded.");
+
+            order.Status = dto.NewStatus;
+            
+            if (dto.NewStatus == MaterialOrderStatus.Delivered && !order.DeliveredAt.HasValue)
+                order.DeliveredAt = DateTime.UtcNow;
+
+            _unitOfWork.Repository<MaterialOrder>().Update(order);
+            await _unitOfWork.CompleteAsync();
+
+            await _auditLogService.LogActionAsync(
+                userId: order.BusinessOwnerId,
+                adminId: adminId,
+                action: "Update Material Order Status",
+                reason: $"Material order status changed to {dto.NewStatus}. Reason: {dto.Reason}",
+                entityType: "MaterialOrder",
+                entityId: order.Id.ToString()
+            );
+
+            // Notify Business Owner
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto
+            {
+                UserId = order.BusinessOwnerId,
+                Type = NotificationType.MaterialOrder,
+                Title = "Material Order Status Updated",
+                Message = $"Your material order #{order.Id} status is now {order.Status}.",
+                ActionUrl = $"/material-orders/{order.Id}",
+                ActionText = "View Order",
+                Priority = NotificationPriority.Normal,
+                SendEmail = true,
+                RelatedEntityType = "MaterialOrder",
+                RelatedEntityId = order.Id
+            });
+
+            var result = _mapper.Map<AdminMaterialOrderSummaryDto>(order);
+            
+            // Populate Business Owner display name & email
+            var owner = await _userManager.FindByIdAsync(order.BusinessOwnerId);
+            if (owner != null)
+            {
+                result.BusinessOwnerName = owner.DisplayName ?? string.Empty;
+                result.BusinessOwnerEmail = owner.Email ?? string.Empty;
+            }
+
+            return result;
+        }
+
+        public async Task<AdminMaterialOrderSummaryDto> AddMaterialOrderNoteAsync(int orderId, string note, string adminId)
+        {
+            var spec = new MaterialOrderByIdSpecification(orderId);
+            var order = await _unitOfWork.Repository<MaterialOrder>().GetByIdWithSpecificationsAsync(spec);
+            
+            if (order == null)
+                throw new NotFoundException($"Material Order #{orderId} not found.");
+
+            order.AdminNotes = string.IsNullOrEmpty(order.AdminNotes) ? note : $"{order.AdminNotes}\n[{DateTime.UtcNow:yyyy-MM-dd}] {note}";
+            
+            _unitOfWork.Repository<MaterialOrder>().Update(order);
+            await _unitOfWork.CompleteAsync();
+
+            await _auditLogService.LogActionAsync(
+                userId: order.BusinessOwnerId,
+                adminId: adminId,
+                action: "Add Material Order Note",
+                reason: $"Note added: {note}",
+                entityType: "MaterialOrder",
+                entityId: order.Id.ToString()
+            );
+
+            var result = _mapper.Map<AdminMaterialOrderSummaryDto>(order);
+            
+            // Populate Business Owner display name & email
+            var owner = await _userManager.FindByIdAsync(order.BusinessOwnerId);
+            if (owner != null)
+            {
+                result.BusinessOwnerName = owner.DisplayName ?? string.Empty;
+                result.BusinessOwnerEmail = owner.Email ?? string.Empty;
+            }
+
+            return result;
+        }
+
         public async Task<byte[]> ExportOrdersToCsvAsync(AdminOrderFilterDto filter)
         {
             var spec = new AdminOrdersSpecification(filter.Search, filter.Status, filter.PaymentStatus, filter.DateFrom, filter.DateTo, filter.SortBy, filter.SortDesc, 1, 1000000); // Hacky way to get all for export

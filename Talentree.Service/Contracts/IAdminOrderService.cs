@@ -12,6 +12,8 @@ namespace Talentree.Service.Contracts
         Task<AdminOrderStatsDto> GetOrderStatsAsync();
         Task<AdminOrderDetailDto> UpdateOrderStatusAsync(int orderId, UpdateOrderStatusDto dto, string adminId);
         Task<AdminOrderDetailDto> AddAdminNoteAsync(int orderId, string note, string adminId);
+        Task<AdminMaterialOrderSummaryDto> UpdateMaterialOrderStatusAsync(int orderId, UpdateMaterialOrderStatusDto dto, string adminId);
+        Task<AdminMaterialOrderSummaryDto> AddMaterialOrderNoteAsync(int orderId, string note, string adminId);
         Task<byte[]> ExportOrdersToCsvAsync(AdminOrderFilterDto filter);
     }
 }

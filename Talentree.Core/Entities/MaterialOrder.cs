@@ -52,6 +52,9 @@ namespace Talentree.Core.Entities
         /// <summary>Timestamp when the order was marked as Delivered.</summary>
         public DateTime? DeliveredAt { get; set; }
 
+        /// <summary>Internal/administration note regarding the processing state of the order.</summary>
+        public string? AdminNotes { get; set; }
+
         // ── Navigation ────────────────────────────────────────────
         /// <summary>The individual raw-material lines that make up this order.</summary>
         public ICollection<MaterialOrderItem> Items { get; set; } = new List<MaterialOrderItem>();
