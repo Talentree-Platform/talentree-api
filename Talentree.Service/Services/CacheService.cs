@@ -54,6 +54,8 @@ namespace Talentree.Service.Services
 
         public async Task RemoveCacheByPatternAsync(string pattern)
         {
+            if (_redis == null) return; // No Redis configured — skip pattern deletion
+
             var endPoints = _redis.GetEndPoints();
             foreach (var endpoint in endPoints)
             {

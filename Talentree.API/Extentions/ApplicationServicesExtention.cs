@@ -18,17 +18,30 @@ namespace Talentree.API.Extentions
         {
             services.AddHttpClient();
 
-            // Register Redis Caching
-            services.AddStackExchangeRedisCache(options =>
+            // Register Caching — use Redis if configured, otherwise fall back to in-memory
+            var redisConnectionString = configuration.GetConnectionString("Redis");
+            if (!string.IsNullOrEmpty(redisConnectionString))
             {
-                options.Configuration = configuration.GetConnectionString("Redis") ?? "localhost:6379";
-            });
+                services.AddStackExchangeRedisCache(options =>
+                {
+                    options.Configuration = redisConnectionString;
+                });
 
-            services.AddSingleton<IConnectionMultiplexer>(sp =>
+                services.AddSingleton<IConnectionMultiplexer>(sp =>
+                {
+                    return ConnectionMultiplexer.Connect(redisConnectionString);
+                });
+            }
+            else
             {
-                var connectionString = configuration.GetConnectionString("Redis") ?? "localhost:6379";
-                return ConnectionMultiplexer.Connect(connectionString);
-            });
+                // Fallback: in-memory distributed cache (no Redis required)
+                services.AddDistributedMemoryCache();
+                services.AddSingleton<IConnectionMultiplexer>(sp =>
+                {
+                    // Return null-safe stub — RemoveCacheByPatternAsync will be a no-op
+                    return null!;
+                });
+            }
 
             services.AddScoped<ICacheService, CacheService>();
 
