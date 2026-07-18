@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Hosting;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Talentree.Core;
 using Talentree.Service.DTOs.Admin.RawMaterial;
@@ -20,13 +19,13 @@ namespace Talentree.Service.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly IWebHostEnvironment _env;
+        private readonly IImageService _imageService;
 
-        public AdminRawMaterialService(IUnitOfWork unitOfWork, IMapper mapper, IWebHostEnvironment env)
+        public AdminRawMaterialService(IUnitOfWork unitOfWork, IMapper mapper, IImageService imageService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
-            _env = env;
+            _imageService = imageService;
         }
 
         /// <inheritdoc/>
@@ -144,38 +143,22 @@ namespace Talentree.Service.Services
             var material = await _unitOfWork.Repository<RawMaterial>().GetByIdAsync(id)
                 ?? throw new KeyNotFoundException($"Material #{id} not found.");
 
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-            var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
+            if (!_imageService.IsValidImage(image))
+                throw new InvalidOperationException(
+                    "Invalid image. Only JPG and PNG files under 5MB are accepted.");
 
-            if (!allowedExtensions.Contains(extension))
-                throw new InvalidOperationException("Only JPG, PNG and WebP images are allowed.");
-
-            if (image.Length > 5 * 1024 * 1024)
-                throw new InvalidOperationException("Image must be under 5MB.");
-
-            var uploadsFolder = Path.Combine(_env.WebRootPath, "images", "materials");
-            Directory.CreateDirectory(uploadsFolder);
-
-            var fileName = $"material_{id}_{Guid.NewGuid():N}{extension}";
-            var filePath = Path.Combine(uploadsFolder, fileName);
-
-            await using (var stream = new FileStream(filePath, FileMode.Create))
-                await image.CopyToAsync(stream);
-
-            // Delete old image file if one exists
+            // Delete old image from Cloudinary if one exists
             if (!string.IsNullOrEmpty(material.PictureUrl))
-            {
-                var oldPath = Path.Combine(_env.WebRootPath, material.PictureUrl.TrimStart('/'));
-                if (File.Exists(oldPath)) File.Delete(oldPath);
-            }
+                await _imageService.DeleteImageAsync(material.PictureUrl);
 
-            var relativeUrl = $"/images/materials/{fileName}";
-            material.PictureUrl = relativeUrl;
+            // Upload new image to Cloudinary
+            var imageUrl = await _imageService.UploadImageAsync(image, "materials");
+            material.PictureUrl = imageUrl;
 
             _unitOfWork.Repository<RawMaterial>().Update(material);
             await _unitOfWork.CompleteAsync();
 
-            return relativeUrl;
+            return imageUrl;
         }
     }
-}
+}
