@@ -1,4 +1,4 @@
-﻿using Talentree.Core.Entities.Identity;
+using Talentree.Core.Entities.Identity;
 using Talentree.Core.Enums;
 
 namespace Talentree.Core.Specifications.UserManagementSpecifications
@@ -13,7 +13,6 @@ namespace Talentree.Core.Specifications.UserManagementSpecifications
             int? pageIndex = null,
             int? pageSize = null)
             : base(u =>
-                u.BusinessOwnerProfile == null && // Not a business owner
                 (string.IsNullOrEmpty(searchQuery) ||
                  u.DisplayName.Contains(searchQuery) ||
                  u.Email!.Contains(searchQuery)) &&

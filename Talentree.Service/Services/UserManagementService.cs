@@ -17,6 +17,8 @@ using Talentree.Service.DTOs.Admin;
 using Talentree.Service.DTOs.Common;
 using Talentree.Service.DTOs.Notification;
 using Talentree.Service.DTOs.UserManagement;
+using Talentree.Repository.Data;
+using Talentree.Repository;
 
 // Alias to avoid ambiguity with Stripe.Product
 using TalentreeProduct = Talentree.Core.Entities.Product;
@@ -31,6 +33,7 @@ namespace Talentree.Service.Services
         private readonly INotificationService _notificationService;
         private readonly INotificationHelperService _notificationHelper; 
         private readonly ILogger<UserManagementService> _logger;
+        private readonly TalentreeDbContext _dbContext;
 
         public UserManagementService(
             IUnitOfWork unitOfWork,
@@ -38,7 +41,8 @@ namespace Talentree.Service.Services
             UserManager<AppUser> userManager,
             INotificationService notificationService,
             INotificationHelperService notificationHelper,
-            ILogger<UserManagementService> logger)
+            ILogger<UserManagementService> logger,
+            TalentreeDbContext dbContext)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -46,6 +50,7 @@ namespace Talentree.Service.Services
             _notificationService = notificationService;
             _notificationHelper = notificationHelper;
             _logger = logger;
+            _dbContext = dbContext;
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -331,18 +336,25 @@ namespace Talentree.Service.Services
             if (pageSize < 1) pageSize = 20;
             if (pageSize > 100) pageSize = 100;
 
+            var customerRole = await _dbContext.Roles.FirstOrDefaultAsync(r => r.Name == "Customer");
+            var customerRoleId = customerRole?.Id ?? string.Empty;
+
+            // Base query filtered by the 'Customer' role database-side
+            var baseQuery = _userManager.Users
+                .Where(u => _dbContext.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == customerRoleId));
+
             var countSpec = new CustomersSpecification(
                 searchQuery, accountStatus, registrationDateFrom, registrationDateTo);
 
-            var totalCount = await _unitOfWork.Repository<AppUser>()
-                .GetCountWithSpecificationsAsync(countSpec);
+            var countQuery = SpecificationsEvaluator<AppUser>.CreateQuery(baseQuery, countSpec);
+            var totalCount = await countQuery.CountAsync();
 
             var spec = new CustomersSpecification(
                 searchQuery, accountStatus, registrationDateFrom, registrationDateTo,
                 pageIndex, pageSize);
 
-            var users = await _unitOfWork.Repository<AppUser>()
-                .GetAllWithSpecificationsAsync(spec);
+            var query = SpecificationsEvaluator<AppUser>.CreateQuery(baseQuery, spec);
+            var users = await query.ToListAsync();
 
             var dtos = new List<CustomerListDto>();
 
